@@ -203,7 +203,6 @@ D:\TestAgent\templates\coretest-spec-e2e@0.1.2\coretest-spec-e2e\.testagent\skil
 - 只处理当前 TS；
 - 只读取当前 `ts_<NN>_tc.json`；
 - 只生成当前 `ts_<NN>_test_case.json`；
-- 不遍历其他 TS；
 - 不合并多个 TS。
 
 推荐执行方式：
@@ -286,10 +285,6 @@ TS01 -> completed 测试用例卡片
 ## 约束
 
 - 一个 Skill 调用只处理一个 TS；
-- 不遍历 TS 列表；
-- 不合并多个 TS；
-- 不负责测试设计；
-- 不生成 TP/TC；
 - card_id 文件统一由 `card-initializer/scripts/test_case/card_generate.py` 生成并保留在初始化脚本目录；
 - 调用 `test-case-card/scripts/card_generate.py` 时必须传入第 4 个参数 `<requirement_id>_<ts-id>`；
 - 卡片初始化必须由 `coretest-design` 在 TS SubAgent 并行启动前完成。
