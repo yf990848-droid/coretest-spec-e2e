@@ -245,8 +245,6 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 ## Guardrails
 
--   不生成测试脚本；
--   不跳过校验；
 -   Phase 1.5 必须按每批最多 3 个 TS 初始化 working 卡片；
 -   每个 TS 必须通过独立的 bash 工具调用初始化，禁止在一次调用中串联多个 `card_generate.py`；
 -   当前批次 working 卡片初始化完成后，必须立即运行当前批次，不得预先初始化后续批次；
@@ -259,12 +257,6 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 -   `coretest-design` 主流程不得自行读取 test-design 规则文件后串行生成所有 TS；
 -   每个 `test-design-agent` 必须只处理一个 TS，并在 Agent 内部完成 markdown、JSON、卡片 completed 闭环；
 -   每个 `test-design-agent` 必须接收完整 CIDA 上下文；
--   不得重新生成或覆盖 init 阶段生成的 `cida_info.json`；
--   不等待全部 TS markdown 生成完成后再统一提取 JSON；
--   不等待全部 JSON 生成完成后再统一生成卡片；
--   主流程不统一调用 `build_tp_tc_json.py`；
--   主流程不统一调用 `test-case-card-agent`；
--   不调用 `run_card_flow.py`；
 -   一个TS对应一个卡片；
 -   禁止SubAgent生成非目标TS的TP/TC；
 -   TS之间必须保持测试职责边界，避免重复覆盖。
