@@ -7,7 +7,7 @@ license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 1.3
+  version: 1.3.1
 name: coretest-design
 ---
 
@@ -27,7 +27,7 @@ name: coretest-design
     初始化TS级working卡片
             |
             v
-    .design_output/<design_task_id>/<IR>/test_design
+    .design_output/<design_task_id>/<requirement_id>/test_design
             |
             v
     并行调用test-design-agent
@@ -47,7 +47,7 @@ name: coretest-design
 
 从 `.design_output/` 下定位已完成 explore 的上下文目录：
 
-    .design_output/<design_task_id>/<IR>/
+    .design_output/<design_task_id>/<requirement_id>/
 
 必须存在：
 
@@ -58,9 +58,9 @@ name: coretest-design
 其中：
 
 -   如果只找到一个有效上下文，直接使用；
--   如果找到多个有效上下文，停止执行并列出候选 `<design_task_id>/<IR>`，不得静默选择；
+-   如果找到多个有效上下文，停止执行并列出候选 `<design_task_id>/<requirement_id>`，不得静默选择；
 -   `cida_info.json` 必须使用 init 阶段已经生成并由 explore 阶段落入当前上下文目录的文件，只读，不得重新生成或覆盖；
--   从 `cida_info.json` 及其所属目录获取并校验 `design_task_id` 和 IR；
+-   从 `cida_info.json` 及其所属目录获取并校验 `design_task_id` 和 `requirement_id`（支持 IR/SR）；
 -   将完整 CIDA 上下文传给每个 `test-design-agent`；
 -   当前 TS JSON 提取所需的 `design-task-id` 来自该上下文，不再要求用户传入；
 -   TS完整列表必须来自 `tr_ts.json`；
@@ -86,10 +86,10 @@ name: coretest-design
 规则：
 
 -   一个 TS 对应一个 working 卡片；
--   初始化 key 必须使用 `<IR>_<ts-id>`；
+-   初始化 key 必须使用 `<requirement_id>_<ts-id>`；
 -   示例：`IR20251206000098_ts_01`；
 -   初始化脚本必须使用原始 card-initializer 脚本；
--   card_id 文件保留在初始化脚本目录，不复制到 `.design_output/<design_task_id>/<IR>/cards/`；
+-   card_id 文件保留在初始化脚本目录，不复制到 `.design_output/<design_task_id>/<requirement_id>/cards/`；
 -   每个 TS 必须使用一次独立的 bash 工具调用，不得在同一次 bash 调用中串联多个 `card_generate.py`；
 -   当前批次最多同时发起 3 个独立的卡片初始化调用；
 -   当前批次初始化完成后立即进入该批次的并行测试设计阶段；
@@ -99,7 +99,7 @@ name: coretest-design
 每个 TS 的独立工具调用必须遵循以下格式：
 
 ```bash
-cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card_generate.py <IR>_<ts-id>
+cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card_generate.py <requirement_id>_<ts-id>
 ```
 
 要求：
@@ -117,7 +117,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 初始化后应生成：
 
-    <root>/.testagent/skills/card-initializer/scripts/test_case/<IR>_<ts-id>_card_id.txt
+    <root>/.testagent/skills/card-initializer/scripts/test_case/<requirement_id>_<ts-id>_card_id.txt
 
 例如：
 
@@ -150,7 +150,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 每个 `test-design-agent` 调用时必须同时提供：
 
-1.  IR 编号；
+1.  需求编号 `requirement_id`（支持 IR/SR）；
 2.  当前 TS 编号（如 `ts_01` 或 `01`）；
 3.  当前负责生成的 TS 信息；
 4.  当前 TR 信息；
@@ -189,11 +189,11 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 所有测试设计产物统一写入：
 
-    .design_output/<design_task_id>/<IR>/test_design/
+    .design_output/<design_task_id>/<requirement_id>/test_design/
 
 每批输出：
 
-    .design_output/<design_task_id>/<IR>/test_design/
+    .design_output/<design_task_id>/<requirement_id>/test_design/
 
     ts_<NN>_test_design.md
     ts_<NN>_test_cases.md
