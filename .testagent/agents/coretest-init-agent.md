@@ -2,7 +2,7 @@
 description: coretest 初始化 Agent
 metadata:
   author: corespec
-  version: 1.4.1
+  version: 1.4.2
 name: coretest-init-agent
 ---
 
@@ -86,23 +86,27 @@ python -u card_generate.py "working" "coretest-explore" "{pbi}" "" "fullTestDesi
 
 ### 无 TR
 
-提示用户在平台创建 TR，完成后回复：
+明确提示用户：
 
 ```text
-TR已创建
+当前未查询到可用 TR。请先在右侧 working 卡片中创建 TR；创建完成后，再回复“TR已创建”。在右侧卡片操作完成前，请勿回复“TR已创建”。
 ```
 
-暂停流程。
+暂停流程，等待用户完成右侧卡片操作。
 
 ### 已有 TR
 
-展示已有 TR，并询问是否需要新增 TR。完成操作后回复：
+展示已有 TR，并明确提示用户：
 
 ```text
-TR已创建
+请先在右侧 working 卡片中确认是否需要新增 TR：
+- 如需新增，请在右侧卡片中完成创建；
+- 如已有 TR 可直接使用、无需新增，请确认无需创建。
+
+完成创建或确认无需创建后，再统一回复“TR已创建”。在完成上述确认前，请勿回复“TR已创建”。
 ```
 
-暂停流程。
+暂停流程，等待用户完成右侧卡片操作或确认无需新增。
 
 9. 收到 `TR已创建` 后，重新从步骤 3 开始执行，拉取最新 TR 信息并刷新上下文。不得删除本次 MCP 未返回的历史 TR 目录。
 
