@@ -2,7 +2,7 @@
 description: coretest 初始化 Agent
 metadata:
   author: corespec
-  version: 1.4.0
+  version: 1.4.1
 name: coretest-init-agent
 ---
 
@@ -10,7 +10,7 @@ name: coretest-init-agent
 
 ## 职责
 
-根据产品版本初始化测试设计任务上下文，获取设计任务及关联 TR 信息，在取得 PBI 后立即展示入口卡片，并生成 TR 级上下文。
+根据产品版本初始化测试设计任务上下文，获取设计任务及关联 TR 信息，在取得 PBI 后立即展示入口卡片，并生成 TR 级上下文和兼容的 CIDA 上下文。
 
 ## 输入
 
@@ -19,7 +19,8 @@ name: coretest-init-agent
 ## 输出
 
 - `.design_output/design_task_info.json`
-- `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json`
+- `.design_output/<design_task_id>/TR_<tr_id>/tr_info.json`
+- `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json`（仅当 TR 关联唯一且完整的需求）
 - 全量测试设计 `working` 状态卡片
 
 ## 执行步骤
@@ -67,14 +68,19 @@ python -u card_generate.py "working" "coretest-explore" "{pbi}" "" "fullTestDesi
 并运行脚本生成：
 
 ```text
+.design_output/<design_task_id>/TR_<tr_id>/tr_info.json
 .design_output/<design_task_id>/TR_<tr_id>/cida_info.json
 ```
+
+`tr_info.json` 保存完整 TR 上下文；`cida_info.json` 保持旧版单需求结构，供 design 阶段生成用例卡片。TR 无唯一完整需求时不得伪造或默认选择需求。
 
 7. 校验初始化结果：
 
 - `design_task_info.json` 存在且 JSON 格式合法；
-- 每个有效 `tr_id` 均存在对应的 `TR_<tr_id>/cida_info.json`；
-- `cida_info.json` 中的 `design_task_id`、`tr_id`、`pbi`、`project_id` 和 `card_key_prefix` 正确。
+- 每个有效 `tr_id` 均存在对应的 `TR_<tr_id>/tr_info.json`；
+- `tr_info.json` 中的 `design_task_id`、`tr_id`、`pbi`、`project_id` 和 `card_key_prefix` 正确；
+- 对关联唯一且包含 `requirement_id` 的需求，存在旧结构的 `cida_info.json`，且只包含 `requirement_number`、`requirement_id`、`project_id` 和 `reqType`；
+- 对多需求、无需求或缺少 `requirement_id` 的 TR，展示脚本摘要并提示该 TR 暂不能进入 design，不得默认选择需求。
 
 8. 读取 `design_task_info.json` 中的 `data[].tr_list`，展示已有 TR 信息。
 
@@ -110,4 +116,3 @@ TR已创建
 
 - 初始化上下文：`test-init-context`
 - 卡片：`test-portal-card`
-
