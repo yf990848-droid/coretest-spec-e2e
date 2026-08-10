@@ -89,7 +89,8 @@ python -u card_generate.py "working" "coretest-explore" "{pbi}" "" "fullTestDesi
 明确提示用户：
 
 ```text
-当前未查询到可用 TR。请先在右侧 working 卡片中创建 TR；创建完成后，再回复“TR已创建”。在右侧卡片操作完成前，请勿回复“TR已创建”。
+当前未查询到可用 TR。请先在右侧 全量测试设计 卡片中创建 TR；创建完成后，再回复“TR已创建”。在右侧卡片操作完成前，请勿回复“TR已创建”。
+``` 卡片中创建 TR；创建完成后，再回复“TR已创建”。在右侧卡片操作完成前，请勿回复“TR已创建”。
 ```
 
 暂停流程，等待用户完成右侧卡片操作。
@@ -99,7 +100,8 @@ python -u card_generate.py "working" "coretest-explore" "{pbi}" "" "fullTestDesi
 展示已有 TR，并明确提示用户：
 
 ```text
-请先在右侧 working 卡片中确认是否需要新增 TR：
+请先在右侧 全量测试设计 卡片中创建 TR；创建完成后，再回复“TR已创建”。在右侧卡片操作完成前，请勿回复“TR已创建”。
+``` 卡片中确认是否需要新增 TR：
 - 如需新增，请在右侧卡片中完成创建；
 - 如已有 TR 可直接使用、无需新增，请确认无需创建。
 
