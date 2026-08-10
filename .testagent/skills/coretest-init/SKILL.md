@@ -4,7 +4,7 @@ description: 初始化 coretest-spec-e2e
   coretest-init-agent 执行初始化流程。
 metadata:
   author: corespec
-  version: 1.2.0
+  version: 1.2.1
 name: coretest-init
 ---
 
@@ -47,8 +47,9 @@ product_name = 用户输入的产品版本
 
 ## 调用要求
 
-必须使用 `task` 工具调用 `coretest-init-agent`
-执行初始化流程。
+- 必须使用 `task` 工具调用 `coretest-init-agent` 执行初始化流程。
+- 单轮初始化只允许调用一次 `core_test_design_mcp.get_design_task_info_init`，后续步骤必须复用该次返回。
+- 只有用户在后续消息中回复“TR已创建”时，才允许启动新一轮初始化并再次调用一次 MCP。
 
 ## 输出
 
