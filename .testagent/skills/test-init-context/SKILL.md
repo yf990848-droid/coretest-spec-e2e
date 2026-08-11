@@ -2,7 +2,7 @@
 description: 保存初始化 MCP 返回，并按真实 TR ID 生成测试设计任务、TR 与 CIDA 上下文。
 metadata:
   author: corespec
-  version: 1.3.2
+  version: 1.3.3
 name: test-init-context
 ---
 
@@ -22,7 +22,7 @@ name: test-init-context
 .design_output/<design_task_id>/TR_<tr_id>/cida_info.json
 ```
 
-其中 `tr_info.json` 保存当前 TR 的直接需求关联；`cida_info.json` 保持旧版单需求结构，供后续阶段使用。
+其中 `tr_info.json.requirements[]` 保存当前 TR 的全部直接关联需求，并作为后续 Explore 的完整分析范围；`cida_info.json` 仅保持旧版单需求结构，用于兼容单需求接口和流程准入。
 
 ## 执行步骤
 
@@ -48,7 +48,8 @@ python -u .testagent/skills/test-init-context/scripts/generate_tr_context.py \
 - 只认当前 TR 的 `relation_requirement` 直接关联，不得通过任务级需求、函数、特性或其他 TR 推导。
 - 目录固定为 `.design_output/<design_task_id>/TR_<tr_id>/`。
 - 每个有效 TR 均生成 `tr_info.json`。
-- `relation_requirement` 支持逗号分隔多个需求；`tr_info.json.requirements` 按原始顺序保存并去重。
+- `relation_requirement` 支持逗号分隔多个需求；`tr_info.json.requirements` 按原始顺序保存并去重，多需求属于正常 TR 上下文。
+- 同一需求编号和 ALM ID 重复时保留第一条；同一需求编号对应不同 ALM ID 时判定上下文冲突并停止 init。
 - 需求编号按顺序与当前 TR 的 `ir_list[].requirement_alm_id` 配对；不得使用 `requirementParentId` 代替需求自身 ALM ID。
 - `tr_info.json.card_key_prefix` 固定为 `TR_<tr_id>`，不得把 TR ID 写入 `requirement_number`。
 - 重复执行只更新上下文文件，不删除历史 TR 目录，不触碰 `test_specs`、`test_design` 和 `archive`。
@@ -89,7 +90,7 @@ python -u .testagent/skills/test-init-context/scripts/generate_tr_context.py \
 ```
 
 - TR 直接关联一个需求且存在 `requirement_id`：生成或更新 `cida_info.json`。
-- TR 直接关联多个需求：`tr_info.json` 保存全部需求，`cida_info.json` 默认选择原始顺序中的第一条。
+- TR 直接关联多个需求：`tr_info.json` 保存全部需求，`cida_info.json` 只选择原始顺序中的第一条以兼容旧接口；后续分析不得因此忽略其余需求。
 - TR 的 `relation_requirement` 为空：判定未直接关联需求，不生成 `cida_info.json`，并报告 `missing direct requirement`。
 - 第一条直接关联需求缺少 `requirement_id`：不伪造字段，不生成 `cida_info.json`，并报告 `missing requirement_id`。
 - 无法生成 CIDA 上下文时，删除该 TR 目录中的旧 `cida_info.json`，避免该 TR 误入后续流程。
@@ -97,11 +98,14 @@ python -u .testagent/skills/test-init-context/scripts/generate_tr_context.py \
 ## 后续流程准入
 
 - 仅存在结构合法 `cida_info.json` 的 TR 可以进入后续流程。
+- 准入时只校验 `cida_info.json` 与 `tr_info.json.requirements[0]` 一致。
+- 准入后，需求查询、文档下载和分析必须遍历去重后的全部 `tr_info.json.requirements[]`，不得只处理 CIDA 对应需求。
 - 未直接关联需求或第一条需求缺少 `requirement_id` 的 TR 必须停止，提示用户先在平台补齐该 TR 的直接需求关联，再重新执行 init。
 
 ## 成功准则
 
 1. `design_task_info.json` 与 MCP 原始返回一致。
 2. 每个有效 TR 均生成 `TR_<tr_id>/tr_info.json`。
-3. 每个第一条直接关联需求信息完整的 TR 均生成旧结构的 `TR_<tr_id>/cida_info.json`。
-4. 脚本可重复执行，且不覆盖其他阶段产物。
+3. 多需求 TR 的 `tr_info.json.requirements[]` 完整保留全部直接关联需求，`cida_info.json` 与第一条需求一致。
+4. 同一需求编号对应不同 ALM ID 时立即失败，不生成存在歧义的上下文。
+5. 脚本可重复执行，且不覆盖其他阶段产物。
