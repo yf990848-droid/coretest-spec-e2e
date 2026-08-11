@@ -85,6 +85,7 @@ python -u .testagent/skills/test-init-context/scripts/generate_tr_context.py \
   ]
 }
 ```
+
 ## `cida_info.json` 兼容规则
 
 `cida_info.json` 保持原有结构：
