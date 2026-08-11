@@ -35,15 +35,36 @@ def item_requirement_number(item: dict[str, Any]) -> str:
     return str(item.get("requirement_id") or item.get("requirement_number") or "").strip()
 
 
+def item_requirement_alm_id(item: dict[str, Any]) -> str:
+    return str(item.get("requirementAlmId") or item.get("requirement_alm_id") or "").strip()
+
+
 def build_requirements(tr: dict[str, Any]) -> list[dict[str, Any]]:
     numbers = direct_requirement_numbers(tr.get("relation_requirement"))
     if not numbers:
         return []
 
     items = [item for item in tr.get("ir_list") or [] if isinstance(item, dict)]
+    items_by_number: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        number = item_requirement_number(item)
+        if number:
+            items_by_number.setdefault(number, []).append(item)
+
     requirements: list[dict[str, Any]] = []
     for index, number in enumerate(numbers):
-        item = next((candidate for candidate in items if item_requirement_number(candidate) == number), None)
+        candidates = items_by_number.get(number, [])
+        alm_ids = {item_requirement_alm_id(candidate) for candidate in candidates}
+        alm_ids.discard("")
+        if len(alm_ids) > 1:
+            raise ValueError(
+                f"conflicting requirement_id for {number}: {', '.join(sorted(alm_ids))}"
+            )
+
+        item = next(
+            (candidate for candidate in candidates if item_requirement_alm_id(candidate)),
+            candidates[0] if candidates else None,
+        )
         if item is None and index < len(items):
             item = items[index]
         item = item or {}
@@ -53,9 +74,9 @@ def build_requirements(tr: dict[str, Any]) -> list[dict[str, Any]]:
             "requirement_type": item.get("requirement_type") or ("SR" if number.startswith("SR") else "IR"),
             "reqType": "cloudalm",
         }
-        alm_id = item.get("requirementAlmId") or item.get("requirement_alm_id")
-        if alm_id not in (None, ""):
-            requirement["requirement_id"] = str(alm_id)
+        alm_id = item_requirement_alm_id(item)
+        if alm_id:
+            requirement["requirement_id"] = alm_id
         requirements.append(requirement)
     return requirements
 
@@ -144,7 +165,7 @@ def main() -> int:
     print(
         f"TR contexts generated: {tr_generated}; CIDA contexts generated: {cida_generated}; "
         f"missing direct requirement: {missing_requirement}; "
-        f"multiple direct requirement (first selected): {multiple_requirement}; "
+        f"multi-requirement TRs: {multiple_requirement}; "
         f"missing requirement_id: {missing_requirement_id}; skipped invalid entries: {skipped}"
     )
     return 0
