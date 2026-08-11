@@ -2,7 +2,7 @@
 description: 将单个 TS 测试用例转换为测试用例卡片，并更新已初始化的 TS working 卡片。
 metadata:
   author: corespec
-  version: "2.4.1"
+  version: "2.5.0"
 name: test-case-card-adapter
 ---
 
@@ -16,10 +16,10 @@ name: test-case-card-adapter
 coretest-design
         |
         v
-.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_tc.json
+.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_tc.json
         |
         v
-.design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
         |
         v
 测试用例卡片
@@ -60,7 +60,7 @@ IR20251206000098_ts_01
 1. 读取当前 TS 的测试用例 JSON：
 
    ```
-   .design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_tc.json
+   .design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_tc.json
    ```
 
 2. 检查当前 TS 已初始化的 card_id 文件：
@@ -72,7 +72,7 @@ IR20251206000098_ts_01
 3. 调用 `prepare_test_case_card.py`，将当前 TS 测试用例 JSON 转换为测试用例卡片数据文件：
 
    ```
-   .design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+   .design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
    ```
 
 4. 调用 `test-case-card` 的 `card_generate.py`，通过第 4 个参数传入当前 TS 级 key，将当前 TS 的 working 卡片更新为 completed 状态。
@@ -118,7 +118,7 @@ ts_01
 示例：
 
 ```
-.design_output/2470/IR20251206000098/test_design/ts_01_tc.json
+.design_output/2470/TR_3863/test_design/ts_01_tc.json
 ```
 
 ### --spec-file
@@ -130,7 +130,7 @@ ts_01
 init 阶段生成并由 explore 阶段落入当前上下文目录的 CIDA 文件路径：
 
 ```
-.design_output/<design_task_id>/<requirement_id>/cida_info.json
+.design_output/<design_task_id>/TR_<tr_id>/cida_info.json
 ```
 
 必须使用该文件，只读，不得重新生成或覆盖，也不得改用 `test-case-card/config/cida_info.json`。
@@ -140,7 +140,7 @@ init 阶段生成并由 explore 阶段落入当前上下文目录的 CIDA 文件
 当前 TS 测试用例卡片数据输出路径：
 
 ```
-.design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
 ```
 
 ---
@@ -220,7 +220,7 @@ cd <root>; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_tes
 输出：
 
 ```
-.design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
 ```
 
 ---
@@ -239,7 +239,7 @@ cd <root>; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_tes
 
 ```powershell
 cd <root>\.testagent\skills\test-case-card\scripts; python -u card_generate.py `
-  "<root>\.design_output\<design_task_id>\<requirement_id>\ts_<NN>_test_case.json" `
+  "<root>\.design_output\<design_task_id>\TR_<tr_id>\ts_<NN>_test_case.json" `
   "<spec-file>" `
   "<cida-info>" `
   "<requirement_id>_<ts-id>"
@@ -249,9 +249,9 @@ cd <root>\.testagent\skills\test-case-card\scripts; python -u card_generate.py `
 
 ```powershell
 cd D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.testagent\skills\test-case-card\scripts; python -u card_generate.py `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\IR20251206000098\ts_01_test_case.json" `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\IR20251206000098\test_specs\NsmfNupf链路容灾功能补齐测试规格.md" `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\IR20251206000098\cida_info.json" `
+  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\ts_01_test_case.json" `
+  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\test_specs\NsmfNupf链路容灾功能补齐测试规格.md" `
+  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\cida_info.json" `
   "IR20251206000098_ts_01"
 ```
 
