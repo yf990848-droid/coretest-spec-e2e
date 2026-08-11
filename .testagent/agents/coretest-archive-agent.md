@@ -1,8 +1,8 @@
 ---
-description: 测试设计归档闭环 Agent，按依赖顺序直接调用 MCP 创建 TR、TS、TP、TC，逐步保存平台 ID，并刷新全量测试设计 Portal 卡片。
+description: 测试设计归档闭环 Agent，复用 Init 拉取的既有 TR，按依赖顺序创建 TS、TP、TC，逐步保存平台 ID，并刷新全量测试设计 Portal 卡片。
 metadata:
   author: corespec
-  version: "1.7.2"
+  version: "1.8.0"
 ---
 
 # Agent: coretest-archive-agent
@@ -13,7 +13,7 @@ metadata:
 
 ```text
 解析目标和依赖
-→ 创建或复用 TR
+→ 复用 Init 中的既有 TR
 → 创建或复用 TS
 → 创建或复用 TP
 → 创建或复用 TC
@@ -21,9 +21,9 @@ metadata:
 → 调用 test-portal-card 跳转
 ```
 
-本 Agent 直接调用 `core_test_design_mcp` 创建 TR、TS、TP 和 TC。
+本 Agent 只允许调用 `core_test_design_mcp.create_ts`、`create_tp` 和 `create_tc`。TR 必须从 Init 生成的 `tr_info.json` 和归档状态中复用，禁止调用 `create_tr`。
 
-一次归档只运行一个本 Agent。TR、TS、TP、TC 存在严格父子 ID 依赖，禁止拆分为多个归档 Agent 或并发创建。
+一次归档只运行一个本 Agent。TS、TP、TC 存在严格父子 ID 依赖，禁止拆分为多个归档 Agent 或并发创建。
 
 ## 必需输入
 
@@ -33,29 +33,30 @@ metadata:
 2. 用户原始目标列表；
 3. 已去重目标列表；
 4. 仅根据本次目标生成的权威执行计划；
-5. `design_task_id`；
-6. IR 编号；
-7. 版本 PBI；
-8. 设计任务名称 `task_name`；
-9. `creator`；
-10. 当前上下文目录；
-11. `.design_output/design_task_info.json` 路径；
-12. `cida_info.json` 路径；
-13. `tr_ts.json` 路径及完整内容；
-14. `test_design/` 路径；
-15. 仅当执行计划包含 TP/TC 时提供与目标有关的 TP/TC JSON 路径；
-16. `archive/archive_state.json` 路径；
-17. 当前 TR 下完整 TS 清单。
+5. `tr_id`；
+6. `design_task_id`；
+7. IR 编号；
+8. 版本 PBI；
+9. 设计任务名称 `task_name`；
+10. `creator`；
+11. 当前 `TR_<tr_id>` 上下文目录；
+12. `tr_info.json` 路径及完整内容；
+13. `.design_output/design_task_info.json` 路径；
+14. `cida_info.json` 路径；
+15. `tr_ts.json` 路径及完整内容；
+16. `test_design/` 路径；
+17. 仅当执行计划包含 TP/TC 时提供与目标有关的 TP/TC JSON 路径；
+18. `archive/archive_state.json` 路径；
+19. 当前 TR 下完整 TS 清单。
 
-缺少当前目标实际需要的输入时停止，不调用 MCP。TR-only 或 TS-only 目标不需要 TP/TC JSON，且不得因此读取这些文件。
+缺少当前目标实际需要的输入时停止，不调用 MCP。TS-only 目标不需要 TP/TC JSON，且不得因此读取这些文件。
 
 ## 固定数据规则
 
-- `create_tr.pbi` 使用版本 PBI，例如 `266926538`；
-- `design_task_id` 例如 `2470`，不得当作 `create_tr.pbi`；
-- `create_tr.task_name` 使用 `design_task_info.json` 中当前 `design_task_id` 对应的 `data[].name`；
-- 不得使用 `tr_name` 代替 `task_name`；
+- `tr_id` 使用 Init 生成的 `tr_info.json.tr_id`；
+- `archive_state.json.tr.platform_id` 必须与该 `tr_id` 一致；
 - `creator` 复用当前归档上下文中的创建人工号；
+- TR 只作为既有平台父节点，禁止归档或调用 `create_tr`；
 - `tr_ts.json`、TP JSON、TC JSON 均只读，不得回填或覆盖；
 - 所有真实平台 ID 只保存到 `archive/` 状态目录；
 - 所有本地命令路径使用 `/`，不得使用会被 bash 转义的 `\`。
@@ -76,7 +77,7 @@ test_specs[19] → TS_20
 状态文件中的对象 key 固定为：
 
 ```text
-TR                         → TR
+TR（只读父上下文）          → TR
 TS                         → TS_01
 TP                         → TS_01/TP.01.01.01
 TC                         → TS_01/TC.01
@@ -95,22 +96,24 @@ TP/TC 必须带所属 TS 前缀保存，避免不同 `ts_<NN>_*.json` 中出现�
 创建或读取：
 
 ```text
-.design_output/<design_task_id>/<IR>/archive/archive_state.json
+.design_output/<design_task_id>/TR_<tr_id>/archive/archive_state.json
 ```
 
 初始化上下文必须包含：
 
 ```text
+tr_id
 design_task_id
 ir_id
 pbi
 task_name
 creator
+tr_info.json路径及完整内容
 tr_ts.json路径
 test_design目录
 ```
 
-如果状态文件中的 `design_task_id`、IR、PBI 或 `task_name` 与本次上下文不一致，停止执行，不得覆盖旧状态。
+如果状态文件中的 `tr_id`、`design_task_id`、IR、PBI 或 `task_name` 与本次上下文不一致，停止执行，不得覆盖旧状态。重复初始化时刷新状态中的完整 `tr_info`，保留 TS、TP、TC 和卡片状态。
 
 ### 状态脚本调用规范
 
@@ -132,6 +135,7 @@ python "<root>/.testagent/skills/coretest-archive/scripts/archive_state.py" init
   --pbi <pbi> \
   --task-name "<task_name>" \
   --creator "<creator>" \
+  --tr-info-file "<tr-info-file>" \
   --tr-ts-file "<tr-ts-file>" \
   --test-design-dir "<test-design-dir>"
 ```
@@ -157,13 +161,12 @@ MCP 调用结束后，必须先把完整原始响应以 UTF-8 JSON 文件写入�
 `safe-key` 将 key 中的 `/` 等文件名分隔符替换为 `_`。例如：
 
 ```text
-responses/tr_TR.json
 responses/ts_TS_01.json
 responses/tp_TS_01_TP.01.03.01.json
 responses/tc_TS_01_TC.08.json
 ```
 
-TR、TS、TP 的 MCP 成功后记录真实 ID：
+TS、TP 的 MCP 成功后记录真实 ID：
 
 ```bash
 python "<state-script>" record-success --state-file "<state-file>" --entity <entity> --key "<key>" --platform-id "<platform-id>" [--parent-key "<parent-key>" --parent-id "<parent-id>"] --response-file "<response-file>"
@@ -195,7 +198,7 @@ TP 因 `tpSourceType` 为空而由当前版本主动跳过：
 python "<state-script>" record-skipped --state-file "<state-file>" --key "TS_<NN>/<tp_id_temp>" --reason "tpSourceType为空，当前版本暂不归档" --parent-key "TS_<NN>" --parent-id "<tsId>"
 ```
 
-禁止通过 `--response-json` 传递 MCP 响应。TR、TS、TP、TC 都必须使用 `--response-file`，避免 Bash、PowerShell 和 CMD 对长 JSON 的引号解析差异。状态脚本会将响应规范化保存到 `archive/responses/` 并在状态记录中保存相对路径。
+禁止通过 `--response-json` 传递 MCP 响应。TS、TP、TC 都必须使用 `--response-file`，避免 Bash、PowerShell 和 CMD 对长 JSON 的引号解析差异。状态脚本会将响应规范化保存到 `archive/responses/` 并在状态记录中保存相对路径。
 
 每条状态命令都必须检查脚本输出中的 `success`。状态保存失败时停止当前分支，不得在真实 ID 尚未落盘时继续创建子节点。
 
@@ -204,153 +207,80 @@ python "<state-script>" record-skipped --state-file "<state-file>" --key "TS_<NN
 核验调用方根据本次用户目标生成的权威执行计划：
 
 ```text
-TR → TS → TP → TC
+既有 TR → TS → TP → TC
 ```
+
+TR 只作为父上下文，`execution_plan.tr` 必须始终为空。
 
 层级关键字含义：
 
 | 目标 | 执行范围 |
 |---|---|
-| `TR` | 当前 TR |
-| `TS` | 当前 TR和全部 TS |
-| `TP` | 当前 TR、全部 TS和全部 TP |
-| `TC` | 当前 TR、全部 TS、全部 TP和全部 TC |
+| `TS` | 全部 TS |
+| `TP` | 全部 TS 和全部 TP |
+| `TC` | 全部 TS、全部 TP 和全部 TC |
 
 指定对象规则：
 
 - TS 通过 `tr_ts.json.test_specs[]` 的 1-based 顺序派生并匹配；
-- TP 推荐使用 `TS_01/<tp_id_temp>`，裸 `tp_id_temp` 仅在全部 TP JSON 中唯一时允许；
-- TC 推荐使用 `TS_01/<tc_id_temp>`，裸 `tc_id_temp` 或 `case_id` 仅在全部 TC JSON 中唯一时允许；
-- 裸标识匹配到多个对象时停止并列出带 TS 前缀的候选，不得自行选择；
-- 指定 TP 时自动加入所属 TS 和当前 TR；
-- 指定 TC 时自动加入所属 TP、所属 TS 和当前 TR；
+- TP 推荐使用 `TS_01/<tp_id_temp>`，裸标识仅在全部 TP JSON 中唯一时允许；
+- TC 推荐使用 `TS_01/<tc_id_temp>`，裸标识仅在全部 TC JSON 中唯一时允许；
+- 指定 TP 时自动加入所属 TS；
+- 指定 TC 时自动加入所属 TP 和所属 TS；
 - 指定对象只向上补齐父级依赖，禁止向下展开子级对象；
-- 指定 `TS_01` 时，执行计划必须固定为 `TR + TS_01`，不得加入其下任何 TP 或 TC；
-- 指定 TP（包括裸 TP 唯一解析后的结果）时，执行计划必须固定为 `TR + 所属 TS + 指定 TP`，`execution_plan.tc` 必须为空；
-- 同一父节点只创建或复用一次；
+- 指定 `TS_01` 时不得加入其下任何 TP 或 TC；
 - 保持同层对象在用户输入或源文件中的稳定顺序。
 
-执行 MCP 前先输出计划摘要，但不再次询问用户：
-
-```text
-目标：...
-依赖：1 TR / N TS / N TP / N TC
-顺序：TR → TS → TP → TC
-```
-
-随后保存计划：
+执行 MCP 前输出计划摘要，并保存本次计划：
 
 ```bash
 python "<state-script>" record-plan \
   --state-file "<state-file>" \
-  --requested "<用户目标1>" \
-  --requested "<用户目标2>" \
-  --tr "TR" \
+  --requested "<用户目标>" \
   --ts "TS_01" \
   --tp "TS_01/<tp_id_temp>" \
   --tc "TS_01/<tc_id_temp>"
 ```
 
-只传实际存在的目标和计划参数；没有 TS、TP 或 TC 时省略对应参数。例如只归档 TR：
-
-```bash
-python "<state-script>" record-plan \
-  --state-file "<state-file>" \
-  --requested "TR" \
-  --tr "TR"
-```
-
-不得把 JSON 文本作为命令行参数传递，避免 Bash、PowerShell 和 CMD 的引号规则差异。
-
-执行计划对象固定使用：
+只传实际存在的参数，禁止传 `--tr`。计划对象固定保留空 TR 数组：
 
 ```json
 {
-  "tr": ["TR"],
+  "tr": [],
   "ts": ["TS_01"],
   "tp": ["TS_01/<tp_id_temp>"],
   "tc": ["TS_01/<tc_id_temp>"]
 }
 ```
 
-例如目标为 `TS_01` 时，计划必须是：
+状态文件中的旧计划仅是历史记录。本次必须先通过 `record-plan` 覆盖旧计划，断点续跑范围只能取本次计划与历史状态的交集。
 
-```json
-{
-  "tr": ["TR"],
-  "ts": ["TS_01"],
-  "tp": [],
-  "tc": []
-}
-```
+## Phase 3：复用既有 TR
 
-例如目标为 `TP.01.03.01`，且唯一解析为 `TS_01/TP.01.03.01` 时，计划必须是：
-
-```json
-{
-  "tr": ["TR"],
-  "ts": ["TS_01"],
-  "tp": ["TS_01/TP.01.03.01"],
-  "tc": []
-}
-```
-
-禁止因为 TS 或 TP 已存在、已归档或能够从 JSON 找到子对象，就把其下的 TP/TC 自动加入计划。
-
-保存计划前必须检查原始目标与计划范围：如果原始目标中不存在 TC 目标或全量 `TC`，但 `execution_plan.tc` 非空，立即停止，不调用 `record-plan`，不执行任何 MCP。
-
-`archive_state.json.request.execution_plan` 可能来自上一次范围错误或中断的请求，只能视为历史记录。禁止用旧计划决定本次待办、恢复范围或提示词，禁止出现“根据已有执行计划续跑 TC”。必须先用本次权威计划调用 `record-plan` 覆盖旧计划，然后才允许进入 Phase 3。
-
-断点续跑仅适用于本次权威计划中明确列出的对象。状态文件里存在、但不在本次计划中的 TP/TC，即使状态为 `in_progress`、`failed` 或 `succeeded`，本次也必须完全忽略。
-
-## Phase 3：创建或复用 TR
-
-先查询 `archive_state.json`：
-
-- TR 状态为 `succeeded` 且存在有效 `platform_id`：复用该 ID，不调用 MCP；
-- TR 不存在或此前失败：调用 MCP。
-
-调用：
+状态初始化后读取：
 
 ```text
-core_test_design_mcp.create_tr
+archive_state.json.tr.status
+archive_state.json.tr.platform_id
+archive_state.json.tr.tr_info
 ```
 
-参数映射：
+必须满足：
 
-```json
-{
-  "pbi": "<版本PBI>",
-  "task_name": "<design_task_info中当前任务的name>",
-  "tr_name": "<tr.tr_name>",
-  "description": "<tr.description>",
-  "resolve_description": "<tr.resolve_description>",
-  "creator": "<creator>",
-  "requirement_ids": "<tr.requirement_ids>",
-  "function_numbers": "<tr.function_numbers>",
-  "feature_numbers": "<tr.feature_numbers>"
-}
-```
+- `status=succeeded`；
+- `platform_id` 是有效非零 TR ID；
+- `source=init`；
+- `archive_action=reused`。
 
-字段保持源文件原值，不修改、不补写、不重新生成。
-
-成功条件：
+该 `platform_id` 直接作为：
 
 ```text
-result.success == true
-result.data.tr_id 为有效非零 ID
-result.data.design_task_id 与当前 design_task_id 一致
+create_ts.trId
+create_tp.parentTrId
+create_tc.tr_id
 ```
 
-成功后立即保存：
-
-```text
-TR.platform_id = result.data.tr_id
-TR.status = succeeded
-MCP原始响应
-```
-
-TR 失败时保存错误并停止所有 TS/TP/TC，不调用 Portal 跳转到无效节点。
+不得对 TR 执行 `mark-in-progress`、`record-success`、`record-failure`，不得调用 `create_tr`。TR 不进入本次归档统计，仅在汇总中说明“复用 Init 上下文，未执行归档”。
 
 ## Phase 4：创建或复用 TS
 
@@ -593,7 +523,7 @@ python "<state-script>" record-card \
 
 - 用户请求目标；
 - 实际执行计划；
-- TR 的创建/复用/失败状态和 `tr_id`；
+- TR 的 Init 复用状态和 `tr_id`（未执行归档）；
 - TS 的创建/复用/失败/blocked 状态和 `tsId`；
 - TP 的创建/复用/skipped/失败/blocked 状态和 `tpId`；
 - TC 的创建/复用/失败/blocked 状态；TC 成功不要求 `tcId`；
@@ -616,7 +546,7 @@ python "<state-script>" summary --state-file "<state-file>"
 - 不覆盖设计输入 JSON；
 - 不在内存中积累全部成功结果后一次性保存；
 - 每个 MCP 成功后必须立即保存状态，再处理下一个对象；
-- TR、TS、TP 状态中已有成功平台 ID 时不得重复创建；
+- TR 只允许复用 Init 状态，禁止创建；TS、TP 状态中已有成功平台 ID 时不得重复创建；
 - TC 状态为 `succeeded` 时不得重复创建，即使没有 `platform_id`；
 - 恢复范围只能取当前权威执行计划与历史状态的交集，禁止恢复计划外对象；
 - 名称重复但状态中没有 ID 时停止该分支，不得自动改名创建；
