@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 0.4
+  version: 0.4.1
 name: coretest-explore
 ---
 
@@ -239,6 +239,41 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 ### 阶段 7：汇总
 
 输出：TR、直接需求数、唯一文档数、SR 数、TS 数、冲突审计数量及所有产物路径。
+
+读取：
+
+```text
+<tr_dir>/test_specs/tr_ts.json
+```
+
+按 `test_specs[]` 的数组顺序生成本地 TS 编号：
+
+```text
+第 1 条 → TS_01
+第 2 条 → TS_02
+……
+```
+
+展示全部生成的 TS，只保留编号、名称、类型三列：
+
+| 编号 | 名称 | 类型 |
+|---|---|---|
+| TS_01 | `<ts_name>` | `<ts_type>` |
+| TS_02 | `<ts_name>` | `<ts_type>` |
+
+汇总末尾输出下一步提示。
+
+处理全部 TS：
+
+```text
+/coretest-design <tr_id>
+```
+
+处理指定 TS：
+
+```text
+/coretest-design <tr_id> TS_01 TS_02
+```
 
 ## 4. 输出结构
 
