@@ -1,80 +1,119 @@
 ---
 name: test-spec-analysis
-description: 进行软件测试规格分析工作。适用于：(1)分析被测对象概述和测试规格概述，(2)进行测试设计策略分析（RBT风险分析、测试重点难点、分层测试策略、底层硬件/组网差异、网元形态差异），(3)基于已有TR进行测试需求分析并建立TR与版本需求对应关系，(4)进行测试场景分析(TS)。当用户需要设计测试策略、分析测试需求、分解测试场景时使用此技能。TR使用用户选择的已有TR，不在此技能中创建新的TR；规则文件位于本 skill 目录上两级的 .opencode/rules/ 下（不在本 skill 目录内）：分析方法见 ../../rules/analysis-guide.md，拆分、命名与描述规则见 ../../rules/ts-split.md。
+description: 基于 init 保存的当前已有 TR 完整上下文和整套 sr_specs 进行测试规格与 TS 分析；TR 元数据及直接需求范围来自 tr_info.json，不创建新 TR，不追加平台已有质量属性 TS。
+metadata:
+  version: "0.2"
 ---
 
-# 测试分析
+# 测试规格分析
 
-## 角色与产物
+## 1. 输入与职责
 
-本 skill 产出**一份测试规格 markdown**：`test_specs/<中文需求名>测试规格.md`，分两段：
+必需输入：
 
-- **前段（自由）**：分析过程，供人工评审。分析方法与参考资料**全部见 [rules/analysis-guide.md](../../rules/analysis-guide.md)**，本 skill 不重述。
-- **后段（固定）**：标题 `## 平台写入数据` 的章节，承载 TR 段与 TS 清单，格式严格固定，由提取脚本 `build_tr_json.py` 读取生成平台 JSON。内容规则见 **[rules/ts-split.md](../../rules/ts-split.md)**。
-
-两份 rules 是内容与方法的唯一来源；业务调整分析方法、拆分或命名时只改 rules，本 skill 与脚本不动。**本 skill 不产出任何 JSON。**
-
-当前测试规格分析依赖已有 TR 上下文信息。TR 信息由 `coretest-explore` 阶段生成的：
-
-```text
-.design_output/<design_task_id>/<requirement_id>/tr_context.json
+```yaml
+tr_info: <tr_dir>/tr_info.json
+sr_specs: <tr_dir>/sr_specs/
+output_dir: <tr_dir>/test_specs/
 ```
 
-提供。本 skill 使用该文件中的已有 TR 信息，不重新创建 TR。
+完整读取：
 
-## 前段：分析过程
+- `tr_info.json`；
+- `sr_specs/_index.md`；
+- `sr_specs/` 下全部 SR 文件。
 
-按 [rules/analysis-guide.md](../../rules/analysis-guide.md) 开展分析，将结论写入 md 前段。前段须涵盖：
+本 Skill 面向平台已存在的当前 TR：
 
-1. 被测对象概述、测试规格概述
-2. 测试设计策略（RBT 风险、重点难点、分层、硬件/组网差异、网元形态差异）
-3. 测试需求分析（基于已有 TR 分析测试需求覆盖范围，并建立 TR 与版本需求对应关系）
-4. 测试场景分析（按四类拆分的定性分析）
+- 不创建、不修改 TR；
+- 不调用 `create-tr`；
+- 不从环境变量、任务级文件或其他 TR 补充 TR 字段；
+- 不自动追加 9 条质量属性 TS，避免与平台已有 TS 重复；
+- 只生成一份测试规格 Markdown，不直接生成 JSON。
 
-前段只写分析结论，**不在此编排 TS 清单**——TS 清单一律落入后段固定章节。
+分析方法见 [rules/analysis-guide.md](../../rules/analysis-guide.md)，TS 拆分、命名与描述规则见 [rules/ts-split.md](../../rules/ts-split.md)。
 
-## 后段：平台写入数据（固定格式）
+## 2. 上下文校验
 
-在 md 末尾追加 `## 平台写入数据` 章节，**严格按下列骨架填写**，本章只放两个表格、不写分析性文字。所有字段值、命名、描述按 [rules/ts-split.md](../../rules/ts-split.md) 填**最终值**（带前缀、套描述模板）。
+开始分析前：
 
-后段应严格长成这样：
+1. 校验 `tr_info.tr_id`、`design_task_id`、`tr_name` 存在；
+2. 从 `tr_info.requirements[]` 按顺序提取并去重 `requirement_number`；
+3. 该集合是当前 TR 的直接关联需求全集，不能为空；
+4. `_index.md` 的“当前 TR 直接关联需求”必须覆盖相同集合；
+5. `sr_specs/` 至少包含一个有效 SR 文件；
+6. 存在未处理的高优先级解析冲突时停止并提示确认。
+
+不得使用 `cida_info.json` 的首条需求代替完整需求集合。
+
+## 3. 分析过程
+
+测试规格前段至少包含：
+
+1. 被测对象与当前 TR 概述；
+2. 直接关联需求和 SR 分解覆盖；
+3. RBT 风险、重点难点、分层策略；
+4. 硬件、组网、网元形态差异；
+5. 测试场景拆分依据与覆盖映射；
+6. 文档来源冲突对测试设计的影响。
+
+每条 TS 必须能够回溯到当前 TR 的一个或多个直接关联需求；`requirement_ids` 必须是 TR 需求全集的非空子集。不得引用其他 TR 的需求。
+
+## 4. 平台写入数据
+
+在 Markdown 末尾写入且只写入一个 `## 平台写入数据` 章节：
 
 ````markdown
 ## 平台写入数据
 
->  本章为固定格式，由提取脚本读取生成平台 JSON，请勿手动改动格式。
+> 本章为固定格式，由 build_tr_json.py 校验并生成已有 TR JSON。
 
 ### TR
 
 | 字段 | 值 |
-|------|-----|
-| tr_name | <从 tr_context.json 获取已有TR名称> |
-| description | <从 tr_context.json 获取已有TR描述> |
-| resolve_description | <从 tr_context.json 获取已有TR解决描述> |
-| requirement_ids | <覆盖的全部 SR 编号，英文逗号分隔不含空格> |
-| function_numbers | <命令 --function-numbers 值；未传填 <PENDING-coretest-init>> |
-| feature_numbers | <留空> |
+|---|---|
+| tr_name | <tr_info.tr_name> |
+| description | <tr_info.description> |
+| resolve_description | <tr_info.resolve_description> |
+| requirement_ids | <tr_info.requirements[] 的全部需求编号，英文逗号分隔> |
+| function_numbers | <tr_info.relation_function> |
+| feature_numbers | <tr_info.relation_feature> |
 
 ### TS 清单
 
 | ts_name | ts_type | requirement_ids | description | resolve_description |
-|---------|---------|-----------------|-------------|---------------------|
-| <TS 名，纯中文> | <scene/function/feature/constraint 四选一> | <本条覆盖的 SR，逗号分隔不含空格> | <按 ts-split.md 第四节模板> | <按 ts-split.md 第四节模板> |
-| <按 ts-split.md 第二节拆分原则逐条一行> | | | | |
+|---|---|---|---|---|
+| <中文 TS 名> | <scene/function/feature/constraint> | <当前TR需求子集> | <按规则填写> | <按规则填写> |
 ````
 
-### 编码与中文输出约束
+TR 表字段必须直接映射 `tr_info.json`，不得重新总结或改写。`requirement_ids` 必须与 `requirements[]` 去重全集完全一致，建议保持原顺序。
 
-生成 `## 平台写入数据` 章节时，所有中文内容必须以正常可读的 UTF-8 中文输出。
+TS 规则：
 
-`TR` 表和 `TS 清单` 中的 `tr_name`、description、resolve_description、ts_name 等字段不得出现乱码、错码、混合编码或不可读字符。
+- `ts_type` 仅为 `scene`、`function`、`feature`、`constraint`；
+- `requirement_ids` 使用英文逗号分隔；
+- 每个需求编号必须属于当前 TR；
+- 不生成 `performance`、`reliability` 等平台已有质量属性 TS；
+- 中文字段必须为可读 UTF-8 内容。
 
-如果生成过程中发现字段内容不可读，必须立即重新生成该字段，确保最终落盘内容为正常中文。
+## 5. 输出
 
-生成完成后，需要检查 `## 平台写入数据` 章节，确认 `TR` 表和 `TS 清单` 中所有中文字段均可正常阅读。
+输出唯一文件：
 
-## 输出
+```text
+<tr_dir>/test_specs/<TR名称>测试规格.md
+```
 
-单产物 `test_specs/<中文需求名>测试规格.md`，含前段分析与后段固定格式的「平台写入数据」章节。
+文件名中的 TR 名称须进行路径安全处理；若名称不适合作为文件名，使用 `tr_no`，仍不得改写 Markdown 中的真实 `tr_name`。
 
-平台 JSON（`tr_ts.json`）由 `/coretest-explore` 阶段 6.5 的 `build_tr_json.py` 从本 md 后段提取生成、并补全 `design_task_id` / `creator`。JSON 结构与字段顺序由脚本写死保证合规，内容全部来自本 md 后段。
+完成后汇总 TR ID、直接需求数、SR 数、TS 数、各 TS 类型数及尚待确认的审计项。
+
+`tr_ts.json` 由 Explore 确认后调用：
+
+```bash
+python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
+  "<测试规格.md>" \
+  --tr-info "<tr_dir>/tr_info.json"
+```
+
+脚本负责再次校验 TR 元数据、需求全集和 TS 子集关系，并生成 `_meta.tr_mode=existing` 的 JSON。
