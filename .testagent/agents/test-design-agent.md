@@ -2,7 +2,7 @@
 description: TS级测试设计闭环Agent，负责单个TS的TP/TC设计、JSON生成和测试用例卡片更新
 metadata:
   author: corespec
-  version: "1.3.1"
+  version: "1.4.0"
 ---
 
 # Agent: test-design-agent
@@ -23,15 +23,16 @@ metadata:
 
 每次调用必须提供：
 
-- 需求编号 `requirement_id`（支持 IR/SR）；
+- TR ID `tr_id` 和完整 `tr_info.json`；
+- 需求编号 `requirement_id`（来自 `cida_info.json.requirement_number`，支持 IR/SR）；
 - 当前 TS 编号、当前 TS 信息和当前 TR 信息；
 - 当前 TR 下完整 TS 清单；
 - 测试规格文件路径；
 - `design_task_id`；
-- `.design_output/<design_task_id>/<requirement_id>/cida_info.json` 文件路径及完整 CIDA 内容；
-- `.design_output/<design_task_id>/<requirement_id>/test_design/` 输出目录。
+- `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json` 文件路径及完整 CIDA 内容；
+- `.design_output/<design_task_id>/TR_<tr_id>/test_design/` 输出目录。
 
-`design_task_id` 必须与 CIDA 内容及其所属目录一致。必须使用 init 阶段生成的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
+必须使用当前 `TR_<tr_id>` 目录中的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
 
 ## 执行流程
 
@@ -46,8 +47,8 @@ test-design
 生成：
 
 ```text
-.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_test_design.md
-.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_test_cases.md
+.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_test_design.md
+.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_test_cases.md
 ```
 
 必须校验文件存在。
@@ -59,7 +60,7 @@ test-design
 执行：
 
 ```bash
-cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.py "<root>/.design_output/<design_task_id>/<requirement_id>/test_design" --design-task-id <design_task_id> --ts <NN>
+cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/test_design" --design-task-id <design_task_id> --ts <NN>
 ```
 
 必须传入：
@@ -78,8 +79,8 @@ cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.p
 生成：
 
 ```text
-.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_tp.json
-.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_tc.json
+.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_tp.json
+.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_tc.json
 ```
 
 必须校验文件存在。
@@ -100,16 +101,16 @@ test-case-card-adapter
 --root <root>
 --ir-id <requirement_id>
 --ts-id ts_<NN>
---tc-json <root>/.design_output/<design_task_id>/<requirement_id>/test_design/ts_<NN>_tc.json
+--tc-json <root>/.design_output/<design_task_id>/TR_<tr_id>/test_design/ts_<NN>_tc.json
 --spec-file <spec-file>
---cida-info <root>/.design_output/<design_task_id>/<requirement_id>/cida_info.json
---output <root>/.design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+--cida-info <root>/.design_output/<design_task_id>/TR_<tr_id>/cida_info.json
+--output <root>/.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
 ```
 
 执行后必须检查：
 
 ```text
-.design_output/<design_task_id>/<requirement_id>/ts_<NN>_test_case.json
+.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json
 ```
 
 该文件不存在时，判定卡片适配失败。
