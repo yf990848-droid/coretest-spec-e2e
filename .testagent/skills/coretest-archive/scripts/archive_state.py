@@ -6,12 +6,13 @@
 ts_<NN>_tp.json 或 ts_<NN>_tc.json。
 
 状态文件：
-    .design_output/<design_task_id>/<IR>/archive/archive_state.json
+    .design_output/<design_task_id>/TR_<tr_id>/archive/archive_state.json
 
 常用命令：
     python archive_state.py init --state-file <path> --design-task-id 2470 \
       --ir-id IR20251206000098 --pbi 266926538 --task-name <name> \
-      --creator z00655423 --tr-ts-file <path> --test-design-dir <path>
+      --creator z00655423 --tr-info-file <path> --tr-ts-file <path> \
+      --test-design-dir <path>
 
     python archive_state.py get --state-file <path> --entity tr --key TR
 
@@ -31,7 +32,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 ENTITIES = ("tr", "ts", "tp", "tc")
 
 
@@ -180,16 +181,31 @@ def save_response(
 
 def command_init(args: argparse.Namespace) -> None:
     state_file = Path(args.state_file).resolve()
+    tr_info_file = Path(args.tr_info_file).resolve()
+    tr_info = read_json(tr_info_file)
+    tr_id = normalize_id(str(tr_info.get("tr_id", "")))
     context = {
         "design_task_id": int(args.design_task_id),
+        "tr_id": tr_id,
         "ir_id": args.ir_id,
         "pbi": int(args.pbi),
         "task_name": args.task_name,
         "creator": args.creator,
     }
     sources = {
+        "tr_info_file": str(tr_info_file),
         "tr_ts_file": str(Path(args.tr_ts_file).resolve()),
         "test_design_dir": str(Path(args.test_design_dir).resolve()),
+    }
+    timestamp = now_iso()
+    tr_record = {
+        "key": "TR",
+        "status": "succeeded",
+        "platform_id": tr_id,
+        "source": "init",
+        "archive_action": "reused",
+        "tr_info": tr_info,
+        "updated_at": timestamp,
     }
 
     if state_file.exists():
@@ -210,16 +226,20 @@ def command_init(args: argparse.Namespace) -> None:
         }
         if source_mismatches:
             fail(f"归档状态与当前输入路径不一致: {json.dumps(source_mismatches, ensure_ascii=False)}")
+        state["tr"] = tr_record
+        save_state(state_file, state)
         output({"success": True, "created": False, "state_file": str(state_file)})
         return
 
-    timestamp = now_iso()
     state = {
         "schema_version": SCHEMA_VERSION,
         "context": context,
         "sources": sources,
-        "request": {"requested": [], "execution_plan": {}},
-        "tr": {},
+        "request": {
+            "requested": [],
+            "execution_plan": {"tr": [], "ts": [], "tp": [], "tc": []},
+        },
+        "tr": tr_record,
         "ts": {},
         "tp": {},
         "tc": {},
@@ -480,6 +500,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--pbi", required=True, type=int)
     init.add_argument("--task-name", required=True)
     init.add_argument("--creator", required=True)
+    init.add_argument("--tr-info-file", required=True)
     init.add_argument("--tr-ts-file", required=True)
     init.add_argument("--test-design-dir", required=True)
     init.set_defaults(handler=command_init)
