@@ -7,7 +7,7 @@ license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 1.3.1
+  version: 1.4.0
 name: coretest-design
 ---
 
@@ -27,7 +27,7 @@ name: coretest-design
     初始化TS级working卡片
             |
             v
-    .design_output/<design_task_id>/<requirement_id>/test_design
+    .design_output/<design_task_id>/TR_<tr_id>/test_design
             |
             v
     并行调用test-design-agent
@@ -37,7 +37,9 @@ name: coretest-design
 
 ## Input
 
--   TS 列表：可选位置参数，如 `TS_01 TS_02 TS_03`
+-   TR ID：必选第一个位置参数，如 `3863`
+-   TS 列表：可选后续位置参数，如 `TS_01 TS_02 TS_03`
+-   完整命令格式：`/coretest-design <tr_id> [TS列表]`
 -   不传 TS 时，默认处理当前 `tr_ts.json` 中的全部 TS
 -   TS 编号大小写不敏感，统一标准化为 `TS_<NN>`，去重后保持输入顺序
 
@@ -45,26 +47,33 @@ name: coretest-design
 
 ### Phase 0: Gather Context
 
-从 `.design_output/` 下定位已完成 explore 的上下文目录：
+根据输入的 `tr_id` 定位已完成 explore 的 TR 目录：
 
-    .design_output/<design_task_id>/<requirement_id>/
+    .design_output/*/TR_<tr_id>/
 
 必须存在：
 
+    tr_info.json
     cida_info.json
-    test_specs/<需求名>测试规格.md
+    test_specs/<TR名称>测试规格.md
     test_specs/tr_ts.json
+
+只做以下必要检查：
+
+-   TR 目录存在且只定位到一个；
+-   `tr_info.json`、`cida_info.json` 和 `test_specs/tr_ts.json` 存在；
+-   `test_specs/` 下存在测试规格 Markdown；
+-   用户指定的 `TS_<NN>` 未超出 `tr_ts.json.test_specs[]` 范围。
 
 其中：
 
--   如果只找到一个有效上下文，直接使用；
--   如果找到多个有效上下文，停止执行并列出候选 `<design_task_id>/<requirement_id>`，不得静默选择；
--   `cida_info.json` 必须使用 init 阶段已经生成并由 explore 阶段落入当前上下文目录的文件，只读，不得重新生成或覆盖；
--   从 `cida_info.json` 及其所属目录获取并校验 `design_task_id` 和 `requirement_id`（支持 IR/SR）；
--   将完整 CIDA 上下文传给每个 `test-design-agent`；
--   当前 TS JSON 提取所需的 `design-task-id` 来自该上下文，不再要求用户传入；
--   TS完整列表必须来自 `tr_ts.json`；
--   测试规格文档提供TR级背景信息。
+-   从 TR 目录父级获取 `design_task_id`；
+-   从 `cida_info.json.requirement_number` 获取 `requirement_id`（支持 IR/SR），用于卡片关联；
+-   `cida_info.json` 只读，不得重新生成或覆盖；
+-   `tr_info.json`、完整 CIDA 上下文和完整 TS 清单必须传给每个 `test-design-agent`；
+-   TS 完整列表来自 `tr_ts.json.test_specs[]`；
+-   测试规格 Markdown 提供 TR 级背景信息；
+-   所有设计产物写入当前 `TR_<tr_id>` 目录。
 
 ### Phase 1: TS Filtering
 
@@ -76,8 +85,8 @@ name: coretest-design
 
 -   所有 TS 参数统一标准化为 `TS_<NN>`；
 -   对重复 TS 去重并保持用户输入顺序；
--   所有目标 TS 必须存在于 `tr_ts.json`；
--   任一 TS 不存在时，在初始化卡片和启动 Agent 前停止并报告。
+-   `test_specs[0]` 映射为 `TS_01`，`test_specs[1]` 映射为 `TS_02`，依次类推；
+-   任一 TS 编号超出 `test_specs[]` 范围时，在初始化卡片和启动 Agent 前停止并报告。
 
 ### Phase 1.5: Initialize TS Working Cards
 
@@ -89,7 +98,7 @@ name: coretest-design
 -   初始化 key 必须使用 `<requirement_id>_<ts-id>`；
 -   示例：`IR20251206000098_ts_01`；
 -   初始化脚本必须使用原始 card-initializer 脚本；
--   card_id 文件保留在初始化脚本目录，不复制到 `.design_output/<design_task_id>/<requirement_id>/cards/`；
+-   card_id 文件保留在初始化脚本目录，不复制到 `.design_output/<design_task_id>/TR_<tr_id>/cards/`；
 -   每个 TS 必须使用一次独立的 bash 工具调用，不得在同一次 bash 调用中串联多个 `card_generate.py`；
 -   当前批次最多同时发起 3 个独立的卡片初始化调用；
 -   当前批次初始化完成后立即进入该批次的并行测试设计阶段；
@@ -150,16 +159,17 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 每个 `test-design-agent` 调用时必须同时提供：
 
-1.  需求编号 `requirement_id`（支持 IR/SR）；
-2.  当前 TS 编号（如 `ts_01` 或 `01`）；
-3.  当前负责生成的 TS 信息；
-4.  当前 TR 信息；
-5.  TR级背景测试规格；
-6.  当前 TR 下完整 TS 清单；
-7.  输出目录；
-8.  测试规格文件路径；
-9.  `design-task-id`；
-10. 完整 `cida_info.json` 上下文。
+1.  TR ID `tr_id` 和完整 `tr_info.json`；
+2.  需求编号 `requirement_id`（来自 `cida_info.json.requirement_number`，支持 IR/SR）；
+3.  当前 TS 编号（如 `ts_01` 或 `01`）；
+4.  当前负责生成的 TS 信息；
+5.  当前 TR 信息；
+6.  TR级背景测试规格；
+7.  当前 TR 下完整 TS 清单；
+8.  输出目录；
+9.  测试规格文件路径；
+10. `design-task-id`；
+11. 完整 `cida_info.json` 上下文。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
 
@@ -189,11 +199,11 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 所有测试设计产物统一写入：
 
-    .design_output/<design_task_id>/<requirement_id>/test_design/
+    .design_output/<design_task_id>/TR_<tr_id>/test_design/
 
 每批输出：
 
-    .design_output/<design_task_id>/<requirement_id>/test_design/
+    .design_output/<design_task_id>/TR_<tr_id>/test_design/
 
     ts_<NN>_test_design.md
     ts_<NN>_test_cases.md
@@ -234,8 +244,8 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
   ---------------------------- ------------
   测试规格缺失                 退出
   cida_info.json 缺失          退出
-  找到多个有效上下文           列出候选并退出
-  用户指定的TS不存在           初始化卡片前退出
+  找到多个同 ID 的 TR 目录       列出候选并退出
+  用户指定的TS编号越界           初始化卡片前退出
   卡片初始化失败               停止流程
   test-design-agent 调用失败   记录失败TS并继续其他已启动TS
   单TS设计失败                 由 test-design-agent 返回失败，不生成该TS JSON和卡片
