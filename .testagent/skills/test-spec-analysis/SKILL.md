@@ -26,9 +26,7 @@ output_dir: <tr_dir>/test_specs/
 本 Skill 面向平台已存在的当前 TR：
 
 - 不创建、不修改 TR；
-- 不调用 `create-tr`；
 - 不从环境变量、任务级文件或其他 TR 补充 TR 字段；
-- 不自动追加 9 条质量属性 TS，避免与平台已有 TS 重复；
 - 只生成一份测试规格 Markdown，不直接生成 JSON。
 
 分析方法见 [rules/analysis-guide.md](../../rules/analysis-guide.md)，TS 拆分、命名与描述规则见 [rules/ts-split.md](../../rules/ts-split.md)。
