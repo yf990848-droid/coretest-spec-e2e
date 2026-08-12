@@ -3,7 +3,7 @@ name: coretest-archive
 description: 按 TS、TP 或 TC 目标归档测试设计产物，复用 Init 拉取的既有 TR，调用单个 coretest-archive-agent 顺序完成依赖创建、状态保存和 Portal 卡片跳转。
 metadata:
   author: corespec
-  version: "2.5.0"
+  version: "2.5.1"
 ---
 
 # CoreTest Archive Skill
@@ -125,7 +125,7 @@ TC              → 全部 TS + 全部 TP + 全部 TC
 
 依赖只能向上补齐父节点。TS-only 目标不得要求、读取或传递 TP/TC JSON；指定 TP 目标不得要求、读取或传递 TC JSON。
 
-每次调用都必须根据本次用户参数重新生成计划，并通过 `record-plan` 覆盖状态文件中的历史计划。状态中的旧计划不得改变本次范围。
+每次调用都必须根据本次用户参数重新生成计划，并将完整计划作为 Agent 输入。主 Skill 不调用 `archive_state.py`，也不自行记录或重试执行计划；状态初始化和计划落盘统一由 `coretest-archive-agent` 完成。状态中的旧计划不得改变本次范围。
 
 `tpSourceType` 为空时入口不停止；由 Agent 将 TP 记录为 `skipped`，其下 TC 记录为 `blocked`。
 
@@ -137,7 +137,7 @@ TC              → 全部 TS + 全部 TP + 全部 TC
 .design_output/<design_task_id>/TR_<tr_id>/archive/archive_state.json
 ```
 
-调用状态脚本时必须传入：
+Agent 调用状态脚本初始化时必须传入：
 
 ```text
 --tr-info-file "<TR目录>/tr_info.json"
@@ -188,6 +188,8 @@ agents/coretest-archive-agent
 Agent 负责：
 
 - 初始化状态并保存完整 TR 信息；
+- 将完整计划写入 `archive/request_plan.json`，通过 `--request-file` 一次性记录并回读校验；
+- 严格遍历状态文件中的执行计划，禁止从源 JSON 扩大执行范围；
 - 复用 `archive_state.json.tr.platform_id` 作为父 TR ID；
 - 只调用 `create_ts`、`create_tp`、`create_tc`；
 - 每次 MCP 成功后立即保存真实平台 ID 和原始响应；
@@ -199,7 +201,8 @@ Agent 负责：
 
 输出：
 
-- 用户请求目标和实际执行计划；
+- 用户请求目标、计划 TS/TP/TC 数量和实际状态 TS/TP/TC 数量；
+- 实际执行计划与状态数量不一致时明确报告；
 - `TR <tr_id>：复用 Init 上下文，未执行归档`；
 - TS 成功、失败、复用和 blocked 列表；
 - TP 成功、失败、复用、skipped 和 blocked 列表；

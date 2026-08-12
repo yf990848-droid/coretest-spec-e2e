@@ -254,7 +254,18 @@ def command_init(args: argparse.Namespace) -> None:
 def command_record_plan(args: argparse.Namespace) -> None:
     state_file = Path(args.state_file).resolve()
     state = load_state(state_file)
-    if args.requested or any((args.tr, args.ts, args.tp, args.tc)):
+    if args.request_file:
+        if (
+            args.requested
+            or any((args.tr, args.ts, args.tp, args.tc))
+            or args.requested_json
+            or args.plan_json
+        ):
+            fail("--request-file 不能与其他计划参数同时使用")
+        request_data = read_json(Path(args.request_file).resolve())
+        requested = request_data.get("requested")
+        plan = request_data.get("execution_plan")
+    elif args.requested or any((args.tr, args.ts, args.tp, args.tc)):
         requested = args.requested
         plan = {
             "tr": args.tr,
@@ -264,19 +275,34 @@ def command_record_plan(args: argparse.Namespace) -> None:
         }
     else:
         if not args.requested_json or not args.plan_json:
-            fail("必须传入 --requested 及计划参数，或同时传入 --requested-json 和 --plan-json")
+            fail(
+                "必须传入 --request-file、--requested 及计划参数，"
+                "或同时传入 --requested-json 和 --plan-json"
+            )
         try:
             requested = json.loads(args.requested_json)
             plan = json.loads(args.plan_json)
         except json.JSONDecodeError as exc:
             fail(f"计划JSON格式错误: {exc}")
-    if not isinstance(requested, list):
-        fail("requested-json 必须是JSON数组")
+    if not isinstance(requested, list) or not all(
+        isinstance(item, str) for item in requested
+    ):
+        fail("requested 必须是字符串数组")
     if not isinstance(plan, dict):
-        fail("plan-json 必须是JSON对象")
+        fail("execution_plan 必须是JSON对象")
+    expected_keys = ("tr", "ts", "tp", "tc")
+    if set(plan) != set(expected_keys):
+        fail("execution_plan 必须且只能包含 tr、ts、tp、tc")
+    for key in expected_keys:
+        if not isinstance(plan[key], list) or not all(
+            isinstance(item, str) for item in plan[key]
+        ):
+            fail(f"execution_plan.{key} 必须是字符串数组")
+    if plan["tr"]:
+        fail("Archive 不归档 TR，execution_plan.tr 必须为空")
     state["request"] = {
         "requested": requested,
-        "execution_plan": plan,
+        "execution_plan": {key: plan[key] for key in expected_keys},
         "updated_at": now_iso(),
     }
     save_state(state_file, state)
@@ -507,6 +533,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     plan = sub.add_parser("record-plan")
     add_state_file(plan)
+    plan.add_argument("--request-file")
     plan.add_argument("--requested", action="append", default=[])
     plan.add_argument("--tr", action="append", default=[])
     plan.add_argument("--ts", action="append", default=[])

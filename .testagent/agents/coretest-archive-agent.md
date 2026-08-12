@@ -2,7 +2,7 @@
 description: 测试设计归档闭环 Agent，复用 Init 拉取的既有 TR，按依赖顺序创建 TS、TP、TC，逐步保存平台 ID，并刷新全量测试设计 Portal 卡片。
 metadata:
   author: corespec
-  version: "1.8.0"
+  version: "1.8.1"
 ---
 
 # Agent: coretest-archive-agent
@@ -231,29 +231,39 @@ TR 只作为父上下文，`execution_plan.tr` 必须始终为空。
 - 指定 `TS_01` 时不得加入其下任何 TP 或 TC；
 - 保持同层对象在用户输入或源文件中的稳定顺序。
 
-执行 MCP 前输出计划摘要，并保存本次计划：
+执行 MCP 前输出计划摘要，并将完整请求写入：
+
+```text
+<state-file所在目录>/request_plan.json
+```
+
+文件格式固定为：
+
+```json
+{
+  "requested": ["TC"],
+  "execution_plan": {
+    "tr": [],
+    "ts": ["TS_01"],
+    "tp": ["TS_01/<tp_id_temp>"],
+    "tc": ["TS_01/<tc_id_temp>"]
+  }
+}
+```
+
+通过文件一次性记录计划：
 
 ```bash
 python "<state-script>" record-plan \
   --state-file "<state-file>" \
-  --requested "<用户目标>" \
-  --ts "TS_01" \
-  --tp "TS_01/<tp_id_temp>" \
-  --tc "TS_01/<tc_id_temp>"
+  --request-file "<state-file所在目录>/request_plan.json"
 ```
 
-只传实际存在的参数，禁止传 `--tr`。计划对象固定保留空 TR 数组：
+禁止在新流程中使用 `--requested-json`、`--plan-json` 或把 JSON 文件路径当作 JSON 字符串传入。旧参数仅用于兼容历史调用。
 
-```json
-{
-  "tr": [],
-  "ts": ["TS_01"],
-  "tp": ["TS_01/<tp_id_temp>"],
-  "tc": ["TS_01/<tc_id_temp>"]
-}
-```
+`record-plan` 成功后必须重新读取 `archive_state.json.request`，逐项核对 `requested` 和 `execution_plan.tr/ts/tp/tc` 与 `request_plan.json` 完全一致。任一层级缺失、顺序或数量不一致时立即停止，不得调用 MCP。
 
-状态文件中的旧计划仅是历史记录。本次必须先通过 `record-plan` 覆盖旧计划，断点续跑范围只能取本次计划与历史状态的交集。
+记录成功后，状态文件中的 `request.execution_plan` 是本次执行范围的唯一依据。TS、TP、TC 阶段只能按其中的 key 顺序遍历；禁止再次扫描源 JSON 扩大计划。状态文件中的旧计划仅是历史记录，断点续跑范围只能取本次计划与历史状态的交集。
 
 ## Phase 3：复用既有 TR
 
@@ -522,7 +532,8 @@ python "<state-script>" record-card \
 返回：
 
 - 用户请求目标；
-- 实际执行计划；
+- 实际执行计划及计划 TS/TP/TC 数量；
+- 本次计划内的实际状态 TS/TP/TC 数量；
 - TR 的 Init 复用状态和 `tr_id`（未执行归档）；
 - TS 的创建/复用/失败/blocked 状态和 `tsId`；
 - TP 的创建/复用/skipped/失败/blocked 状态和 `tpId`；
@@ -548,6 +559,8 @@ python "<state-script>" summary --state-file "<state-file>"
 - 每个 MCP 成功后必须立即保存状态，再处理下一个对象；
 - TR 只允许复用 Init 状态，禁止创建；TS、TP 状态中已有成功平台 ID 时不得重复创建；
 - TC 状态为 `succeeded` 时不得重复创建，即使没有 `platform_id`；
+- `record-plan` 回读校验通过前禁止调用任何创建 MCP；
+- 状态文件中的执行计划是唯一执行依据，禁止从源 JSON 追加计划外对象；
 - 恢复范围只能取当前权威执行计划与历史状态的交集，禁止恢复计划外对象；
 - 名称重复但状态中没有 ID 时停止该分支，不得自动改名创建；
 - TP 未取得真实 `tpId` 时不得创建 TC；
