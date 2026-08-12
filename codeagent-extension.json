@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
   "version": "0.2.1",
-  "description": "完成端到端流程的TR级适配。Init支持拉取并保存平台已有TR信息，Explore、Design、Archive统一使用TR_<tr_id>目录；Design支持按TR生成指定或全部TS用例；Archive复用已有TR，仅归档TS、TP、TC，并优化执行计划持久化与断点状态管理，确保计划范围与实际归档结果一致。"
+  "description": "E2E测试设计能力扩展，支持从需求探索、需求解析、测试规格分析、测试用例设计到TS、TP、TC精确归档的端到端流程。更新：完成端到端流程的TR级适配。Init支持拉取并保存平台已有TR信息，Explore、Design、Archive统一使用TR_<tr_id>目录；Design支持按TR生成指定或全部TS用例；Archive复用已有TR，仅归档TS、TP、TC，并优化执行计划持久化与断点状态管理，确保计划范围与实际归档结果一致。"
 }
