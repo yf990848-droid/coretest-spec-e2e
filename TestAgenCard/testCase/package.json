@@ -1,0 +1,33 @@
+{
+  "name": "new-vue-proj",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vite build --mode development",
+    "build:gamma": "node scripts/build-gamma.mjs",
+    "build:prod": "vite build --mode production",
+    "build:gamma-deploy": "node scripts/build-gamma.mjs --deploy",
+    "deploy:local": "node scripts/deploy-local.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@avenueui/devui-assets": "^4.14.2",
+    "@devui/theme": "^0.2.9",
+    "@devui/vue-devui": "^2.48.2",
+    "@devui/vue-devui-plus": "^1.38.1",
+    "@matechat/core": "^1.11.1",
+    "axios": "^1.15.0",
+    "pinia": "^3.0.4",
+    "vue": "^3.4.0",
+    "vue-i18n": "^11.3.0",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "sass": "^1.98.0",
+    "typescript": "4.5.4",
+    "vite": "^5.0.0"
+  }
+}
