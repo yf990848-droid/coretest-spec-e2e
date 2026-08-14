@@ -1,7 +1,7 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-08-13  
-> 当前定稿版本：`0.2.1`  
+> 最后更新：2026-08-14  
+> 当前定稿版本：`0.2.2`  
 > 默认分支：`main`
 
 ## 1. 项目目标
@@ -41,8 +41,18 @@
 当前版本：
 
 ```text
-coretest-spec-e2e 0.2.1
+coretest-spec-e2e 0.2.2
 ```
+
+0.2.2 继承 0.2.1 已定稿的 TR 级全流程能力，并完成测试用例卡片归档增强：
+
+- CIDA 用例创建继续使用原有 `TestType` 映射，无法映射时默认使用 `"1"`；
+- CIDA 用例创建新增 `AutoType="1"`；
+- CIDA 用例创建新增 `envtype=""`；
+- CIDA 用例创建新增 `DesignNote=<用例名称>`；
+- `caseHandler` 本版本暂不处理；
+- 根目录 `codeagent-extension.json` 版本更新为 `0.2.2`，确保卡片生成脚本引用 `coretest-spec-e2e@0.2.2` 的 WebApp；
+- 前端生产构建已通过，构建产物输出到 `test-design/webapps/testCase`。
 
 0.2.1 已完成并验证以下定稿能力：
 
@@ -61,6 +71,7 @@ coretest-spec-e2e 0.2.1
 | 0.1.x | 打通 Init、Explore、Design、卡片和 Archive 基础链路 |
 | 0.2.0 | 完善 E2E 测试设计与 TR/TS/TP/TC 自动化处理 |
 | 0.2.1 | 完成 TR 级全流程适配，Archive 改为复用已有 TR 并仅归档 TS/TP/TC |
+| 0.2.2 | 增强 CIDA 用例卡片归档字段，并修复扩展版本未更新导致旧版卡片代码被加载的问题 |
 
 ## 3. 快速使用
 
@@ -233,6 +244,18 @@ TR_<tr_id>/
 - 一个 TS 对应一个测试用例卡片；
 - 卡片 key 保持 `<requirement_id>_<ts-id>`。
 
+CIDA 用例卡片归档字段规则：
+
+```text
+TestType  = 按 testcase.type 映射，无法映射时为 "1"
+AutoType  = "1"
+envtype   = ""
+DesignNote = testcase.name
+caseHandler = 本版本不设置
+```
+
+字段在 `TestAgenCard/testCase/src/cards/archive_testcase.js` 的 `transformToCidaRequest()` 中组装，并通过 `/GT3KServer/v3/testcase/sync` 链路创建用例。
+
 已接受的使用约束：
 
 - 同一需求关联多个 TR 且存在相同 TS 编号时，卡片 key 可能冲突；
@@ -324,6 +347,14 @@ TR_<tr_id>/
 
 上述 skipped/blocked 属于既定数据规则，不代表归档流程失败。
 
+0.2.2 当前验证状态：
+
+- 前端执行 `npm run build:prod` 成功，Vite 完成 6845 个模块转换，生产构建通过；
+- 构建产物路径已确认为 `test-design/webapps/testCase`；
+- 首次归档仍加载旧版卡片代码，实际请求走 `/GT3KServer/v1/resource/detail/<parentUri>`；
+- 根因已定位为 `codeagent-extension.json` 仍为 `0.2.1`，卡片生成脚本因此引用旧包；
+- 清单版本已更新为 `0.2.2`，后续应确认实际请求切换到 `/GT3KServer/v3/testcase/sync`，并完成 `AutoType`、`envtype`、`DesignNote` 的端到端复验。
+
 ## 7. 关键工程约束
 
 - MCP 地址：`127.0.0.1:8765`；
@@ -334,7 +365,9 @@ TR_<tr_id>/
 - 不手工修改 `tr_info.json`、`tr_ts.json`、TP JSON、TC JSON 或归档状态中的平台 ID；
 - Explore、Design、Archive 必须使用同一个 `TR_<tr_id>` 上下文；
 - Portal 当前不支持直接跳转到 TC，TC 完成后跳转到所属 TP；
-- 修改核心流程前必须核对上下游输入、输出和状态契约。
+- 修改核心流程前必须核对上下游输入、输出和状态契约；
+- 扩展目录版本、根目录 `codeagent-extension.json.version` 和卡片 WebApp 实际加载版本必须保持一致；
+- 修改测试用例卡片前端后，需重新执行生产构建，并将产物放入当前扩展版本的 `webapps/testCase`。
 
 ## 8. 已知问题与后续方向
 
@@ -374,19 +407,32 @@ factor_code → factor resolver → 平台树路径/节点 → TS 关联
 - 缓存产品因子树或维护编码到路径的索引；
 - 将平台树遍历和选择逻辑封装在单一工具中。
 
+### 8.3 测试用例卡片版本加载
+
+0.2.2 首次验证时，页面仍使用 `/GT3KServer/v1/resource/detail/<parentUri>` 旧链路。根因是扩展清单版本未同步更新，生成卡片时仍引用 `coretest-spec-e2e@0.2.1`。
+
+处理原则：
+
+- 升级扩展目录版本时同步更新 `codeagent-extension.json.version`；
+- 确认卡片脚本组合出的包标识与当前版本一致；
+- 将新构建产物部署到当前版本的 `webapps/testCase`；
+- 重启 TestAgent、禁用浏览器缓存后重新验证；
+- 以 Network 中出现 `/GT3KServer/v3/testcase/sync` 作为新版卡片加载的关键检查点。
+
 ## 9. 下一步优先级
 
-1. 持续排查 Portal 卡片缓存成功但页面未展示的问题；
-2. 设计并验证测试因子编码到平台树节点的自动关联工具；
-3. 补充 0.2.1 的回归用例，覆盖多需求 TR、多 TR 同需求、指定对象归档和断点续跑；
-4. 后续功能演进继续保持 TR 级目录和既有 TR 复用原则。
+1. 完成 0.2.2 CIDA 用例字段端到端复验，确认 `AutoType`、`envtype` 和 `DesignNote` 实际进入创建请求；
+2. 持续排查 Portal 卡片缓存成功但页面未展示的问题；
+3. 设计并验证测试因子编码到平台树节点的自动关联工具；
+4. 补充 0.2.2 回归用例，覆盖多需求 TR、多 TR 同需求、指定对象归档、断点续跑和卡片版本加载；
+5. 后续功能演进继续保持 TR 级目录和既有 TR 复用原则。
 
 ## 10. 新任务开始前的读取顺序
 
 处理本项目的新需求时，优先读取：
 
 1. `docs/PROJECT_CONTEXT.md`；
-2. 根目录 `readme.md`；
+2. 根目录 `README.md`；
 3. 目标阶段对应的 `.testagent/skills/<skill>/SKILL.md`；
 4. 相关 Agent、脚本和 MCP 源码。
 
