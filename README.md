@@ -2,7 +2,7 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，覆盖从产品版本初始化、需求探索、测试规格分析、测试用例设计，到 TS、TP、TC 归档和 Portal 卡片刷新的完整流程。
 
-当前版本：`0.2.1`
+当前版本：`0.2.2`
 
 ## 能力概览
 
@@ -26,7 +26,7 @@
 复用已有 TR，归档 TS、TP、TC
 ```
 
-0.2.1 使用 TR 作为流程主上下文，所有阶段产物统一保存在：
+当前版本使用 TR 作为流程主上下文，所有阶段产物统一保存在：
 
 ```text
 .design_output/<design_task_id>/TR_<tr_id>/
@@ -135,6 +135,14 @@ TR_<tr_id>/
 - 不传 TS 时默认处理全部 TS；
 - 每批最多并行处理 3 个 TS；
 - 每个 TS 独立完成 Markdown、TP/TC JSON 和测试用例卡片更新。
+
+测试用例卡片归档到 CIDA 时：
+
+- `TestType` 保留原有测试类型映射，无法映射时默认为 `"1"`；
+- `AutoType` 固定为 `"1"`；
+- `envtype` 固定为空字符串；
+- `DesignNote` 使用当前测试用例名称；
+- `caseHandler` 当前不设置。
 
 主要产物：
 
@@ -300,7 +308,29 @@ TS 编号按 `test_specs/tr_ts.json` 中 `test_specs[]` 的顺序生成。先查
 
 使用相同 TR ID 和相同归档目标重新执行 Archive。流程会读取 `archive/archive_state.json`，复用已经成功的对象并继续未完成部分。
 
+### 卡片仍加载旧版本
+
+卡片生成脚本会根据根目录 `codeagent-extension.json` 中的 `name` 和 `version` 组合扩展包标识，例如：
+
+```text
+coretest-spec-e2e@0.2.2
+```
+
+升级版本时必须同步更新该文件，并确认构建产物已放入当前版本扩展包的 `webapps/testCase` 目录。修改测试用例卡片前端后，可在源码目录执行：
+
+```powershell
+cd TestAgenCard\testCase
+npm install --legacy-peer-deps
+npm run build:prod
+```
+
+如果依赖已经安装，本次仅修改源码，可直接执行 `npm run build:prod`。
+
 ## 版本说明
+
+### 0.2.2
+
+优化测试用例卡片归档，新增自动化类型、测试环境类型和设计描述字段上报，保留测试类型映射规则；同步更新扩展版本配置，确保归档流程正确加载新版卡片代码。
 
 ### 0.2.1
 
