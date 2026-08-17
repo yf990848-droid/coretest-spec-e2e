@@ -1,0 +1,128 @@
+name: similar_tp_factors
+description: 输入新测试点描述及关联的功能/场景/特性，各维度语义检索找历史相似TP（排除当前IR/SR），列出其测试因子
+params:
+  - {name: query,                type: str,  required: true,  embed: true, embed_target: TP}
+  - {name: function_query,       type: str,  required: false, embed: true, embed_target: Function}
+  - {name: scene_query,          type: str,  required: false, embed: true, embed_target: Scene}
+  - {name: feature_query,        type: str,  required: false, embed: true, embed_target: DesignFeature}
+  - {name: product,              type: str,  required: true}
+  - {name: exclude_sr_id,        type: str,  required: false, description: "当前需求IR_SR的requirement_alm_id，排除该SR关联的TP"}
+  - {name: exclude_function_ids, type: list, required: false, description: "当前需求关联的Function的alm_id列表，逗号分隔，反查SR排除TP"}
+  - {name: top_k,                type: int,  default: 10}
+  - {name: dim_top_k,            type: int,  default: 5,  description: "每个维度语义检索返回的候选数"}
+  - {name: dim_boost,            type: float, default: 0.1, description: "每个维度命中的加分值"}
+
+pre_queries:
+  # 预查询1：按功能描述语义检索，拿到相似 Function 的 function_name 列表
+  - output_key: sim_function_names
+    extract_field: name
+    skip_if_empty: function_query_vector
+    query: |
+      CALL db.index.vector.queryNodes('function_embedding_index', $dim_top_k * 3, $function_query_vector)
+      YIELD node AS n, score
+      WHERE {{PRODUCT_FILTER:n}}
+      RETURN n.function_name AS name, score ORDER BY score DESC LIMIT $dim_top_k
+
+  # 预查询2：按场景描述语义检索，拿到相似 Scene 的 name 列表
+  - output_key: sim_scene_names
+    extract_field: name
+    skip_if_empty: scene_query_vector
+    query: |
+      CALL db.index.vector.queryNodes('scene_embedding_index', $dim_top_k * 3, $scene_query_vector)
+      YIELD node AS n, score
+      WHERE {{PRODUCT_FILTER:n}}
+      RETURN n.name AS name, score ORDER BY score DESC LIMIT $dim_top_k
+
+  # 预查询3：按设计特性描述语义检索，拿到相似 DesignFeature 的 feature_name 列表
+  - output_key: sim_feature_names
+    extract_field: name
+    skip_if_empty: feature_query_vector
+    query: |
+      CALL db.index.vector.queryNodes('designfeature_embedding_index', $dim_top_k * 3, $feature_query_vector)
+      YIELD node AS n, score
+      WHERE {{PRODUCT_FILTER:n:DesignFeature}}
+      RETURN n.feature_name AS name, score ORDER BY score DESC LIMIT $dim_top_k
+
+  # 预查询4a：如果只传了 exclude_function_ids 没传 exclude_sr_id，先反查 SR ID
+  - output_key: _exclude_sr_ids_from_func
+    extract_field: id
+    skip_on_no_param: exclude_function_ids
+    query: |
+      MATCH (ir:IR_SR)-[:HAS_FUNCTION]->(fn:Function)
+      WHERE fn.alm_id IN $exclude_function_ids
+      RETURN DISTINCT ir.requirement_alm_id AS id
+
+  # 预查询4b：根据 SR ID（直接传入 或 反查得到）查要排除的 TP ID
+  # 两条路径：1) IR_SR-[:RELATES_TO_TP]->TP  2) TP.pbi = IR_SR关联的Version.pbi_version_id（兼容无边的情况）
+  - output_key: exclude_tp_ids
+    extract_field: id
+    query: |
+      WITH CASE
+        WHEN $exclude_sr_id IS NOT NULL THEN [$exclude_sr_id]
+        WHEN size($_exclude_sr_ids_from_func) > 0 THEN $_exclude_sr_ids_from_func
+        ELSE []
+      END AS sr_ids
+      UNWIND sr_ids AS sr_id
+      MATCH (ir:IR_SR {requirement_alm_id: sr_id})
+      OPTIONAL MATCH (ir)-[:RELATES_TO_TP]->(tp1:TP)
+      OPTIONAL MATCH (ir)-[:BELONGS_TO_VERSION]->(v:Version)
+      OPTIONAL MATCH (tp2:TP {pbi: v.pbi_version_id})
+      WITH collect(DISTINCT tp1.id) + collect(DISTINCT tp2.id) AS all_tp_ids
+      UNWIND all_tp_ids AS tid
+      WITH tid WHERE tid IS NOT NULL
+      RETURN DISTINCT tid AS id
+
+cypher: |
+  // ── Step 1: 语义检索相似TP（超量取候选，为排除留余量）──
+  CALL db.index.vector.queryNodes('tp_embedding_index', $top_k * 5, $query_vector)
+  YIELD node AS tp, score
+  WHERE {{PRODUCT_FILTER:tp}}
+
+  // ── Step 2: 排除当前SR的TP（只找历史的）──
+  WITH tp, score
+  WHERE size($exclude_tp_ids) = 0 OR NOT tp.id IN $exclude_tp_ids
+
+  // ── Step 3: 查候选TP关联的 Function / Scene / DesignFeature 名称 ──
+  OPTIONAL MATCH (ir:IR_SR)-[:RELATES_TO_TP]->(tp)
+  OPTIONAL MATCH (ir)-[:HAS_FUNCTION]->(fn:Function)
+  OPTIONAL MATCH (ts:TS)-[:HAS_TP]->(tp)
+  OPTIONAL MATCH (ts)-[:HAS_SCENE]->(sc:Scene)
+  OPTIONAL MATCH (ir2:IR_SR)-[:RELATES_TO_TP]->(tp)
+  OPTIONAL MATCH (ir2)-[:HAS_DESIGN_FEATURE]->(df:DesignFeature)
+    WHERE {{PRODUCT_FILTER:df:DesignFeature}}
+
+  WITH tp, score,
+       collect(DISTINCT fn.function_name) AS tp_func_names,
+       collect(DISTINCT sc.name)           AS tp_scene_names,
+       collect(DISTINCT df.feature_name)   AS tp_feat_names
+
+  // ── Step 4: 计算维度匹配加分（软匹配，不硬过滤）──
+  WITH tp, score,
+       tp_func_names, tp_scene_names, tp_feat_names,
+       score
+         + CASE WHEN size($sim_function_names) > 0 AND ANY(n IN tp_func_names WHERE n IN $sim_function_names) THEN $dim_boost ELSE 0.0 END
+         + CASE WHEN size($sim_scene_names) > 0    AND ANY(n IN tp_scene_names WHERE n IN $sim_scene_names)   THEN $dim_boost ELSE 0.0 END
+         + CASE WHEN size($sim_feature_names) > 0   AND ANY(n IN tp_feat_names  WHERE n IN $sim_feature_names) THEN $dim_boost ELSE 0.0 END
+       AS adjusted_score
+
+  WITH tp, score, adjusted_score, tp_func_names, tp_scene_names, tp_feat_names
+  ORDER BY adjusted_score DESC
+  LIMIT $top_k
+
+  // ── Step 5: 拉取测试因子等详情 ──
+  OPTIONAL MATCH (tp)-[:HAS_TEST_FACTOR]->(tf:TestFactor)
+  OPTIONAL MATCH (tp)-[:HAS_SCENE_FACTOR]->(sf:SceneFactor)
+
+  RETURN tp.id                          AS tp_id,
+         tp.tp_name                     AS tp_name,
+         tp.description                 AS tp_desc,
+         score                          AS similarity_score,
+         adjusted_score                 AS adjusted_score,
+         tp_func_names                  AS matched_functions,
+         tp_scene_names                 AS matched_scenes,
+         tp_feat_names                  AS matched_features,
+         collect(DISTINCT tf.test_factor_id)  AS factor_ids,
+         collect(DISTINCT tf.name)             AS factor_names,
+         collect(DISTINCT tf.description)      AS factor_descs,
+         collect(DISTINCT sf.factor_name)      AS scene_factor_names
+  ORDER BY adjusted_score DESC
