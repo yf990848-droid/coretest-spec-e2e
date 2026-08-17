@@ -1,0 +1,15 @@
+name: scene_test_specs
+description: 场景关联测试（限定产品）—— 按场景名关键词，找该产品下挂在该场景的测试需求(TR)与测试规格(TS)
+params:
+  - {name: keyword, type: str, required: true}
+  - {name: product, type: str, required: true}
+  - {name: limit, type: int, default: 20}
+cypher: |
+  MATCH (sc:Scene)
+  WHERE sc.name CONTAINS $keyword
+  OPTIONAL MATCH (ts:TS)-[:HAS_SCENE]->(sc) WHERE {{PRODUCT_FILTER:ts}}
+  OPTIONAL MATCH (tr:TR)-[:HAS_SCENE]->(sc) WHERE {{PRODUCT_FILTER:tr}}
+  RETURN sc.alm_id AS scene_id, sc.name AS scene_name,
+         collect(DISTINCT ts.ts_no) AS ts_list,
+         collect(DISTINCT tr.tr_no) AS tr_list
+  LIMIT $limit
