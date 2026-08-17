@@ -1,0 +1,13 @@
+name: factor_usage
+description: 测试因子复用情况（限定产品）—— 给一个测试因子(test_factor_id)，看它在该产品下被哪些 TS/TP 使用
+params:
+  - {name: test_factor_id, type: str, required: true}
+  - {name: product, type: str, required: true}
+# 注：test_factor_id 图中是字符串，直接等值匹配（走唯一索引），参数按字符串传
+cypher: |
+  MATCH (tf:TestFactor {test_factor_id: $test_factor_id})
+  OPTIONAL MATCH (ts:TS)-[:HAS_TEST_FACTOR]->(tf) WHERE {{PRODUCT_FILTER:ts}}
+  OPTIONAL MATCH (tp:TP)-[:HAS_TEST_FACTOR]->(tf) WHERE {{PRODUCT_FILTER:tp}}
+  RETURN tf.test_factor_id AS id, tf.name AS name,
+         collect(DISTINCT ts.ts_no) AS used_by_ts,
+         collect(DISTINCT tp.tp_no) AS used_by_tp
