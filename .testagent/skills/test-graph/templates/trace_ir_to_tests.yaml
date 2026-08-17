@@ -1,0 +1,19 @@
+name: trace_ir_to_tests
+description: 需求全链路追溯（限定产品）—— 给一个需求(IR_SR)，展开 TR→TS→TP→TC 的完整测试链路
+params:
+  - {name: requirement_alm_id, type: int, required: true}
+  - {name: product, type: str, required: true}
+  - {name: limit, type: int, default: 200}
+cypher: |
+  MATCH (ir:IR_SR {requirement_alm_id: $requirement_alm_id})
+  WHERE {{PRODUCT_FILTER:ir}}
+  OPTIONAL MATCH (ir)-[:HAS_TR]->(tr:TR)
+  OPTIONAL MATCH (tr)-[:HAS_TS]->(ts:TS)
+  OPTIONAL MATCH (ts)-[:HAS_TP]->(tp:TP)
+  OPTIONAL MATCH (tp)-[:HAS_TC]->(tc:TC)
+  RETURN ir.requirement_name AS requirement,
+         tr.tr_no   AS tr_no,   tr.tr_name AS tr_name,
+         ts.ts_no   AS ts_no,   ts.ts_name AS ts_name,
+         tp.tp_no   AS tp_no,   tp.tp_name AS tp_name,
+         tc.case_id AS tc_case_id, tc.name AS tc_name
+  LIMIT $limit
