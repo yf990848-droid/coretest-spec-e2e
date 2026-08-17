@@ -1,0 +1,16 @@
+name: similar_test_factor
+description: 历史相似测试因子检索（限定产品）—— 输入自然语言，返回该产品下语义最相似的测试因子(TestFactor)
+params:
+  - {name: query,   type: str, required: true, embed: true}   # embed=true -> 自动生成 $query_vector
+  - {name: product, type: str, required: true}                # 按关联版本 pbi_version_name 过滤
+  - {name: top_k,   type: int, default: 10}
+cypher: |
+  CALL db.index.vector.queryNodes('testfactor_embedding_index', $top_k * 10, $query_vector)
+  YIELD node AS n, score
+  WHERE {{PRODUCT_FILTER:n}}
+  RETURN n.test_factor_id AS id,
+         n.name           AS name,
+         n.description     AS description,
+         score
+  ORDER BY score DESC
+  LIMIT $top_k
