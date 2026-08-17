@@ -1,0 +1,19 @@
+name: ts_context
+description: 测试规格上下文（限定产品）—— 给一个 TS(ts_no)，汇总它关联的场景/测试因子/场景因子/攻击模式/测试点
+params:
+  - {name: ts_no, type: str, required: true}
+  - {name: product, type: str, required: true}
+cypher: |
+  MATCH (ts:TS {ts_no: $ts_no})
+  WHERE {{PRODUCT_FILTER:ts}}
+  OPTIONAL MATCH (ts)-[:HAS_SCENE]->(sc:Scene)
+  OPTIONAL MATCH (ts)-[:HAS_TEST_FACTOR]->(tf:TestFactor)
+  OPTIONAL MATCH (ts)-[:HAS_SCENE_FACTOR]->(sf:SceneFactor)
+  OPTIONAL MATCH (ts)-[:HAS_MODE]->(m:Mode)
+  OPTIONAL MATCH (ts)-[:HAS_TP]->(tp:TP)
+  RETURN ts.ts_no AS ts_no, ts.ts_name AS ts_name,
+         collect(DISTINCT sc.name)        AS scenes,
+         collect(DISTINCT tf.name)        AS test_factors,
+         collect(DISTINCT sf.factor_name) AS scene_factors,
+         collect(DISTINCT m.name)         AS modes,
+         collect(DISTINCT tp.tp_no)       AS test_points
