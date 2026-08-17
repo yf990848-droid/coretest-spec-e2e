@@ -1,0 +1,27 @@
+name: sr_definition
+description: 按关键词检索需求/SR 的官方定义（限定产品；IR_SR 名称包含匹配）
+params:
+  - {name: keyword, type: str, required: true}
+  - {name: product, type: str, required: true}
+  - {name: limit,   type: int, default: 10}
+cypher: |
+  MATCH (n:IR_SR)
+  WHERE n.requirement_name CONTAINS $keyword
+    AND (
+      // 情况1：自身直接关联 Version
+      EXISTS {
+        MATCH (n)-[:BELONGS_TO_VERSION]->(v:Version)
+        WHERE toLower(v.pbi_version_name) CONTAINS toLower($product)
+      }
+      OR
+      // 情况2：通过 parent 间接关联 Version
+      EXISTS {
+        MATCH (n)-[:HAS_PARENT_IR]-(parent:IR_SR)-[:BELONGS_TO_VERSION]->(v:Version)
+        WHERE toLower(v.pbi_version_name) CONTAINS toLower($product)
+      }
+    )
+  RETURN n.requirement_alm_id  AS id,
+         n.requirement_name     AS name,
+         n.requirement_type     AS type,
+         n.requirement_status   AS status
+  LIMIT $limit
