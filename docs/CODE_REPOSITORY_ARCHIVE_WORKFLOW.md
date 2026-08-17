@@ -11,11 +11,10 @@
 
 - 先同步远端目标分支，再复制本次确认过的文件；
 - 只暂存明确属于本次版本的文件，不使用 `git add -A`；
-- Python 等脚本文件按 MR 行数限制拆分；
-- Markdown 文档可以集中到独立 MR；
+- 先按已确认的版本范围归档；只有整体变更超过限制或存在独立能力边界时才拆分 MR；
 - 多个 MR 串联时，后续分支必须基于前置 MR 合入后的最新目标分支创建；
 - `.idea/`、`.opencode/`、本地 MCP 配置、运行日志和生成数据不归档；
-- 提交前必须检查文件范围、变更行数和空白错误；
+- 提交前必须检查文件范围、变更行数和空白问题；生成后的压缩资源是否阻断，以仓库门禁为准；
 - 未确认的文件不恢复、不覆盖、不提交。
 
 ## 2. 示例目录与变量
@@ -26,7 +25,7 @@
 $Version = "0.2.2"
 $SourceRoot = "D:\TestAgent\templates\coretest-spec-e2e@$Version\coretest-spec-e2e"
 $RepoRoot = "D:\CoreTestClaw_new"
-$TargetBranch = "main"
+$TargetBranch = "coretest-spec-e2e"
 ```
 
 进入代码仓：
@@ -73,15 +72,22 @@ git diff --name-status
 
 ### 3.3 同步目标分支
 
-工作区中的未提交修改需要保留时，先确认切换分支不会覆盖同路径文件。然后同步远端：
+工作区中的未提交修改需要保留时，先确认切换分支不会覆盖同路径文件。切换后必须再次检查状态，因为同一个工作区文件在不同分支下可能变成已修改：
 
 ```powershell
 git fetch origin
 git switch $TargetBranch
-git pull --ff-only origin $TargetBranch
+git status -sb
+git status --short --untracked-files=all
 ```
 
-若目标分支不是 `main`，以实际归档分支为准。
+若出现会阻塞拉取的已跟踪修改，先用 `git diff -- "<文件路径>"` 核对；确认属于本地状态文件时，可先备份，再对该单个文件执行 `git restore -- "<文件路径>"`。不要批量恢复。
+
+确认没有阻塞项后再拉取：
+
+```powershell
+git pull --ff-only origin $TargetBranch
+```
 
 ## 4. 同步本次版本文件
 
@@ -125,6 +131,32 @@ git diff --name-status
 git diff --stat
 ```
 
+`git diff` 不显示未跟踪的新文件，因此复制后必须同时查看 `git status`。不要通过比较整个模板目录来推断版本范围；构建产物、换行符和模板基线可能产生大量无关差异。
+
+### 4.1 WebApp 构建产物
+
+归档带哈希文件名的 WebApp 时，应同步整个目标 WebApp（至少包括 `assets/` 和引用它们的 `index.html`），并检查代码仓中已跟踪、但新构建中已不存在的旧资源：
+
+```powershell
+$WebAppPath = "webapps/testCase"
+
+$ObsoleteFiles = git ls-files -- $WebAppPath |
+    Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $SourceRoot $_))
+    }
+
+$ObsoleteFiles
+```
+
+确认列表均为旧哈希资源后，再精确移除并暂存目标 WebApp：
+
+```powershell
+git rm -- $ObsoleteFiles
+git add -- $WebAppPath
+```
+
+暂存区中出现 `Rxxx`，或新旧哈希文件成对出现 `A`/`D`，属于构建资源替换的正常结果。
+
 ## 5. 排除不应归档的文件
 
 以下内容通常属于本地环境，不应进入提交：
@@ -161,12 +193,13 @@ git status --short --untracked-files=all -- `
 ### 6.1 查看文件和行数
 
 ```powershell
+git status --short --untracked-files=all
 git diff --name-status
 git diff --numstat --no-renames
 git diff --check
 ```
 
-`git diff --check` 无输出代表没有空白错误。以下提示通常只是换行符转换提醒，不等同于检查失败：
+`git diff --check` 无输出代表没有空白问题。以下提示通常只是换行符转换提醒，不等同于检查失败：
 
 ```text
 LF will be replaced by CRLF the next time Git touches it
@@ -212,119 +245,69 @@ $TotalChangedLines
 
 脚本 MR 的结果必须小于 `1000`。拆成多个 commit 不能降低 MR 的总行数；超过限制时必须拆成多个分支和 MR。
 
-### 7.2 推荐拆分方式
+### 7.2 拆分原则
 
-通常拆为两类：
+同一版本、同一能力边界且总变更行数小于 1000 时，可以使用一个 MR，不必固定拆成“脚本 MR”和“文档 MR”。
 
-| MR | 内容 | 约束 |
-|---|---|---|
-| 脚本 MR | `.py`、必要的代码文件 | 新增行数 + 删除行数 < 1000 |
-| 文档 MR | Agent、Skill、README、docs 和版本清单 | 按团队文档规则执行 |
+仅在以下情况拆分：
 
-若单个脚本 MR 仍超过 1000 行，应继续按能力边界拆分，例如 Init、Explore、Design、Archive 分别提交。
+- 脚本类 MR 的新增行数 + 删除行数达到或超过 1000；
+- Init、Explore、Design、Archive 等能力可以独立审查和合入；
+- 团队门禁明确要求代码与文档分开。
 
-## 8. 提交脚本 MR
+拆分后，后续分支必须等待前置 MR 合入，并基于最新的 `origin/$TargetBranch` 创建。
 
-### 8.1 创建分支
+## 8. 创建分支、暂存与提交
 
-```powershell
-git switch -c personal/<工号>/coretest-spec-e2e-<版本>-scripts
-```
-
-分支名中的版本可去掉点号，例如 `0.2.2` 写为 `022`。
-
-### 8.2 精确暂存
-
-示例：
+从已同步的目标分支创建版本分支：
 
 ```powershell
-git add -- `
-    ".testagent/skills/coretest-archive/scripts/archive_state.py" `
-    ".testagent/skills/coretest-explore/scripts/file_download.py" `
-    ".testagent/skills/test-init-context/scripts/generate_tr_context.py" `
-    ".testagent/skills/test-spec-analysis/scripts/build_tr_json.py"
+git switch -c personal/<工号>/coretest-spec-e2e-<版本>
 ```
 
-### 8.3 提交前核验
+分支名中的版本可去掉点号，例如 `0.2.2` 写为 `022`。按已确认清单精确暂存，不使用 `git add .` 或 `git add -A`：
+
+```powershell
+git add -- "<文件或目录1>" "<文件或目录2>"
+```
+
+提交前核验：
 
 ```powershell
 git diff --cached --name-status
+git diff --cached --shortstat
 git diff --cached --numstat
 git diff --cached --check
 git status --short
 ```
 
-确认：
-
-- 暂存区只有计划内脚本；
-- 总变更行数小于 1000；
-- 没有空白错误；
-- 本地配置和未跟踪文件没有进入暂存区。
-
-### 8.4 提交和推送
+确认暂存区仅包含计划内文件，并按 7.1 节计算变更行数。压缩后的 WebApp 资源可能因行尾空格触发 `git diff --cached --check`；这不影响运行，但若仓库门禁强制检查则必须清理，否则记录后可继续提交。
 
 ```powershell
-git commit -m "feat: adapt coretest scripts for <版本说明>"
+git commit -m "<提交说明>"
 git show --stat --oneline HEAD
-git show --numstat --format="" HEAD
 git push -u origin (git branch --show-current)
 ```
 
 创建 MR 时填写：
 
-- 源分支：当前脚本分支；
-- 目标分支：`main` 或实际目标分支；
-- 说明：本次脚本变更、影响范围和验证结果；
-- 变更规模：文件数量及按上述口径计算的行数。
+- 源分支：当前版本分支；
+- 目标分支：`$TargetBranch`；
+- 说明：本次变更、影响范围和验证结果；
+- 变更规模：文件数量及新增行数 + 删除行数。
 
-脚本 MR 合入后再继续文档 MR。
+## 9. 多个 MR 的后续分支
 
-## 9. 提交文档 MR
-
-### 9.1 基于最新目标分支创建分支
+只有确需拆分时，才在前置 MR 合入后创建后续分支：
 
 ```powershell
 git fetch origin
-git switch -c personal/<工号>/coretest-spec-e2e-<版本>-docs origin/main
-```
-
-如果工作区保留了未提交文档修改，切换后再次确认脚本修改已经因前置 MR 合入而消失：
-
-```powershell
+git switch -c personal/<工号>/coretest-spec-e2e-<版本>-<范围> origin/$TargetBranch
 git status -sb
 git diff --name-status
 ```
 
-### 9.2 精确暂存文档
-
-示例：
-
-```powershell
-git add -- `
-    ".testagent/agents/coretest-init-agent.md" `
-    ".testagent/skills/coretest-init/SKILL.md" `
-    ".testagent/skills/test-init-context/SKILL.md" `
-    "README.md" `
-    "docs/PROJECT_CONTEXT.md" `
-    "codeagent-extension.json"
-```
-
-根据实际变更补充其他 Agent 或 Skill 文档，不要加入无关文件。
-
-### 9.3 核验、提交和推送
-
-```powershell
-git diff --cached --name-status
-git diff --cached --stat
-git diff --cached --check
-git status --short
-
-git commit -m "docs: update CoreTest <版本> workflow"
-git show --name-status --format="" HEAD
-git push -u origin (git branch --show-current)
-```
-
-创建文档 MR，目标分支与脚本 MR 保持一致。
+再次精确复制、暂存和核验后提交，所有 MR 的目标分支保持为 `$TargetBranch`。
 
 ## 10. 合入后的最终检查
 
@@ -332,8 +315,8 @@ git push -u origin (git branch --show-current)
 
 ```powershell
 git fetch origin
-git switch main
-git pull --ff-only origin main
+git switch $TargetBranch
+git pull --ff-only origin $TargetBranch
 git status -sb
 git log --oneline -5
 ```
@@ -364,9 +347,9 @@ MR 行数按源分支与目标分支的整体差异计算。一个 MR 中即使�
 
 后续分支基于最新目标分支创建，可以让已经合入的脚本差异从工作区中自然消失，避免同一文件重复进入多个 MR。
 
-### 11.3 LF/CRLF 警告需要处理吗？
+### 11.3 LF/CRLF 或生成资源的行尾空格需要处理吗？
 
-仅出现 `LF will be replaced by CRLF` 时通常无需处理。以 `git diff --check` 是否报告真实空白错误为准，不要为了消除提示批量重写文件。
+仅出现 `LF will be replaced by CRLF` 时通常无需处理，不要为消除提示批量重写文件。生成后的压缩 JS 若仅有行尾空格，不影响运行；仓库门禁不强制时可记录后提交，门禁强制时再对具体文件做最小清理。
 
 ### 11.4 能否直接使用 `git add .`？
 
