@@ -48,6 +48,7 @@ TP_COLUMNS = [
 TC_COLUMNS = [
     "tc_id_temp", "tp_id_temp", "name", "rank",
     "preparation", "test_step", "expect_output", "case_id",
+    "TestType", "AutoType", "envtype", "DesignNote",
 ]
 
 DIMENSIONS = {"基于业务场景", "基于业务内部实现", "功能交互设计", "测试类型交互设计"}
@@ -166,7 +167,13 @@ def parse_tc_table(section_lines: list[str], source_name: str) -> list[dict]:
         d = row_to_dict(cells, TC_COLUMNS, source_name)
         if d["tc_id_temp"] in ("", "tc_id_temp"):
             continue
-        for field in ("preparation", "test_step", "expect_output"):
+        d["TestType"] = d["TestType"].strip() or "1"
+        d["AutoType"] = d["AutoType"].strip() or "0"
+        if not d["DesignNote"].strip():
+            sys.exit(
+                f"错误：{source_name} 中 TC「{d['tc_id_temp']}」的 DesignNote 不能为空。"
+            )
+        for field in ("preparation", "test_step", "expect_output", "DesignNote"):
             d[field] = unescape_cell(d[field])
         tcs.append(d)
     if not tcs:
@@ -222,6 +229,10 @@ def build_tc_json(tr_name: str, ts_name: str, ts_type: str, tcs: list[dict], cre
             "test_step": d["test_step"],
             "expect_output": d["expect_output"],
             "case_id": case_id,
+            "TestType": d["TestType"],
+            "AutoType": d["AutoType"],
+            "envtype": d["envtype"].strip(),
+            "DesignNote": d["DesignNote"],
             "case_id_prefix": case_id_prefix,
             "case_id_start_value": 0,
             "case_id_number": "1",

@@ -256,15 +256,15 @@ export function extractTestcases(data, filterNames = []) {
 export function transformToCidaRequest(testcase, username = '', session) {
   const priority = testcase.priority || 'Level 2';
   const rank = rankMapping[priority] || '2';
-  const testType = testTypeMapping[testcase.type] || '1';
+  const testType = testcase.TestType || '1';
 
   return {
     type: 'TestCase',
     rank: rank,
     TestType: testType,
-    AutoType: '1',
-    envtype: '',
-    DesignNote: testcase.name || '',
+    AutoType: testcase.AutoType || '0',
+    envtype: testcase.envtype ?? '',
+    DesignNote: testcase.DesignNote ?? '',
     Preparation: testcase.pre || '',
     TestStep: testcase.test_step || '',
     ExpectOutput: testcase.expect_output || '',

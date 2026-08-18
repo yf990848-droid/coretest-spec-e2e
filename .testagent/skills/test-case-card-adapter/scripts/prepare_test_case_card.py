@@ -71,6 +71,10 @@ def build_test_case_json(tc_file):
             "priority": str(tc.get("rank", "")),
             "number": tc.get("case_id", "") or tc.get("tc_id_temp", ""),
             "type": ts_type,
+            "TestType": tc.get("TestType", "1") or "1",
+            "AutoType": tc.get("AutoType", "0") or "0",
+            "envtype": tc.get("envtype", ""),
+            "DesignNote": tc.get("DesignNote", ""),
             "pre": tc.get("preparation", ""),
             "test_step": tc.get("test_step", ""),
             "expect_output": tc.get("expect_output", "")
