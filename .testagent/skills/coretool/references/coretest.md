@@ -23,13 +23,82 @@ CoreTest 是华为 CoreTool 的测试执行领域，支持 InFactory、Script、
 
 #### 创建 InFactory 任务
 
+参数按页面分为 4 类 JSON 传入，`--basic-info` 必填，其余可选。
+
 ```bash
-coretool coretest infactory task create --name <名称> --project <项目> --product-line <产品线> --source-branch <源分支> --dest-branch <目标分支> --codehub-url <仓库地址>
-# 示例
-coretool coretest infactory task create --name "构建验证" --project CoreTool --product-line Cloud --source-branch feature/test --dest-branch master --codehub-url https://codehub.huawei.com/CoreTool.git
+coretool coretest infactory task create --basic-info '<基础信息JSON>' [--case-filter '<入厂用例筛选JSON>'] [--mr-config '<创建MR JSON>'] [--script-refresh '<自定义刷新脚本字段JSON>']
 ```
 
-可选参数：`--env-version`、`--factory-type`、`--is-auto`（默认 `1`）、`--executor-type`、`--reviewer`（可多次）、`--committer`（可多次）、`--approver`（可多次）、`--env-list`、`--tep-list`、`--policy-name`、`--custom-params`、`--custom-params-file`、`--deploy-template-id`、`--topo-name`、`--mr-title`、`--template-desc`
+**--basic-info（基础信息，必填）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `inFactoryTaskName` | string | 是 | 任务名称 |
+| `productLineName` | string | 是 | 产品线名称 |
+| `projectName` | string | 是 | 项目名称 |
+| `codehubHttpAddress` | string | 是 | 代码仓HTTP地址 |
+| `sourceCodehubBranchName` | string | 是 | 源分支名 |
+| `destCodehubBranchName` | string | 是 | 目标分支名 |
+| `groupId` | string | 否 | 用户所在组ID |
+| `creator` | string | 否 | 创建人（默认从登录用户取） |
+| `cVersionName` | string | 否 | C版本名称 |
+| `bVersionName` | string | 否 | B版本名称 |
+| `factoryType` | string | 否 | 入场类型（如 Hutaf） |
+| `executorType` | string | 否 | 执行器类型（如 CLOUD_SPIDER） |
+| `isAuto` | string | 否 | 是否自动（`"1"`=自动，`"0"`=手动，默认`"1"`） |
+| `envVersion` | string | 否 | 环境版本 |
+| `topoName` | string | 否 | 网络拓扑名称 |
+| `sourceCodehubCheckBranchName` | string | 否 | 源分支检查分支名 |
+| `sourceCodehubMrBranchName` | string | 否 | 源分支MR分支名 |
+
+**--case-filter（入厂用例筛选，可选）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `envList` | string | 环境列表JSON字符串（如 `"[]"`） |
+| `tepList` | string | 执行器列表JSON字符串 |
+| `policyName` | string | 策略名称（如 `"只入厂"`） |
+| `assuranceCaseIds` | string | 保障用例ID |
+| `fileNames` | array | 入厂用例文件列表 |
+
+`fileNames` 每项字段：`id`（序号）、`fileName`（文件名）、`caseNumber`（用例编号）、`isConfig`（0=用例，1=配置）
+
+**--mr-config（创建MR，可选）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `templateName` | string | MR模板名称（如 `"test_finish"`） |
+| `mrTitle` | string | MR标题 |
+| `templateDesc` | string | MR描述/模板说明 |
+| `isNeedVerifyBeforeMergeIntoMaster` | int | MR合入前是否检查（0=否，1=是） |
+| `merger` | string[] | 合并人列表 |
+| `reviewer` | string[] | 审核人列表 |
+| `committer` | string[] | 检视人列表 |
+| `approvers` | string[] | 批准人列表 |
+| `mrRelationNumber` | string | E2E关联编号 |
+
+**--script-refresh（自定义刷新脚本字段，可选）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `killerScriptConfigBeforeId` | int | 入场前killer脚本配置ID |
+| `killerScriptConfigAfterId` | int | 入场后killer脚本配置ID |
+| `customParams` | string | 自定义参数JSON字符串 |
+| `customFieldInfo` | string | 自定义字段配置JSON字符串 |
+| `deployTemplateId` | string | 部署模板ID |
+
+```bash
+# 示例：完整4类参数
+coretool coretest infactory task create \
+  --basic-info '{"inFactoryTaskName":"task_test_20260818","productLineName":"CSP","projectName":"CSP 26.1.0","codehubHttpAddress":"https://codehub-dg-y.huawei.com/CSPAutoTest/AITestForCSP.git","sourceCodehubBranchName":"personal/w00455952/master","destCodehubBranchName":"personal/w00455952/master_ruchang","cVersionName":"CSP 26.1.0","bVersionName":"CSP 26.1.0_用例预入场","factoryType":"Hutaf","executorType":"CLOUD_SPIDER","isAuto":"0","groupId":"1052","creator":"r30073095"}' \
+  --case-filter '{"envList":"[]","tepList":"[{\"id\":\"3085993856910165504\",\"type\":\"CLOUD_SPIDER\",\"name\":\"10.44.175.156:8090\",\"version\":\"1.1.57\",\"status\":\"idle\",\"network\":\"yellow\"}]","policyName":"只入厂","fileNames":[{"id":1,"fileName":"test_TC_CSP_ALM_MML_024.py","caseNumber":"test_TC_CSP_ALM_MML_024","isConfig":0}]}' \
+  --mr-config '{"templateName":"test_finish","mrTitle":"task_test_20260818","templateDesc":"1. test finish","isNeedVerifyBeforeMergeIntoMaster":1,"merger":[],"reviewer":[],"committer":[],"approvers":[]}' \
+  --script-refresh '{"killerScriptConfigBeforeId":42,"killerScriptConfigAfterId":45,"customParams":"{\"configPath\":\"/home/executor/JavaEnvCfg\",\"packageName\":\"TestforCSPDFPPython-22.1.0.tar\",\"serviceName\":\"TestforCSPDFPPython\",\"version\":\"22.1.0\",\"product\":\"csp\",\"executorType\":\"CLOUD_SPIDER\",\"purePython\":\"true\",\"customCmd\":\"pytest -v\"}","customFieldInfo":"[{\"fieldName\":\"\",\"tmssFieldValue\":\"\",\"fieldNameOptions\":[],\"tmssFieldValueOptions\":[]}]"}}'
+
+# 示例：仅基础信息（最少参数）
+coretool coretest infactory task create \
+  --basic-info '{"inFactoryTaskName":"构建验证","productLineName":"Cloud","projectName":"CoreTool","codehubHttpAddress":"https://codehub.huawei.com/CoreTool.git","sourceCodehubBranchName":"feature/test","destCodehubBranchName":"master"}'
+```
 
 #### 查询任务列表
 
