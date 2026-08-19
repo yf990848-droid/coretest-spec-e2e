@@ -1,7 +1,7 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-08-14  
-> 当前定稿版本：`0.2.2`  
+> 最后更新：2026-08-19  
+> 当前定稿版本：`0.2.3`  
 > 默认分支：`main`
 
 ## 1. 项目目标
@@ -41,18 +41,21 @@
 当前版本：
 
 ```text
-coretest-spec-e2e 0.2.2
+coretest-spec-e2e 0.2.3
 ```
 
-0.2.2 继承 0.2.1 已定稿的 TR 级全流程能力，并完成测试用例卡片归档增强：
+0.2.3 继承 0.2.2 的 TR 级全流程和测试用例卡片归档能力，并完成用例上报字段的规则化生成与端到端透传：
 
-- CIDA 用例创建继续使用原有 `TestType` 映射，无法映射时默认使用 `"1"`；
-- CIDA 用例创建新增 `AutoType="1"`；
-- CIDA 用例创建新增 `envtype=""`；
-- CIDA 用例创建新增 `DesignNote=<用例名称>`；
+- `TestType` 由 Agent 按完整映射生成，无法识别时默认使用 `"1"`；
+- `AutoType` 根据用例自动化属性生成，自动化为 `"1"`，非自动化或无法识别时为 `"0"`；
+- `envtype` 当前按规则生成空字符串，后续可直接调整规则；
+- `DesignNote` 由 Agent 根据测试目的和验证内容生成一句设计描述，不允许为空；
+- 四个字段通过 `tp-tc-output.md → build_tp_tc_json.py → prepare_test_case_card.py → archive_testcase.js` 传递至 CIDA；
 - `caseHandler` 本版本暂不处理；
-- 根目录 `codeagent-extension.json` 版本更新为 `0.2.2`，确保卡片生成脚本引用 `coretest-spec-e2e@0.2.2` 的 WebApp；
-- 前端生产构建已通过，构建产物输出到 `test-design/webapps/testCase`。
+- `coretest-design` 和测试用例卡片归档链路已验证通过；
+- 根目录 `codeagent-extension.json` 已更新为 `0.2.3`。
+
+0.2.2 完成 CIDA 用例卡片归档字段接入，并修复扩展清单版本未同步导致旧版卡片代码被加载的问题。
 
 0.2.1 已完成并验证以下定稿能力：
 
@@ -72,6 +75,7 @@ coretest-spec-e2e 0.2.2
 | 0.2.0 | 完善 E2E 测试设计与 TR/TS/TP/TC 自动化处理 |
 | 0.2.1 | 完成 TR 级全流程适配，Archive 改为复用已有 TR 并仅归档 TS/TP/TC |
 | 0.2.2 | 增强 CIDA 用例卡片归档字段，并修复扩展版本未更新导致旧版卡片代码被加载的问题 |
+| 0.2.3 | 支持 TestType、AutoType、envtype、DesignNote 按规则生成并端到端透传至 CIDA |
 
 ## 3. 快速使用
 
@@ -247,14 +251,27 @@ TR_<tr_id>/
 CIDA 用例卡片归档字段规则：
 
 ```text
-TestType  = 按 testcase.type 映射，无法映射时为 "1"
-AutoType  = "1"
-envtype   = ""
-DesignNote = testcase.name
+TestType   = Agent 按 tp-tc-output.md 中的映射判断，无法识别时为 "1"
+AutoType   = 自动化为 "1"，非自动化或无法识别时为 "0"
+envtype    = 当前为 ""，生成规则可配置
+DesignNote = Agent 根据测试目的和验证内容生成一句设计描述
 caseHandler = 本版本不设置
 ```
 
-字段在 `TestAgenCard/testCase/src/cards/archive_testcase.js` 的 `transformToCidaRequest()` 中组装，并通过 `/GT3KServer/v3/testcase/sync` 链路创建用例。
+字段链路：
+
+```text
+.testagent/rules/tp-tc-output.md
+→ ts_<NN>_test_cases.md
+→ build_tp_tc_json.py
+→ ts_<NN>_tc.json
+→ prepare_test_case_card.py
+→ ts_<NN>_test_case.json
+→ archive_testcase.js
+→ /GT3KServer/v3/testcase/sync
+```
+
+WebApp 的 `transformToCidaRequest()` 只读取卡片参数并组装请求，不再负责生成上述字段的业务值。
 
 已接受的使用约束：
 
@@ -347,13 +364,19 @@ caseHandler = 本版本不设置
 
 上述 skipped/blocked 属于既定数据规则，不代表归档流程失败。
 
-0.2.2 当前验证状态：
+0.2.2 历史验证状态：
 
-- 前端执行 `npm run build:prod` 成功，Vite 完成 6845 个模块转换，生产构建通过；
-- 构建产物路径已确认为 `test-design/webapps/testCase`；
-- 首次归档仍加载旧版卡片代码，实际请求走 `/GT3KServer/v1/resource/detail/<parentUri>`；
-- 根因已定位为 `codeagent-extension.json` 仍为 `0.2.1`，卡片生成脚本因此引用旧包；
-- 清单版本已更新为 `0.2.2`，后续应确认实际请求切换到 `/GT3KServer/v3/testcase/sync`，并完成 `AutoType`、`envtype`、`DesignNote` 的端到端复验。
+- 前端生产构建通过，构建产物路径确认为 `test-design/webapps/testCase`；
+- 首次归档加载旧版卡片代码，根因是 `codeagent-extension.json` 未从 `0.2.1` 同步更新；
+- 清单版本更新为 `0.2.2` 后，新版卡片加载问题得到解决。
+
+0.2.3 当前验证状态：
+
+- `coretest-design` 已验证通过，TC Markdown、`ts_<NN>_tc.json` 和 `ts_<NN>_test_case.json` 可完整携带四个上报字段；
+- `TestType`、`AutoType`、`envtype`、`DesignNote` 已完成 rules 到 WebApp 的端到端透传验证；
+- 测试用例卡片通过 `/GT3KServer/v3/testcase/sync` 上报字段的链路验证成功；
+- 前端执行 `npm run build:prod` 成功；超过 500 kB 的 chunk 提示为非阻断性能警告，不影响构建产物；
+- `codeagent-extension.json` 已更新为 `0.2.3`。
 
 ## 7. 关键工程约束
 
@@ -367,7 +390,8 @@ caseHandler = 本版本不设置
 - Portal 当前不支持直接跳转到 TC，TC 完成后跳转到所属 TP；
 - 修改核心流程前必须核对上下游输入、输出和状态契约；
 - 扩展目录版本、根目录 `codeagent-extension.json.version` 和卡片 WebApp 实际加载版本必须保持一致；
-- 修改测试用例卡片前端后，需重新执行生产构建，并将产物放入当前扩展版本的 `webapps/testCase`。
+- 修改测试用例卡片前端后，需重新执行生产构建，并将产物放入当前扩展版本的 `webapps/testCase`；
+- 用例上报字段以 `.testagent/rules/tp-tc-output.md` 为生成规则的单一来源，后端脚本和 WebApp 只负责解析、透传及默认值保护。
 
 ## 8. 已知问题与后续方向
 
@@ -409,7 +433,7 @@ factor_code → factor resolver → 平台树路径/节点 → TS 关联
 
 ### 8.3 测试用例卡片版本加载
 
-0.2.2 首次验证时，页面仍使用 `/GT3KServer/v1/resource/detail/<parentUri>` 旧链路。根因是扩展清单版本未同步更新，生成卡片时仍引用 `coretest-spec-e2e@0.2.1`。
+0.2.2 首次验证时，页面仍使用 `/GT3KServer/v1/resource/detail/<parentUri>` 旧链路。根因是扩展清单版本未同步更新，生成卡片时仍引用 `coretest-spec-e2e@0.2.1`。该问题已修复，0.2.3 的新版卡片和字段透传链路已验证通过。
 
 处理原则：
 
@@ -421,11 +445,10 @@ factor_code → factor resolver → 平台树路径/节点 → TS 关联
 
 ## 9. 下一步优先级
 
-1. 完成 0.2.2 CIDA 用例字段端到端复验，确认 `AutoType`、`envtype` 和 `DesignNote` 实际进入创建请求；
-2. 持续排查 Portal 卡片缓存成功但页面未展示的问题；
-3. 设计并验证测试因子编码到平台树节点的自动关联工具；
-4. 补充 0.2.2 回归用例，覆盖多需求 TR、多 TR 同需求、指定对象归档、断点续跑和卡片版本加载；
-5. 后续功能演进继续保持 TR 级目录和既有 TR 复用原则。
+1. 持续排查 Portal 卡片缓存成功但页面未展示的问题；
+2. 设计并验证测试因子编码到平台树节点的自动关联工具；
+3. 补充 0.2.3 回归用例，覆盖多需求 TR、多 TR 同需求、指定对象归档、断点续跑、字段规则默认值和卡片版本加载；
+4. 后续功能演进继续保持 TR 级目录、既有 TR 复用和字段规则单一来源原则。
 
 ## 10. 新任务开始前的读取顺序
 
