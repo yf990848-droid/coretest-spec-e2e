@@ -103,12 +103,15 @@ coretool coretest infactory task create \
 #### 查询任务列表
 
 ```bash
-coretool coretest infactory task list [--creator <工号>] [--id <任务ID>] [--result <结果>]
+coretool coretest infactory task list --group-id <组ID> [--creator <工号>] [--id <任务ID>] [--result <结果>]
 # 示例
-coretool coretest infactory task list --creator w30020094
+coretool coretest infactory task list --group-id 1052
+coretool coretest infactory task list --group-id 1052 --creator w30020094
 ```
 
-支持分页：`--page`（默认1）、`--page-size`（默认10）
+`--group-id` 为 int64 类型（必填）。支持分页：`--page`（默认1）、`--page-size`（默认10）。
+
+输出字段：`id`、`name`、`creator`、`source_branch`、`dest_branch`、`state`、`create_time`、`exec_task_ids`（JSON数组，用于 retry 的 `inFactoryExecTaskId`）。
 
 #### 刷新任务状态
 
@@ -120,13 +123,38 @@ coretool coretest infactory task refresh TASK001 --scope status
 
 #### 重试失败任务
 
+参数按页面分为 4 类 JSON 传入，与 create 格式一致。`--basic-info` 必填（须包含 `inFactoryTaskId` 和 `inFactoryExecTaskId`），其余可选。
+
 ```bash
-coretool coretest infactory task retry <task-id> --exec-task-id <ID>
-# 示例
-coretool coretest infactory task retry TASK001 --exec-task-id 100
+coretool coretest infactory task retry --basic-info '<基础信息JSON>' [--case-filter '<入厂用例筛选JSON>'] [--mr-config '<创建MR JSON>'] [--script-refresh '<自定义刷新脚本字段JSON>']
 ```
 
-`--exec-task-id` 为 int 类型（必填）。
+**--basic-info（基础信息，必填）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `inFactoryTaskId` | int | 是 | 入场任务ID（从 task list 的 id 字段获取） |
+| `inFactoryExecTaskId` | int | 是 | 入场执行任务ID（从 task list 的 exec_task_ids 字段获取） |
+| `productLineName` | string | 否 | 产品线名称 |
+| `projectName` | string | 否 | 项目名称 |
+| `codehubHttpAddress` | string | 否 | 代码仓HTTP地址 |
+| `sourceCodehubBranchName` | string | 否 | 源分支名 |
+| `destCodehubBranchName` | string | 否 | 目标分支名 |
+| `reRunExecTaskId` | int | 否 | 重跑时关联的原执行任务ID |
+
+其余字段同 create 的 `--basic-info`、`--case-filter`、`--mr-config`、`--script-refresh`。
+
+```bash
+# 示例：重试任务（最少参数）
+coretool coretest infactory task retry \
+  --basic-info '{"inFactoryTaskId":195,"inFactoryExecTaskId":1191}'
+
+# 示例：重试任务（带完整参数，同 create 格式）
+coretool coretest infactory task retry \
+  --basic-info '{"inFactoryTaskId":195,"inFactoryExecTaskId":1191,"productLineName":"CSP","projectName":"CSP 26.1.0","codehubHttpAddress":"https://codehub-dg-y.huawei.com/CSPAutoTest/AITestForCSP.git","sourceCodehubBranchName":"master","destCodehubBranchName":"master"}'
+```
+
+> **提示**：`inFactoryTaskId` 对应 task list 输出的 `id` 字段，`inFactoryExecTaskId` 对应 task list 输出的 `exec_task_ids` 字段（JSON 数组，取第一个值即可）。
 
 ### 环境管理（environment）
 
@@ -493,14 +521,16 @@ coretool coretest testdesign asset factor list --ts-id 35792
 #### 添加测试因子关系到 TS
 
 ```bash
-coretool coretest testdesign asset factor create --ts-id <TS ID> --pbi <版本PBI> --factor-type <因子类型> --asso-act-type <关联活动类型>
+coretool coretest testdesign asset factor create --ts-id <TS ID> --pbi <版本PBI> --factor-type <因子类型> --asso-act-type <关联活动类型> --factor '<因子JSON数组>'
 # 示例
-coretool coretest testdesign asset factor create --ts-id 35792 --pbi 266926538 --factor-type TSFunctionInteractionAnalysis --asso-act-type SceneAnalysis
+coretool coretest testdesign asset factor create --ts-id 35792 --pbi 266926538 --factor-type BusinessInterImplAnalysis --asso-act-type SceneAnalysis --factor '[{"factorCode":"TEST_001","factorName":"CLI测试因子"}]'
 ```
 
 必填：`--ts-id`（int）、`--pbi`（string）、`--factor-type`（可选值：`TSFunctionInteractionAnalysis`、`BusinessInterImplAnalysis`、`TestTypeInteractionAnalysis`）、`--asso-act-type`（stringArray，可多次指定）。
 
 因子数据：`--factor <JSON数组>` 或 `--factor-file <文件路径>`（二选一）。
+
+因子项字段：`factorCode`（因子编号，映射为后端 `number`）、`factorName`（因子名称，映射为后端 `name`）。可选字段：`variableName`、`variableType`、`validValues`、`invalidValues`、`logicDescription`、`operation`、`precondition`、`expectedResult`、`modeNumber`、`source`、`description`。`testFactorId` 未提供时自动生成。
 
 #### 查询 TS 关联的模型
 
@@ -525,14 +555,16 @@ coretool coretest testdesign asset principle list --version-pbi 266926538 --tree
 #### 添加场景因子关系到 TS
 
 ```bash
-coretool coretest testdesign asset scene-factor create --ts-id <TS ID> --pbi <版本PBI> --source-type <来源类型> --asso-act-type <关联活动类型>
+coretool coretest testdesign asset scene-factor create --ts-id <TS ID> --pbi <版本PBI> --source-type <来源类型> --asso-act-type <关联活动类型> --scene-factor '<场景因子JSON数组>'
 # 示例
-coretool coretest testdesign asset scene-factor create --ts-id 35792 --pbi 266926538 --source-type scene --asso-act-type SceneAnalysis
+coretool coretest testdesign asset scene-factor create --ts-id 35792 --pbi 266926538 --source-type scene --asso-act-type SceneAnalysis --scene-factor '[{"factorCode":"TEST_002","factorName":"CLI测试因子v2"}]'
 ```
 
 必填：`--ts-id`（int）、`--pbi`（string）、`--source-type`（string）、`--asso-act-type`（string）。
 
 因子数据：`--scene-factor <JSON数组>` 或 `--scene-factor-file <文件路径>`（二选一）。
+
+场景因子项字段：`factorCode`（因子编号）、`factorName`（因子名称）。可选字段：`factorDesc`（描述）、`factorDataType`（数据类型）、`variableName`（变量名称）、`dataValidValue`（数据有效值）、`dataInvalidValue`（数据无效值）、`factorStatus`（状态）、`remark`（备注）、`parentCode`（父节点编号）。
 
 ### 设计任务（testdesign task）
 
@@ -564,7 +596,7 @@ coretool coretest testdesign tr create --version-pbi <版本PBI> --design-task-i
 coretool coretest testdesign tr create --version-pbi 266926538 --design-task-id 2342 --name "登录功能测试需求" --idp-doc-id IDP001 --resource-type featureLib
 ```
 
-必填：`--version-pbi`（string）、`--design-task-id`（string）、`--name`（string）、`--idp-doc-id`（string）、`--resource-type`（可选值：`custom`、`sceneLib`、`functionLib`、`featureLib`）。
+必填：`--version-pbi`（string）、`--design-task-id`（string）、`--name`（string）、`--idp-doc-id`（string，从 `task list` 返回的 `idp_doc_id` 字段获取）、`--resource-type`（可选值：`custom`、`sceneLib`、`functionLib`、`featureLib`）。
 
 可选参数：`--requirement-type`（`IR`/`SR`）、`--description`、`--resolve-description`、`--requirement-id`（可多次指定）。
 
@@ -590,7 +622,7 @@ coretool coretest testdesign ts create --version-pbi <版本PBI> --tr-id <TR ID>
 coretool coretest testdesign ts create --version-pbi 266926538 --tr-id 3611 --type scene --name "登录功能测试规格" --idp-doc-id IDP001
 ```
 
-必填：`--version-pbi`（string）、`--tr-id`（int）、`--type`（可选值：`scene`、`function`、`feature`、`constraint`、`reliability`、`performance`、`compatibility`、`security`、`toughness`、`om`、`lifecycle`、`upgradepatch`、`inheritance`、`documentation`、`tool`、`customized`、`usability`、`serviceability`、`ai`、`funcSafety`、`testability`）、`--name`（string）、`--idp-doc-id`（string）。
+必填：`--version-pbi`（string）、`--tr-id`（int）、`--type`（可选值：`scene`、`function`、`feature`、`constraint`、`reliability`、`performance`、`compatibility`、`security`、`toughness`、`om`、`lifecycle`、`upgradepatch`、`inheritance`、`documentation`、`tool`、`customized`、`usability`、`serviceability`、`ai`、`funcSafety`、`testability`）、`--name`（string）、`--idp-doc-id`（string，从 `task list` 返回的 `idp_doc_id` 字段获取）。
 
 可选参数：`--description`、`--resolve-description`。
 
@@ -657,3 +689,32 @@ coretool coretest testdesign tc create --tp-id 18288 --version-pbi 266926538 --n
 必填：`--tp-id`（int）、`--version-pbi`（string）、`--name`（string）、`--case-id`（string）、`--creator`（string）、`--owner`（string）。
 
 可选参数：`--description`、`--test-type`、`--test-activity`、`--rank`、`--precondition`、`--test-step`、`--expected-output`、`--case-id-type`（`input_begin` 或 `end_begin`）
+
+### IDP 文档（testdesign idp）
+
+#### 查询 IDP 文档章节
+
+```bash
+coretool coretest testdesign idp topic list --idp-doc-id <IDP文档ID> --user-id <用户ID> --activity-name <活动名称>
+# 示例
+coretool coretest testdesign idp topic list --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f --user-id w30020094 --activity-name 场景分析 --parent-activity-id 3861 --parent-activity-name "Nsmf/Nupf链路容灾功能补齐-5GC-UPCF" --parent-activity-type TR
+```
+
+必填：`--idp-doc-id`（string，从 `task list` 返回的 `idp_doc_id` 字段获取）、`--user-id`（string）、`--activity-name`（string）。
+
+可选：`--parent-activity-id`（int）、`--parent-activity-name`（string）、`--parent-activity-type`（string，如 TR/TS/TP）。
+
+#### 写入 IDP 文档源数据
+
+```bash
+# flags 模式
+coretool coretest testdesign idp source-data write --topic-id <章节ID> --user-id <用户ID> --display-type <显示类型> --title <数据标题>
+# 示例（flags 模式）
+coretool coretest testdesign idp source-data write --topic-id 37a9b894-f695-4f39-9ba7-1222eb6cf617 --user-id w30020094 --display-type row-table --title "CLI测试-flags模式"
+# 示例（--data JSON 模式）
+coretool coretest testdesign idp source-data write --data '{"topic_id":"37a9b894-f695-4f39-9ba7-1222eb6cf617","user_id":"w30020094","display_type":2,"title":"CLI测试-JSON模式"}'
+```
+
+flags 模式必填：`--topic-id`（string）、`--user-id`（string）、`--display-type`（可选值：`row-table`、`text`、`file`）、`--title`（string）。可选：`--source-value-uuid`（未提供时自动生成）。
+
+`--data <JSON>` 或 `--data-file <文件路径>` 模式：直接传入完整请求体 JSON，与 flags 模式互斥。JSON 字段：`topic_id`、`user_id`、`display_type`（2=row-table, 3=text, 6=file）、`title`、`source_value_uuid`（可选）、`table_content`（可选，行表格式）、`text_content`（可选，文本内容）、`file_content`（可选，ECM 文件 ID）。
