@@ -9,7 +9,7 @@ CoreALM 是华为 CoreTool 平台的需求管理领域，支持需求查询、�
 #### 登录 / 认证 / W3登录 / 登录CoreTool
 
 ```bash
-coretool-cli auth login
+coretool auth login
 ```
 
 交互式登录，按提示输入工号和密码。
@@ -17,29 +17,29 @@ coretool-cli auth login
 #### Token登录 / 用token登录
 
 ```bash
-coretool-cli auth login --token -u <工号>
+coretool auth login --token -u <工号>
 # 示例
-coretool-cli auth login --token -u 30022769
+coretool auth login --token -u 30022769
 ```
 
 #### 公共账号登录 / 服务账号登录
 
 ```bash
-coretool-cli auth login --token --service-account -u <公共账号> --auth-token <token> --operator <操作者工号>
+coretool auth login --token --service-account -u <公共账号> --auth-token <token> --operator <操作者工号>
 # 示例
-coretool-cli auth login --token --service-account -u svc001 --auth-token eyJhbGci... --operator 30022769
+coretool auth login --token --service-account -u svc001 --auth-token eyJhbGci... --operator 30022769
 ```
 
 #### 登出 / 注销 / 退出登录
 
 ```bash
-coretool-cli auth logout
+coretool auth logout
 ```
 
 #### 查看登录状态 / 我登录了吗 / 当前用户
 
 ```bash
-coretool-cli auth status
+coretool auth status
 ```
 
 ### 需求查询
@@ -49,9 +49,9 @@ coretool-cli auth status
 #### 搜索需求 / 查需求 / 找需求
 
 ```bash
-coretool-cli corealm requirement list --keyword <关键词>
+coretool corealm requirement list --keyword <关键词>
 # 示例：搜一下5G相关的需求
-coretool-cli corealm requirement list --keyword 5G
+coretool corealm requirement list --keyword 5G
 ```
 
 可选筛选：`--type IR|SR`、`--page 2 --page-size 20`、`--version-id <版本ID>`、`--belong-version-id <归属版本ID>`
@@ -59,51 +59,51 @@ coretool-cli corealm requirement list --keyword 5G
 #### 查看需求详情 / 需求描述
 
 ```bash
-coretool-cli corealm requirement view <e2e-id>
+coretool corealm requirement view <e2e-id>
 # 示例：看看IR20260803000961的详情
-coretool-cli corealm requirement view IR20260803000961
+coretool corealm requirement view IR20260803000961
 ```
 
 #### 查IR下的SR / IR子需求
 
 ```bash
-coretool-cli corealm requirement ir-children <ir-e2e-id>
+coretool corealm requirement ir-children <ir-e2e-id>
 # 示例
-coretool-cli corealm requirement ir-children IR20260803000961
+coretool corealm requirement ir-children IR20260803000961
 ```
 
 #### 查SR的父IR / SR属于哪个IR
 
 ```bash
-coretool-cli corealm requirement parent-ir <sr-e2e-id>
+coretool corealm requirement parent-ir <sr-e2e-id>
 # 示例
-coretool-cli corealm requirement parent-ir SR20260803001234
+coretool corealm requirement parent-ir SR20260803001234
 ```
 
 #### 查我的开发需求 / 我的Story / 我的US
 
 ```bash
-coretool-cli corealm requirement dev-requirements
+coretool corealm requirement dev-requirements
 # 查所有（含已关闭）
-coretool-cli corealm requirement dev-requirements --all
+coretool corealm requirement dev-requirements --all
 # 查某人的
-coretool-cli corealm requirement dev-requirements --assignee "weiwei 30022769"
+coretool corealm requirement dev-requirements --assignee "weiwei 30022769"
 # 分页
-coretool-cli corealm requirement dev-requirements --page 2 --page-size 20
+coretool corealm requirement dev-requirements --page 2 --page-size 20
 ```
 
 #### 查我的IR / 我负责的IR / 我的个人需求
 
 ```bash
-coretool-cli corealm requirement my-requirements
+coretool corealm requirement my-requirements
 # 查我的SR
-coretool-cli corealm requirement my-requirements --type SR
+coretool corealm requirement my-requirements --type SR
 # 查所有（含已关闭）
-coretool-cli corealm requirement my-requirements --all
+coretool corealm requirement my-requirements --all
 # 查某人的IR
-coretool-cli corealm requirement my-requirements --assignee "weiwei 30022769"
+coretool corealm requirement my-requirements --assignee "weiwei 30022769"
 # 查某人的SR
-coretool-cli corealm requirement my-requirements --type SR --assignee "weiwei 30022769"
+coretool corealm requirement my-requirements --type SR --assignee "weiwei 30022769"
 ```
 
 **说明**：
@@ -119,35 +119,35 @@ coretool-cli corealm requirement my-requirements --type SR --assignee "weiwei 30
 #### 查需求文档列表
 
 ```bash
-coretool-cli corealm document list --requirement <e2e-id>
+coretool corealm document list --requirement <e2e-id>
 # 示例
-coretool-cli corealm document list --requirement IR20260803000961
+coretool corealm document list --requirement IR20260803000961
 ```
 
 #### 下载需求的所有文档
 
 ```bash
-coretool-cli corealm document list --requirement <e2e-id> --download
+coretool corealm document list --requirement <e2e-id> --download
 # 示例：下载IR20260803000961的文档
-coretool-cli corealm document list --requirement IR20260803000961 --download
+coretool corealm document list --requirement IR20260803000961 --download
 # 示例：下载多个需求的文档
-coretool-cli corealm document list --requirement IR20260803000961,IR20260803000962 --download
+coretool corealm document list --requirement IR20260803000961,IR20260803000962 --download
 # 示例：只下载IDP类型
-coretool-cli corealm document list --requirement IR20260803000961 --download --type idp
+coretool corealm document list --requirement IR20260803000961 --download --type idp
 # 示例：包含群组文档
-coretool-cli corealm document list --requirement IR20260803000961 --download --include-group-docs
+coretool corealm document list --requirement IR20260803000961 --download --include-group-docs
 ```
 
 #### 下载单个文档
 
 ```bash
-coretool-cli corealm document download <doc-id> --type <idp|dbox>
+coretool corealm document download <doc-id> --type <idp|dbox>
 # 示例：下载IDP文档
-coretool-cli corealm document download DOC20260803001 --type idp
+coretool corealm document download DOC20260803001 --type idp
 # 示例：下载DBOX文档
-coretool-cli corealm document download DOC20260803001 --type dbox
+coretool corealm document download DOC20260803001 --type dbox
 # 示例：指定下载目录
-coretool-cli corealm document download DOC20260803001 --type idp --output-dir ~/Desktop/
+coretool corealm document download DOC20260803001 --type idp --output-dir ~/Desktop/
 ```
 
 **重要**：下载需求文档时，优先使用 `document list --requirement <e2e-id> --download`，它会自动在下载目录下创建以需求ID命名的子目录（如 `~/Downloads/coretool/corealm/IR20250821000344/`）。仅下载单个文档时才用 `document download <doc-id>`。支持同时指定多个需求ID，逗号分隔或重复 `--requirement` 均可。
