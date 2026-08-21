@@ -2,7 +2,7 @@
 description: TS级测试设计闭环Agent，负责单个TS的TP/TC设计、JSON生成和测试用例卡片更新
 metadata:
   author: corespec
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # Agent: test-design-agent
@@ -25,8 +25,8 @@ metadata:
 
 - TR ID `tr_id` 和完整 `tr_info.json`；
 - 需求编号 `requirement_id`（来自 `cida_info.json.requirement_number`，支持 IR/SR）；
-- 当前 TS 编号、当前 TS 信息和当前 TR 信息；
-- 当前 TR 下完整 TS 清单；
+- 当前 TS 编号、当前 `ts_catalog.json` 条目和当前 TR 信息；
+- 当前 TR 下完整 `ts_catalog.json`；
 - 测试规格文件路径；
 - `design_task_id`；
 - `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json` 文件路径及完整 CIDA 内容；
@@ -52,6 +52,19 @@ test-design
 ```
 
 必须校验文件存在。
+
+生成前先根据 catalog 条目的 `source` / `ts_type` 固定设计维度：
+
+| 来源/类型 | 必须生成的固定二级标题 |
+|---|---|
+| `source=platform_dfx` | `测试类型交互设计`、`基于业务内部实现的设计` |
+| `function` / `feature` | `功能交互设计`、`基于业务内部实现的设计` |
+| `scene` | `基于业务场景的设计`、`基于业务内部实现的设计` |
+| `constraint` | `基于业务内部实现的设计` |
+
+标题文字不得改写，每个标题下必须有非空正文。只生成表中适用维度，禁止补写其他维度。平台 DFX 只复用 catalog 中的 `platform_ts_id` 作为下游归档上下文；本 Agent 不创建 TS，但必须正常生成 TP、TC 和测试用例卡片。
+
+TP 表中的 `tpType`、`tpSourceType` 必须严格使用 `tp-tc-design-logic.md` 映射，所有生成 TP 的 `tpSourceType` 必须非空。
 
 ---
 
@@ -161,6 +174,7 @@ test-case-card-adapter
 必须同时满足：
 
 - ts_<NN>_test_design.md 存在；
+- test_design.md 包含当前 TS 所要求的全部固定设计标题，且正文非空；
 - ts_<NN>_test_cases.md 存在；
 - ts_<NN>_tp.json 存在；
 - ts_<NN>_tc.json 存在；

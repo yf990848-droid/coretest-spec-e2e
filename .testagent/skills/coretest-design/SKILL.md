@@ -1,5 +1,4 @@
 ---
-compatibility: Works without npm - depends on downstream skills
 description: Test design generation - reads test_specs, initializes TS working cards,
   invokes test-design-agent per TS in parallel, and lets each TS agent complete
   markdown, JSON extraction, and card update.
@@ -7,7 +6,7 @@ license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 1.4.0
+  version: 1.5.0
 name: coretest-design
 ---
 
@@ -40,7 +39,7 @@ name: coretest-design
 -   TR ID：必选第一个位置参数，如 `3863`
 -   TS 列表：可选后续位置参数，如 `TS_01 TS_02 TS_03`
 -   完整命令格式：`/coretest-design <tr_id> [TS列表]`
--   不传 TS 时，默认处理当前 `tr_ts.json` 中的全部 TS
+-   不传 TS 时，默认处理当前 `ts_catalog.json` 中的全部 TS（平台 DFX + Explore 普通 TS）
 -   TS 编号大小写不敏感，统一标准化为 `TS_<NN>`，去重后保持输入顺序
 
 ## Execution Flow
@@ -57,13 +56,14 @@ name: coretest-design
     cida_info.json
     test_specs/<TR名称>测试规格.md
     test_specs/tr_ts.json
+    test_specs/ts_catalog.json
 
 只做以下必要检查：
 
 -   TR 目录存在且只定位到一个；
--   `tr_info.json`、`cida_info.json` 和 `test_specs/tr_ts.json` 存在；
+-   `tr_info.json`、`cida_info.json`、`test_specs/tr_ts.json` 和 `test_specs/ts_catalog.json` 存在；
 -   `test_specs/` 下存在测试规格 Markdown；
--   用户指定的 `TS_<NN>` 未超出 `tr_ts.json.test_specs[]` 范围。
+-   用户指定的 `TS_<NN>` 必须存在于 `ts_catalog.json.items[].ts_key`。
 
 其中：
 
@@ -71,7 +71,9 @@ name: coretest-design
 -   从 `cida_info.json.requirement_number` 获取 `requirement_id`（支持 IR/SR），用于卡片关联；
 -   `cida_info.json` 只读，不得重新生成或覆盖；
 -   `tr_info.json`、完整 CIDA 上下文和完整 TS 清单必须传给每个 `test-design-agent`；
--   TS 完整列表来自 `tr_ts.json.test_specs[]`；
+-   TS 完整列表和稳定编号只来自 `ts_catalog.json.items[]`；
+-   `source=platform_dfx` 的条目必须包含有效 `platform_ts_id`，不得创建平台 TS；
+-   `source=explore` 的条目必须包含有效 `tr_ts_index`，其业务内容来自对应的 `tr_ts.json.test_specs[]`；
 -   测试规格 Markdown 提供 TR 级背景信息；
 -   所有设计产物写入当前 `TR_<tr_id>` 目录。
 
@@ -83,10 +85,11 @@ name: coretest-design
 
 规则：
 
--   所有 TS 参数统一标准化为 `TS_<NN>`；
+-   所有 TS 参数统一标准化为 `TS_<NN>`，不接受或要求中文名称后缀；
 -   对重复 TS 去重并保持用户输入顺序；
--   `test_specs[0]` 映射为 `TS_01`，`test_specs[1]` 映射为 `TS_02`，依次类推；
--   任一 TS 编号超出 `test_specs[]` 范围时，在初始化卡片和启动 Agent 前停止并报告。
+-   未指定时按 `ts_catalog.json.items[]` 顺序处理全部 TS；
+-   指定时按 `items[].ts_key` 精确匹配；
+-   任一编号不存在、重复或条目缺少来源必需字段时，在初始化卡片和启动 Agent 前停止并报告。
 
 ### Phase 1.5: Initialize TS Working Cards
 
@@ -162,7 +165,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 1.  TR ID `tr_id` 和完整 `tr_info.json`；
 2.  需求编号 `requirement_id`（来自 `cida_info.json.requirement_number`，支持 IR/SR）；
 3.  当前 TS 编号（如 `ts_01` 或 `01`）；
-4.  当前负责生成的 TS 信息；
+4.  当前负责生成的完整 catalog 条目，包括 `source`、`ts_type`、`ts_name`，DFX 还包括 `platform_ts_id`；
 5.  当前 TR 信息；
 6.  TR级背景测试规格；
 7.  当前 TR 下完整 TS 清单；
@@ -170,6 +173,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 9.  测试规格文件路径；
 10. `design-task-id`；
 11. 完整 `cida_info.json` 上下文。
+12. 完整 `ts_catalog.json`，并明确当前 TS 只能按 `tp-tc-design-logic.md` 中对应来源/类型的维度生成设计。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
 
@@ -179,7 +183,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 每个 SubAgent 必须知道：
 
-    当前TR全部TS列表
+    当前 TR 的完整 ts_catalog.json
 
 并明确：
 
@@ -243,9 +247,10 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
   场景                         处理
   ---------------------------- ------------
   测试规格缺失                 退出
+  ts_catalog.json 缺失或非法   退出
   cida_info.json 缺失          退出
   找到多个同 ID 的 TR 目录       列出候选并退出
-  用户指定的TS编号越界           初始化卡片前退出
+  用户指定的TS编号不存在         初始化卡片前退出
   卡片初始化失败               停止流程
   test-design-agent 调用失败   记录失败TS并继续其他已启动TS
   单TS设计失败                 由 test-design-agent 返回失败，不生成该TS JSON和卡片
