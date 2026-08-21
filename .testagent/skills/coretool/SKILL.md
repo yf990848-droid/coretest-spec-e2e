@@ -7,7 +7,7 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
-所有命令统一使用 `coretool-cli` 调用。
+所有命令统一使用 `coretool` 调用。
 
 ## References 路由表
 
@@ -17,12 +17,12 @@ CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、�
 
 ## 环境准备（自动）
 
-每次会话首次使用时，按以下步骤确保 `coretool-cli` 可用：
+每次会话首次使用时，按以下步骤确保 `coretool` 可用：
 
 ### 1. 检查是否已安装
 
 ```bash
-which coretool-cli 2>/dev/null || which coretool-cli.exe 2>/dev/null
+which coretool 2>/dev/null || which coretool.exe 2>/dev/null
 ```
 
 如果找到，跳到步骤3。
@@ -35,8 +35,8 @@ which coretool-cli 2>/dev/null || which coretool-cli.exe 2>/dev/null
 # 第一步：配置 npm 仓库源（仅首次需要）
 npm config set @aimarket:registry=https://cmc.centralrepo.rnd.huawei.com/artifactory/api/npm/product_npm/ strict-ssl=false
 
-# 第二步：安装 coretool-cli
-npx @aimarket/agentcenter cli add coretool-cli@0.0.5
+# 第二步：安装 coretool
+npx @aimarket/agentcenter cli add coretool-cli@0.0.6
 ```
 
 可选参数 `-g`：在命令末尾添加该参数可全局安装，不传则安装到当前项目。
@@ -57,7 +57,7 @@ export PATH="$HOME/.agentcenter/bin:$PATH"
 验证安装：
 
 ```bash
-coretool-cli version
+coretool version
 ```
 
 如果市场安装失败（网络不通或 npm 不可用），提示用户检查网络或联系管理员。
@@ -74,7 +74,7 @@ export PATH="$HOME/.agentcenter/bin:$PATH"
 export PATH="$HOME/.agentcenter/bin:$PATH"
 ```
 
-后续所有命令直接使用 `coretool-cli`，不再使用完整路径。
+后续所有命令直接使用 `coretool`，不再使用完整路径。
 
 ### 卸载
 
@@ -85,40 +85,40 @@ rm -rf "$APPDATA/coretool-cli/"
 
 ## 认证
 
-所有业务命令执行前需先登录。未登录时会提示 `not logged in. Run 'coretool-cli auth login' to authenticate`。
+所有业务命令执行前需先登录。未登录时会提示 `not logged in. Run 'coretool auth login' to authenticate`。
 
 ### W3 登录（个人账号，推荐）
 
 交互式：
 ```bash
-coretool-cli auth login
+coretool auth login
 ```
 
 非交互式：
 ```bash
-coretool-cli auth login -u <工号> -p <密码>
+coretool auth login -u <工号> -p <密码>
 ```
 
 ### Token 登录
 
 交互式（安全，token 不进 shell history）：
 ```bash
-coretool-cli auth login --token -u <工号>
+coretool auth login --token -u <工号>
 ```
 
 非交互式（CI/脚本场景）：
 ```bash
-coretool-cli auth login --token -u <工号> --auth-token <token>
+coretool auth login --token -u <工号> --auth-token <token>
 ```
 
 注意：Token 登录不支持自动刷新，过期后需重新登录。
 
 ### 公共账号登录（服务账号 + 操作者）
 
-当其他 CLI 工具以公共账号调用 coretool-cli 时，用 `--service-account` 标记，并用 `--operator` 指定实际操作者工号：
+当其他 CLI 工具以公共账号调用 coretool 时，用 `--service-account` 标记，并用 `--operator` 指定实际操作者工号：
 
 ```bash
-coretool-cli auth login --token --service-account -u <公共账号> --auth-token <token> --operator <操作者工号>
+coretool auth login --token --service-account -u <公共账号> --auth-token <token> --operator <操作者工号>
 ```
 
 - 公共账号模式下，业务命令使用操作者身份（工号、姓名、邮箱），而非公共账号身份
@@ -127,41 +127,39 @@ coretool-cli auth login --token --service-account -u <公共账号> --auth-token
 ### 查看登录状态
 
 ```bash
-coretool-cli auth status
+coretool auth status
 ```
 
 ### 登出
 
 ```bash
-coretool-cli auth logout
+coretool auth logout
 ```
 
 ### 认证相关命令速查
 
 | 用户意图 | 命令 |
 |---------|------|
-| 登录 / W3登录 | `coretool-cli auth login` |
-| Token登录 | `coretool-cli auth login --token -u <工号>` |
-| 公共账号登录 | `coretool-cli auth login --token --service-account -u <svc> --auth-token <token> --operator <工号>` |
-| 登出 / 注销 | `coretool-cli auth logout` |
-| 查看登录状态 | `coretool-cli auth status` |
+| 登录 / W3登录 | `coretool auth login` |
+| Token登录 | `coretool auth login --token -u <工号>` |
+| 公共账号登录 | `coretool auth login --token --service-account -u <svc> --auth-token <token> --operator <工号>` |
+| 登出 / 注销 | `coretool auth logout` |
+| 查看登录状态 | `coretool auth status` |
 
 ## 配置管理
 
 | 用户意图 | 命令 |
 |---------|------|
-| 查看配置 | `coretool-cli config list` |
-| 设置配置 | `coretool-cli config set <key> <value>` |
-| 查看某个配置项 | `coretool-cli config get <key>` |
-| 设置下载目录 | `coretool-cli config set download-dir ~/Downloads/coretool/` |
+| 查看配置 | `coretool config list` |
+| 设置配置 | `coretool config set <key> <value>` |
+| 查看某个配置项 | `coretool config get <key>` |
+| 设置下载目录 | `coretool config set download-dir ~/Downloads/coretool/` |
 
 可配置项：`endpoint`、`http.timeout`、`pager`、`color`、`interactive`、`debug`、`download-dir`、`username`
 
 ## 执行规则
 
-1. **环境准备**：每次会话首次使用时，执行 `export PATH="$HOME/.agentcenter/bin:$PATH"`，然后检查 `coretool-cli` 是否可用，不可用则通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.5`），安装程序会自动配置 Windows 用户 PATH。
-
-2. **先检查登录状态**：执行业务命令前，先运行 `coretool-cli auth status` 确认已登录。如果未登录，引导用户执行 `coretool-cli auth login`。
+1. **环境准备**：每次会话首次使用时，执行 `export PATH="$HOME/.agentcenter/bin:$PATH"`，然后检查 `coretool` 是否可用，不可用则通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.6`），安装程序会自动配置 Windows 用户 PATH。
 
 3. **从自然语言提取参数**：参见各领域参考文档中的映射表。
 
@@ -173,4 +171,4 @@ coretool-cli auth logout
    - `not logged in` → 引导用户登录
    - `--keyword is required` → 补充缺失参数后重试
    - HTTP 错误 → 简要说明原因（如网络问题、权限不足）
-   - 可执行文件不存在 → 通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.5`），安装程序会自动配置 PATH
+   - 可执行文件不存在 → 通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.6`），安装程序会自动配置 PATH
