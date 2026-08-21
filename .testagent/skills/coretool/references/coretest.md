@@ -614,6 +614,20 @@ coretool coretest testdesign ts list-types --tr-id 3611
 
 `--tr-id` 为 int 类型（必填）。
 
+#### 查询 TR 下的 TS 列表
+
+```bash
+coretool coretest testdesign ts query-by-type --tr-id <TR ID> [--ts-type <类型>] [--status <状态>] [--feature-tree-type <特性树类别>]
+# 示例：查询 TR 下所有 TS（不传类型默认查全部）
+coretool coretest testdesign ts query-by-type --tr-id 3611
+# 示例：按类型筛选
+coretool coretest testdesign ts query-by-type --tr-id 3611 --ts-type scene --ts-type function
+```
+
+`--tr-id` 为 int 类型（必填）。可选：`--ts-type`（stringArray，可多次指定，不传则查全部）、`--status`（string，筛选状态）、`--feature-tree-type`（string，特性树类别，查询关联特性资源时必填）。
+
+输出字段：`ID`、`TS_NO`、`TYPE`、`NAME`、`STATUS`、`OWNER`、`CREATOR`。
+
 #### 创建测试规格 TS
 
 ```bash
