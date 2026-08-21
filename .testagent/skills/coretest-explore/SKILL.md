@@ -274,7 +274,7 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 
 | 编号 | 名称 | 类型 | 来源 |
 |---|---|---|---|
-| TS_01 | `<ts_name>` | `<ts_type>` | 平台 DFX |
+| TS_01 | `<ts_name>` | `<ts_type>` | DFX |
 | TS_02 | `<ts_name>` | `<ts_type>` | 测试规格 |
 
 汇总末尾输出下一步提示。
