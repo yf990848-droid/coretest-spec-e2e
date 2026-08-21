@@ -1,11 +1,10 @@
 ---
-compatibility: Works without npm - 需要 pandoc 命令行工具
-description: 以 init 生成的已有 TR 上下文为入口，遍历全部直接关联需求，汇总并下载全部唯一需求文档，调用规格抽取、需求解析和测试规格分析，生成当前 TR 唯一一套 Explore 产物及 tr_ts.json。
+description: 以 init 生成的已有 TR 上下文为入口，汇总需求文档并生成测试规格；查询平台既有 DFX TS，与普通 TS 合并生成稳定编号目录 ts_catalog.json。
 license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 0.4.1
+  version: 0.5.0
 name: coretest-explore
 ---
 
@@ -58,7 +57,7 @@ name: coretest-explore
 ### 阶段 0：启动检查
 
 1. 读取仓库约束文件（若存在）。
-2. 执行 `pandoc --version`。
+2. 执行 `pandoc --version`，并按 `coretool` Skill 检查 `coretool` 可用且已登录。
 3. 校验输入为纯数字 TR ID。
 4. 搜索：
 
@@ -236,6 +235,31 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 - 所有 TS 需求均属于当前 TR；
 - 未追加质量属性 TS。
 
+### 阶段 6.6：生成统一 TS 编号目录
+
+调用 `coretool` Skill 查询当前 TR 的平台 TS，并将 JSON 通过 stdin 交给固定脚本：
+
+```bash
+coretool coretest testdesign ts query-by-type --tr-id <tr_id> --output json | \
+python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
+  --platform-json - \
+  --tr-ts-json "<tr_dir>/test_specs/tr_ts.json" \
+  --output "<tr_dir>/test_specs/ts_catalog.json"
+```
+
+必须检查脚本最后输出 `success=true`。编号规则由脚本固定执行：
+
+- 平台返回中 `scene`、`function`、`feature`、`constraint` 属于普通类型并过滤；
+- 其他平台返回项全部视为 DFX，不维护 DFX 类型白名单；
+- DFX 按过滤后的 `items[]` 返回顺序从 `TS_01` 开始编号；
+- 同一 `ts_type` 返回多条时逐条保留；
+- DFX 数量为 N 时，`tr_ts.json.test_specs[0]` 从 `TS_<N+1>` 开始；
+- 编号至少两位，超过 99 时自然扩展；
+- DFX 条目保存真实 `platform_ts_id`，普通条目保存 `tr_ts_index`；
+- `ts_catalog.json` 是 Design 和 Archive 的稳定编号快照，后续不得重新查询并改变编号。
+
+平台查询失败、JSON 非法、DFX 条目缺少平台 ID 或平台 ID 重复时停止，不得进入 Design。平台没有 DFX 时允许继续，普通 TS 从 `TS_01` 开始。
+
 ### 阶段 7：汇总
 
 输出：TR、直接需求数、唯一文档数、SR 数、TS 数、冲突审计数量及所有产物路径。
@@ -243,23 +267,15 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 读取：
 
 ```text
-<tr_dir>/test_specs/tr_ts.json
+<tr_dir>/test_specs/ts_catalog.json
 ```
 
-按 `test_specs[]` 的数组顺序生成本地 TS 编号：
+按 `items[]` 的稳定顺序展示全部 TS：
 
-```text
-第 1 条 → TS_01
-第 2 条 → TS_02
-……
-```
-
-展示全部生成的 TS，只保留编号、名称、类型三列：
-
-| 编号 | 名称 | 类型 |
-|---|---|---|
-| TS_01 | `<ts_name>` | `<ts_type>` |
-| TS_02 | `<ts_name>` | `<ts_type>` |
+| 编号 | 名称 | 类型 | 来源 |
+|---|---|---|---|
+| TS_01 | `<ts_name>` | `<ts_type>` | 平台 DFX |
+| TS_02 | `<ts_name>` | `<ts_type>` | 测试规格 |
 
 汇总末尾输出下一步提示。
 
@@ -291,7 +307,8 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 │   └── SR<编号>.md
 └── test_specs/
     ├── <TR名称>测试规格.md
-    └── tr_ts.json
+    ├── tr_ts.json
+    └── ts_catalog.json
 ```
 
 不得创建 `.design_output/<design_task_id>/<requirement_id>/` 或 `tr_context.json`。
@@ -303,6 +320,8 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 | `spec-extractor` | 全部 `docx_paths`、清单、`<tr_dir>` | 一份系统需求、一份功能设计 |
 | `requirement-parser` | 同一权威文档集合及辅助文件 | 一套 `sr_specs/` |
 | `test-spec-analysis` | `tr_info.json`、整套 `sr_specs/` | 一份已有 TR 测试规格 |
+| `coretool` | 当前 `tr_id` | 平台已有 TS 查询结果 |
+| `build_ts_catalog.py` | 平台 TS JSON、`tr_ts.json` | 稳定编号的 `ts_catalog.json` |
 
 ## 6. 兼容模式
 

@@ -9,6 +9,17 @@
 - 多条编号列表（preparation/test_step/expect_output）：条目之间用 `<br>` 连接并保留编号，如 `1. xxx<br>2. yyy`
 - 多值字段（raw_factors）：以英文逗号分隔，不留空格，如 `TFA-001,TFD-001`
 
+### 在线文档固定标题
+
+`ts_<NN>_test_design.md` 的叙述区必须按当前 TS 适用维度使用以下固定二级标题，标题文字不得改写，且每个标题下必须有非空正文：
+
+- `## 功能交互设计`
+- `## 基于业务场景的设计`
+- `## 测试类型交互设计`
+- `## 基于业务内部实现的设计`
+
+具体 TS 应包含哪些标题，以 `tp-tc-design-logic.md` 的类型映射为准；禁止补写当前 TS 不适用的标题。
+
 ### 测试用例上报字段
 
 每条 TC 必须生成 `TestType`、`AutoType`、`envtype`、`DesignNote`，不得填写 `<PENDING>`。
@@ -98,8 +109,8 @@
 
 | tp_id_temp | tpName | description | resolveDescription | rank | tsId | parentTrId | tpType | tpSourceType | requirement_ids | dimension | raw_factors |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| TP.01.01.01 | N5专载建立正常订阅 | NWDAF建立N5专载，PCF正常接收订阅请求 | | 1 | <PENDING> | <PENDING> | BusinessSceneAnalysis | | | 基于业务场景 | TFA-N5SUB-001,TFD-SESSION-001 |
-| TP.01.03.01 | N5接口与PGW lib交互 | N5接口消息传递给PGW lib | | 2 | <PENDING> | <PENDING> | RequirementAnalysis | 功能交互设计-功能上测试因子 | | 功能交互设计 | TFA-IFACE-001 |
+| TP.01.01.01 | N5专载建立正常订阅 | NWDAF建立N5专载，PCF正常接收订阅请求 | | 1 | <PENDING> | <PENDING> | BusinessSceneAnalysis | 基于业务场景设计—场景因子 | | 基于业务场景 | TFA-N5SUB-001,TFD-SESSION-001 |
+| TP.01.03.01 | N5接口与PGW lib交互 | N5接口消息传递给PGW lib | | 2 | <PENDING> | <PENDING> | RequirementAnalysis | 功能交互设计-功能与测试因子 | | 功能交互设计 | TFA-IFACE-001 |
 ~~~
 
 | 列 | 说明 |
@@ -107,7 +118,7 @@
 | `rank` | Level 数字部分（Level1→1） |
 | `resolveDescription` / `requirement_ids` | 当前阶段不产出，留空 |
 | `tsId` / `parentTrId` | 平台 id，统一填 `<PENDING>` |
-| `tpType` / `tpSourceType` | 按 `tp-tc-design-logic.md` 依 dimension 填实值；维度1/2 的 tpSourceType 留空 |
+| `tpType` / `tpSourceType` | 按 `tp-tc-design-logic.md` 依 dimension 填非空实值，不得填写 `<PENDING>` 或留空 |
 | `dimension` | 仅限：基于业务场景 / 基于业务内部实现 / 功能交互设计 / 测试类型交互设计 |
 
 以下字段不写入表格，由编排层在生成 JSON 时注入：`designTaskId`、`creator`。

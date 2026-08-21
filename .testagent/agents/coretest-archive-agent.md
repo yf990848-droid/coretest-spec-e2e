@@ -1,8 +1,8 @@
 ---
-description: 测试设计归档闭环 Agent，复用 Init 拉取的既有 TR，按依赖顺序创建 TS、TP、TC，逐步保存平台 ID，并刷新全量测试设计 Portal 卡片。
+description: 测试设计归档闭环 Agent，复用既有 TR 和平台 DFX TS，创建普通 TS、TP、TC，并可通过 CoreTool CLI 覆盖写入任务、TR、TS 在线文档。
 metadata:
   author: corespec
-  version: "1.8.1"
+  version: "1.9.0"
 ---
 
 # Agent: coretest-archive-agent
@@ -21,7 +21,7 @@ metadata:
 → 调用 test-portal-card 跳转
 ```
 
-本 Agent 只允许调用 `core_test_design_mcp.create_ts`、`create_tp` 和 `create_tc`。TR 必须从 Init 生成的 `tr_info.json` 和归档状态中复用，禁止调用 `create_tr`。
+对象归档只允许调用 `core_test_design_mcp.create_ts`、`create_tp` 和 `create_tc`。TR 必须从 Init 生成的 `tr_info.json` 和归档状态中复用，禁止调用 `create_tr`。仅在启用 `--document` 时允许按 `coretool` Skill 调用 TestDesign 查询与 IDP 文档写入命令。
 
 一次归档只运行一个本 Agent。TS、TP、TC 存在严格父子 ID 依赖，禁止拆分为多个归档 Agent 或并发创建。
 
@@ -44,10 +44,12 @@ metadata:
 13. `.design_output/design_task_info.json` 路径；
 14. `cida_info.json` 路径；
 15. `tr_ts.json` 路径及完整内容；
-16. `test_design/` 路径；
-17. 仅当执行计划包含 TP/TC 时提供与目标有关的 TP/TC JSON 路径；
-18. `archive/archive_state.json` 路径；
-19. 当前 TR 下完整 TS 清单。
+16. `ts_catalog.json` 路径及完整内容；
+17. `test_design/` 路径；
+18. 仅当执行计划包含 TP/TC 时提供与目标有关的 TP/TC JSON 路径；
+19. `archive/archive_state.json` 路径；
+20. 当前 TR 下完整 TS 清单；
+21. 是否启用 `--document` 和 `.design_output/design_task_info.json` 路径。
 
 缺少当前目标实际需要的输入时停止，不调用 MCP。TS-only 目标不需要 TP/TC JSON，且不得因此读取这些文件。
 
@@ -57,22 +59,17 @@ metadata:
 - `archive_state.json.tr.platform_id` 必须与该 `tr_id` 一致；
 - `creator` 复用当前归档上下文中的创建人工号；
 - TR 只作为既有平台父节点，禁止归档或调用 `create_tr`；
-- `tr_ts.json`、TP JSON、TC JSON 均只读，不得回填或覆盖；
+- `tr_ts.json`、`ts_catalog.json`、TP JSON、TC JSON 均只读，不得回填或覆盖；
 - 所有真实平台 ID 只保存到 `archive/` 状态目录；
 - 所有本地命令路径使用 `/`，不得使用会被 bash 转义的 `\`。
 
 ## 真实产物编号规则
 
-`tr_ts.json.test_specs[]` 中没有单独的 TS 编号字段。必须按数组的 1-based 顺序派生：
+TS 编号和来源必须直接读取 `ts_catalog.json.items[]`。禁止根据 `tr_ts.json`、`ts_name`、类型名称或平台最新查询结果重新编号。
 
-```text
-test_specs[0] → TS_01
-test_specs[1] → TS_02
-...
-test_specs[19] → TS_20
-```
-
-禁止把 `ts_name` 当作 TS 编号，也不得从名称猜测序号。
+- `source=platform_dfx`：使用 catalog 中的 `platform_ts_id`，不调用 `create_ts`；
+- `source=explore`：使用 catalog 中的 `tr_ts_index` 定位普通 TS，按现有逻辑创建或复用；
+- 其他 `source` 值一律停止。
 
 状态文件中的对象 key 固定为：
 
@@ -192,12 +189,6 @@ python "<state-script>" record-failure --state-file "<state-file>" --entity <ent
 python "<state-script>" record-blocked --state-file "<state-file>" --entity <ts|tp|tc> --key "<key>" --reason "<reason>" --parent-key "<parent-key>" [--parent-id "<parent-id>"]
 ```
 
-TP 因 `tpSourceType` 为空而由当前版本主动跳过：
-
-```bash
-python "<state-script>" record-skipped --state-file "<state-file>" --key "TS_<NN>/<tp_id_temp>" --reason "tpSourceType为空，当前版本暂不归档" --parent-key "TS_<NN>" --parent-id "<tsId>"
-```
-
 禁止通过 `--response-json` 传递 MCP 响应。TS、TP、TC 都必须使用 `--response-file`，避免 Bash、PowerShell 和 CMD 对长 JSON 的引号解析差异。状态脚本会将响应规范化保存到 `archive/responses/` 并在状态记录中保存相对路径。
 
 每条状态命令都必须检查脚本输出中的 `success`。状态保存失败时停止当前分支，不得在真实 ID 尚未落盘时继续创建子节点。
@@ -222,7 +213,7 @@ TR 只作为父上下文，`execution_plan.tr` 必须始终为空。
 
 指定对象规则：
 
-- TS 通过 `tr_ts.json.test_specs[]` 的 1-based 顺序派生并匹配；
+- TS 通过 `ts_catalog.json.items[].ts_key` 精确匹配；
 - TP 推荐使用 `TS_01/<tp_id_temp>`，裸标识仅在全部 TP JSON 中唯一时允许；
 - TC 推荐使用 `TS_01/<tc_id_temp>`，裸标识仅在全部 TC JSON 中唯一时允许；
 - 指定 TP 时自动加入所属 TS；
@@ -298,6 +289,16 @@ create_tc.tr_id
 
 已有 `succeeded` 状态和有效 `platform_id` 时复用，不重复调用 MCP。
 
+当前 catalog 条目为 `source=platform_dfx` 时：
+
+1. 校验 `platform_ts_id` 是有效非零 ID；
+2. 将完整 catalog 条目保存为归档响应 JSON；
+3. 直接调用状态脚本 `record-success --entity ts --key <TS_key> --platform-id <platform_ts_id> --parent-key TR --parent-id <tr_id> --response-file <响应文件>`；
+4. 状态记录成功后继续其 TP/TC 分支；
+5. 禁止调用 `mark-in-progress` 和 `create_ts`。
+
+只有 `source=explore` 才执行以下创建逻辑，并通过 `tr_ts_index` 读取对应 `tr_ts.json.test_specs[]`。
+
 调用：
 
 ```text
@@ -349,13 +350,16 @@ test_design/ts_<NN>_tp.json
 
 通过 `TS_<NN>/<tp_id_temp>` 唯一标识 TP。已有成功状态和有效真实 ID 时复用。
 
-调用 MCP 前必须预检原始 TP JSON 中的 `tpSourceType`：
+调用 MCP 前必须预检原始 TP JSON 中的 `tpSourceType`。只允许以下非空值：
 
-- 非空：保持原值，继续执行当前 TP；
-- 为空字符串或 `null`：调用 `record-skipped`，不得调用 `create_tp`；
-- skipped 原因固定为 `tpSourceType为空，当前版本暂不归档`；
-- 不得根据 `_dimension`、`tpType` 或 `_raw_factors` 补写、猜测或转换 `tpSourceType`；
-- 当前 TP 被 skipped 后，将其下计划中的 TC 全部记录为 `blocked`，然后继续其他 TP。
+- `功能交互设计-功能与测试因子`
+- `基于业务内部实现设计—测试因子`
+- `基于业务场景设计—场景因子`
+- `测试类型交互设计—测试因子`
+- `测试类型交互设计—测试设计准则`
+- `测试类型交互设计—模式库`
+
+为空或非法时停止当前归档请求，不调用 `create_tp`，不再记录 skipped，也不得根据 `_dimension`、`tpType` 或 `_raw_factors` 补写或猜测。
 
 调用：
 
@@ -381,8 +385,9 @@ requirement_ids   = TP JSON.requirement_ids
 因子映射：
 
 - `_raw_factors` 为空时，`sceneFactorNames` 和 `testFactorNames` 均不传或传空；
-- `tpSourceType` 属于功能/场景测试因子来源时，将 `_raw_factors` 按逗号拼接传给 `sceneFactorNames`；
-- `tpSourceType` 属于测试类型因子来源时，将 `_raw_factors` 按逗号拼接传给 `testFactorNames`；
+- `tpSourceType` 为 `基于业务场景设计—场景因子` 或 `功能交互设计-功能与测试因子` 时，将 `_raw_factors` 按逗号拼接传给 `sceneFactorNames`；
+- `tpSourceType` 为 `基于业务内部实现设计—测试因子` 或 `测试类型交互设计—测试因子` 时，将 `_raw_factors` 按逗号拼接传给 `testFactorNames`；
+- `tpSourceType` 为测试设计准则或模式库时不传因子名称；
 - 不得同时把同一组因子传给两个参数；
 - 不得编造源 JSON 中不存在的因子。
 
@@ -397,7 +402,7 @@ requirement_ids   = TP JSON.requirement_ids
 
 成功后立即保存 `TS_<NN>/<tp_id_temp> → tpId` 和 MCP 原始响应。
 
-某个 TP 失败或 skipped 时，将该 TP 下计划中的 TC 标记为 `blocked`，继续其他 TP 分支。skipped 不得统计为 failed。
+某个 TP 创建失败时，将该 TP 下计划中的 TC 标记为 `blocked`，继续其他 TP 分支。
 
 ## Phase 6：创建或复用 TC
 
@@ -422,7 +427,6 @@ test_design/ts_<NN>_tc.json
 调用 MCP 前必须检查所属 TP 状态：
 
 - `succeeded` 且存在有效 `platform_id`：使用该真实 TP ID；
-- `skipped`：当前 TC 记录为 `blocked`，原因使用 `所属TP因tpSourceType为空未归档`；
 - `failed` 或 `blocked`：当前 TC 记录为 `blocked`；
 - 不存在有效 TP ID：不得调用 `create_tc`。
 
@@ -474,7 +478,72 @@ result.success == true
 
 仅当 `result.success == false`、MCP 调用异常或响应无法判断成功时，才记录 TC 失败并继续其他 TC。
 
-## Phase 7：刷新 Portal 卡片
+## Phase 7：在线文档写入（可选）
+
+未启用 `--document` 时完全跳过本阶段。启用时，写入范围固定为当前设计任务、当前 TR 和 `ts_catalog.json` 中全部 TS；不写 TP 测试因子分析。
+
+### 7.1 解析 IDP 文档和平台 ID
+
+从 `.design_output/design_task_info.json` 读取当前 `design_task_id` 对应的 `idp_doc_id`。本地没有时调用：
+
+```bash
+coretool coretest testdesign task list --version-pbi <pbi> --output json
+```
+
+只允许使用 `id=<design_task_id>` 的唯一任务记录。普通 TS 的平台 ID 从成功归档状态读取，DFX TS 使用 catalog 中的 `platform_ts_id` 并与状态记录核对。任一 ID 缺失或冲突时停止，不写文档。
+
+### 7.2 提取固定章节
+
+测试规格 Markdown 必须完整提供：
+
+- 任务 `概述`：合并 `被测对象概述`、`测试方案概述`；
+- 任务 `测试设计策略`：合并 `特性风险分析（RBT）`、`测试重点难点分析`、`分层测试策略`、`底层硬件/组网差异测试策略分析`、`网元形态差异测试策略分析`；
+- TR：`场景分析`、`测试类型分析`、`特性交互分析`、`功能交互分析`、`设计约束分析`。
+
+每个 `ts_<NN>_test_design.md` 按 catalog 来源/类型提取：
+
+| 来源/类型 | 必须写入的 TS 章节 |
+|---|---|
+| 平台 DFX | `测试类型交互设计`、`基于业务内部实现的设计` |
+| `function` / `feature` | `功能交互设计`、`基于业务内部实现的设计` |
+| `scene` | `基于业务场景的设计`、`基于业务内部实现的设计` |
+| `constraint` | `基于业务内部实现的设计` |
+
+标题存在但正文为空同样视为缺失。不得用相似标题、平台写入表格或模型临时总结替代源章节。
+
+### 7.3 查询全部 topic 并整体预检
+
+使用 `coretool coretest testdesign idp topic list` 查询每个活动名称：
+
+- 任务节点：使用 `idp_doc_id`、`user_id`、`activity_name`，不传父节点参数；
+- TR 节点：加 `parent-activity-id=<tr_id>`、`parent-activity-name=<tr_name>`、`parent-activity-type=TR`；
+- TS 节点：加对应真实 `tsId`、`ts_name`、`parent-activity-type=TS`。
+
+每个目标必须唯一解析到非空 `topic_id`。先完成全部源章节、平台 ID 和 topic 预检，再生成：
+
+```text
+archive/document_plan.json
+```
+
+计划必须包含节点类型、节点 ID、活动名称、topic ID、源文件、正文和稳定 UUID。任一目标失败时整体停止；在计划完整前禁止执行任何 `source-data write`。
+
+### 7.4 稳定覆盖写入
+
+稳定 UUID 使用 UUIDv5 URL namespace，name 固定为：
+
+```text
+coretest-idp|<idp_doc_id>|<TASK|TR|TS>|<节点ID>|<活动名称>
+```
+
+相同目标重复执行必须得到完全相同的 `source_value_uuid`。逐项生成 UTF-8 请求 JSON，调用：
+
+```bash
+coretool coretest testdesign idp source-data write --data-file <payload.json>
+```
+
+请求体固定使用 `display_type=3`、`title=<活动名称>`、`text_content=<源章节正文>`，并传入计划中的 `topic_id`、`user_id` 和 `source_value_uuid`。逐项保存原始响应；任一写入失败时停止后续写入并报告已成功和未执行项，不得换 UUID 重试。
+
+## Phase 8：刷新 Portal 卡片
 
 所有可执行对象处理完成并保存状态后，调用：
 
@@ -508,7 +577,7 @@ Portal 当前不支持 TC 路由，TC 成功后必须跳转到所属 TP，不得
 
 多目标时跳转到用户输入顺序中最后一个成功目标；目标失败时回退到最近成功的父节点。没有任何成功或复用节点时不调用卡片。
 
-如果用户指定的 TP 被 skipped，跳转到其所属 TS；如果用户指定的 TC 因所属 TP skipped 而 blocked，同样跳转到所属 TS。不得把 skipped 或 blocked 对象当作成功跳转目标。
+不得把失败或 blocked 对象当作成功跳转目标。
 
 卡片失败时保存失败信息，但不得重新调用任何已成功的创建 MCP。
 
@@ -527,7 +596,7 @@ python "<state-script>" record-card \
   --response-file "<card-response-file>"
 ```
 
-## Phase 8：结果汇总
+## Phase 9：结果汇总
 
 返回：
 
@@ -536,10 +605,11 @@ python "<state-script>" record-card \
 - 本次计划内的实际状态 TS/TP/TC 数量；
 - TR 的 Init 复用状态和 `tr_id`（未执行归档）；
 - TS 的创建/复用/失败/blocked 状态和 `tsId`；
-- TP 的创建/复用/skipped/失败/blocked 状态和 `tpId`；
+- TP 的创建/复用/失败/blocked 状态和 `tpId`；
 - TC 的创建/复用/失败/blocked 状态；TC 成功不要求 `tcId`；
 - 状态文件路径；
 - Portal 卡片刷新结果与最终跳转对象。
+- 在线文档计划、覆盖写入成功项、失败项和未执行项。
 
 不得仅输出“创建完成”而省略失败和 blocked 对象。
 
@@ -565,5 +635,6 @@ python "<state-script>" summary --state-file "<state-file>"
 - 名称重复但状态中没有 ID 时停止该分支，不得自动改名创建；
 - TP 未取得真实 `tpId` 时不得创建 TC；
 - `create_tc` 返回 `success=true` 即表示 TC 创建成功，不得再提取或校验 TC ID；
-- `tpSourceType` 为空时必须 skipped，不得调用 `create_tp`，不得修改原始 TP JSON；
-- TP skipped 后，其下 TC 必须 blocked，不得调用 `create_tc`；
+- `tpSourceType` 为空或非法时必须在创建前停止，不得调用 `create_tp`，不得修改原始 TP JSON；
+- `--document` 的全部目标预检完成前不得写入任何在线文档；
+- 稳定 UUID 不得随机生成或因重试改变；
