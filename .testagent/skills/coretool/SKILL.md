@@ -7,7 +7,7 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
-所有命令统一使用 `coretool` 调用。
+每次会话首次使用时先解析 CoreTool CLI 的绝对路径并记为 `<coretool_cmd>`。后续命令中的 `coretool` 仅表示命令名占位符，实际执行时必须替换为带引号的 `<coretool_cmd>`。
 
 ## References 路由表
 
@@ -17,19 +17,54 @@ CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、�
 
 ## 环境准备（自动）
 
-每次会话首次使用时，按以下步骤确保 `coretool` 可用：
+每次会话首次使用时，按以下顺序解析可用 CLI，并记录最终的绝对路径为 `<coretool_cmd>`。不要依赖某次 shell 中修改的 PATH 或环境变量能在后续工具调用中继续生效。
 
-### 1. 检查是否已安装
+### 1. 优先使用扩展包内置 CLI
+
+`<extension-root>` 表示包含当前 `.testagent` 目录的扩展根目录。按固定顺序检查：
+
+1. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli.exe`
+2. `<extension-root>/.testagent/skills/coretool/tools/coretool.exe`
+3. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli`
+4. `<extension-root>/.testagent/skills/coretool/tools/coretool`
+
+可在同一 shell 中按下面的逻辑解析；`<extension-root>` 必须替换为已确定的绝对路径：
 
 ```bash
-which coretool 2>/dev/null || which coretool.exe 2>/dev/null
+CORETOOL_CMD=""
+TOOL_DIR="<extension-root>/.testagent/skills/coretool/tools"
+
+for candidate in \
+  "$TOOL_DIR/coretool-cli.exe" \
+  "$TOOL_DIR/coretool.exe" \
+  "$TOOL_DIR/coretool-cli" \
+  "$TOOL_DIR/coretool"; do
+  if [ -f "$candidate" ] && "$candidate" version >/dev/null 2>&1; then
+    CORETOOL_CMD="$candidate"
+    break
+  fi
+done
 ```
 
-如果找到，跳到步骤3。
+候选文件存在但 `version` 校验失败时，不中断解析，继续检查 PATH。
 
-### 2. 安装（市场安装）
+### 2. 回退到系统 PATH
 
-通过 AI Market 市场一键安装，自动下载二进制并配置 PATH：
+扩展包内没有可用 CLI 时，按以下顺序从 PATH 查找并执行 `version` 校验：
+
+```bash
+for command_name in coretool coretool.exe coretool-cli coretool-cli.exe; do
+  candidate="$(command -v "$command_name" 2>/dev/null || true)"
+  if [ -n "$candidate" ] && "$candidate" version >/dev/null 2>&1; then
+    CORETOOL_CMD="$candidate"
+    break
+  fi
+done
+```
+
+### 3. 仍未找到时自动安装
+
+保留 AI Market 自动安装兜底：
 
 ```bash
 # 第一步：配置 npm 仓库源（仅首次需要）
@@ -46,35 +81,29 @@ npx @aimarket/agentcenter cli add coretool-cli@0.0.6
 - **安装目录**：`C:\Users\<用户名>\.agentcenter\bin\coretool-cli.exe`（Windows）
 - **安装目录**：`~/.agentcenter/bin/coretool-cli`（Linux/macOS）
 
-安装程序会自动将 `~/.agentcenter/bin` 添加到 Windows 用户 PATH（通过 setx），**需要重新打开终端窗口才生效**。
+安装完成后，不要求重开终端；直接依次检查以下已知路径和 PATH，并再次执行 `version` 校验：
 
-安装完成后，在当前 bash 会话中手动刷新 PATH：
+1. `$HOME/.agentcenter/bin/coretool-cli.exe`
+2. `$HOME/.agentcenter/bin/coretool-cli`
+3. 步骤 2 中的 PATH 候选
 
-```bash
-export PATH="$HOME/.agentcenter/bin:$PATH"
-```
+如果市场安装失败，或安装后仍没有候选通过校验，停止业务操作并提示用户检查网络、安装权限或联系管理员。
 
-验证安装：
+### 4. 后续命令调用
 
-```bash
-coretool version
-```
+将最终通过校验的绝对路径记录为 `<coretool_cmd>`。同一 shell 中可执行 `"$CORETOOL_CMD" ...`；跨 shell 或跨工具调用时，直接使用已记录并加引号的绝对路径。
 
-如果市场安装失败（网络不通或 npm 不可用），提示用户检查网络或联系管理员。
-
-### 3. 确保 PATH 生效
-
-每次会话首次执行前，确保 PATH 包含安装目录：
+本文及 references 中形如：
 
 ```bash
-# Windows (Git Bash)
-export PATH="$HOME/.agentcenter/bin:$PATH"
-
-# Linux/macOS
-export PATH="$HOME/.agentcenter/bin:$PATH"
+coretool auth status
 ```
 
-后续所有命令直接使用 `coretool`，不再使用完整路径。
+的命令，实际执行为：
+
+```bash
+"<coretool_cmd>" auth status
+```
 
 ### 卸载
 
@@ -159,7 +188,7 @@ coretool auth logout
 
 ## 执行规则
 
-1. **环境准备**：每次会话首次使用时，执行 `export PATH="$HOME/.agentcenter/bin:$PATH"`，然后检查 `coretool` 是否可用，不可用则通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.6`），安装程序会自动配置 Windows 用户 PATH。
+1. **环境准备**：每次会话首次使用时，严格按“扩展包内置 CLI → 系统 PATH → AI Market 自动安装”的顺序解析并校验 CLI，记录绝对路径为 `<coretool_cmd>`；后续所有业务命令均使用该绝对路径。
 
 3. **从自然语言提取参数**：参见各领域参考文档中的映射表。
 
@@ -171,4 +200,4 @@ coretool auth logout
    - `not logged in` → 引导用户登录
    - `--keyword is required` → 补充缺失参数后重试
    - HTTP 错误 → 简要说明原因（如网络问题、权限不足）
-   - 可执行文件不存在 → 通过市场安装（`npx @aimarket/agentcenter cli add coretool-cli@0.0.6`），安装程序会自动配置 PATH
+   - 可执行文件不存在或校验失败 → 继续下一层解析；扩展包和 PATH 均不可用时通过市场安装，安装后仍不可用则停止并提示用户
