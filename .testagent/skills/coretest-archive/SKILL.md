@@ -1,18 +1,18 @@
 ---
 name: coretest-archive
-description: 按 TS、TP 或 TC 目标归档测试设计产物，复用平台 DFX TS，并可通过 --document 将任务、TR 和 TS 的设计文字覆盖写入在线文档。
+description: 按 TR、TS、TP 或 TC 目标归档测试设计产物，复用既有 TR 和平台 DFX TS，并按目标父级链自动覆盖同步任务、TR 和 TS 在线文档。
 metadata:
   author: corespec
-  version: "2.6.0"
+  version: "2.7.0"
 ---
 
 # CoreTest Archive Skill
 
 ## 目标
 
-根据用户指定的 TR ID 和 TS、TP 或 TC 归档目标，定位 `.design_output/<design_task_id>/TR_<tr_id>/` 下已完成 Explore/Design 的上下文，并调用一个 `coretest-archive-agent` 完成归档闭环。
+根据用户指定的 TR ID 和 TR、TS、TP 或 TC 归档目标，定位 `.design_output/<design_task_id>/TR_<tr_id>/` 下已完成 Explore/Design 的上下文，并调用一个 `coretest-archive-agent` 完成对象归档和父级在线文档同步闭环。
 
-TR 已由 Init 从平台拉取，Archive 只复用 TR，不创建、不归档 TR。归档依赖顺序固定为：
+TR 已由 Init 从平台拉取。输入 `TR` 时只复用既有 TR 并同步设计任务和 TR 文档，不创建 TR。对象依赖顺序固定为：
 
 ```text
 既有 TR → TS → TP → TC
@@ -23,7 +23,7 @@ TR 已由 Init 从平台拉取，Archive 只复用 TR，不创建、不归档 TR
 ## 使用方式
 
 ```text
-/coretest-archive <tr_id> [归档目标...] [--document]
+/coretest-archive <tr_id> <归档目标...>
 ```
 
 示例：
@@ -34,19 +34,19 @@ TR 已由 Init 从平台拉取，Archive 只复用 TR，不创建、不归档 TR
 /coretest-archive 3863 TP
 /coretest-archive 3863 TS_01/TP.01.03.01
 /coretest-archive 3863 TC
-/coretest-archive 3863 --document
-/coretest-archive 3863 TC --document
+/coretest-archive 3863 TR
 ```
 
 层级关键字含义：
 
 | 输入 | 归档范围 |
 |---|---|
+| `TR` | 复用既有 TR，不创建平台对象 |
 | `TS` | 全部 TS |
 | `TP` | 全部 TS 和全部 TP |
 | `TC` | 全部 TS、全部 TP 和全部 TC |
 
-不支持 `TR` 归档目标。输入 `/coretest-archive <tr_id> TR` 时必须停止并说明 TR 仅复用、不归档。
+每个有效目标都自动同步其父级文档：设计任务和 TR 始终同步；TS、TP、TC 目标还同步目标或所属 TS 文档。TP、TC 自身文档本次不写入。
 
 指定对象规则：
 
@@ -63,10 +63,10 @@ TR 已由 Init 从平台拉取，Archive 只复用 TR，不创建、不归档 TR
 ## Phase 0：解析输入
 
 1. 第一个位置参数必须是纯数字 `tr_id`；
-2. 其后至少提供一个归档目标或 `--document`；
-3. 仅识别 `TS`、`TP`、`TC` 三个全量层级关键字；
-4. 拒绝 `TR` 目标；
-5. `--document` 是独立布尔参数，不得放入对象执行计划；
+2. 其后至少提供一个归档目标；
+3. 识别 `TR`、`TS`、`TP`、`TC` 四个层级关键字；
+4. `TR` 只表示复用既有 TR 并同步设计任务和 TR 文档；
+5. 拒绝已废弃的 `--document` 参数；
 6. 其他参数作为指定对象标识，与产物内容精确匹配；
 7. 对重复目标去重，但保持输入顺序。
 
@@ -127,9 +127,27 @@ TS_01/TP.xxx    → 所属 TS + 指定 TP
 TP              → 全部 TS + 全部 TP
 TS_01/TC.xxx    → 所属 TS + 所属 TP + 指定 TC
 TC              → 全部 TS + 全部 TP + 全部 TC
+TR              → 不创建对象，execution_plan.tr 保持为空
 ```
 
 依赖只能向上补齐父节点。TS-only 目标不得要求、读取或传递 TP/TC JSON；指定 TP 目标不得要求、读取或传递 TC JSON。
+
+同时根据用户目标生成独立文档范围：
+
+```json
+{
+  "task": ["<design_task_id>"],
+  "tr": ["<tr_id>"],
+  "ts": ["TS_01"]
+}
+```
+
+- 任一有效目标都加入当前设计任务和当前 TR；
+- TS 目标加入目标 TS；
+- TP/TC 目标加入其所属 TS；
+- 全量 TS/TP/TC 目标加入对应范围涉及的全部 TS；
+- 混合目标取并集，TS 按 `ts_catalog.json.items[]` 稳定顺序去重；
+- TR-only 的 `ts` 为空；不生成 TP、TC 文档目标。
 
 每次调用都必须根据本次用户参数重新生成计划，并将完整计划作为 Agent 输入。主 Skill 不调用 `archive_state.py`，也不自行记录或重试执行计划；状态初始化和计划落盘统一由 `coretest-archive-agent` 完成。状态中的旧计划不得改变本次范围。
 
@@ -191,7 +209,7 @@ agents/coretest-archive-agent
 11. 仅当计划包含 TP/TC 时提供相关 JSON；
 12. `archive/archive_state.json` 路径；
 13. 当前 TR 下完整 TS 清单；
-14. 是否启用 `--document`，以及 `design_task_info.json` 路径。
+14. 本次文档范围，以及 `design_task_info.json` 路径。
 
 Agent 负责：
 
@@ -202,17 +220,20 @@ Agent 负责：
 - 只调用 `create_ts`、`create_tp`、`create_tc`；
 - 每次 MCP 成功后立即保存真实平台 ID 和原始响应；
 - 复用已成功状态，处理失败、blocked 和断点续跑；
+- 对象处理后按文档范围同步设计任务、TR 和 TS 在线文档；
+- 文档节点独立预检和写入，失败时记录并继续其他节点，不回滚对象状态；
 - 完成后调用 `test-portal-card` Skill；
-- `--document` 启用时，在对象归档完成后通过 `coretool` Skill 写入在线文档；
 - 返回归档结果汇总。
 
 ## Phase 5：在线文档写入
 
-未指定 `--document` 时跳过。指定后写入范围固定为当前设计任务、当前 TR 和 `ts_catalog.json` 中全部 TS，不受对象归档目标筛选影响，本次不写 TP 测试因子分析。
+每次有效归档都自动执行，不使用独立参数。本次只写设计任务、TR 和文档范围中的 TS，不写 TP 测试因子分析或 TC 文档。
 
-- 仅 `--document`：不创建任何 TS/TP/TC；普通 TS 必须已在状态中存在有效平台 ID；
-- 与 TS/TP/TC 目标组合：先完成对象归档，再解析全部 TS 的平台 ID；
-- 任一源章节、平台 ID 或在线 topic 缺失时，在第一次 `source-data write` 前整体停止；
+- TR-only：复用 TR 后同步设计任务和 TR 文档；
+- TS/TP/TC：先完成对象创建或复用，再同步设计任务、TR 和目标或所属 TS 文档；
+- 每个任务、TR、TS 节点分别完成源章节、平台 ID 和 topic 预检；
+- 单个节点预检或写入失败时记录失败并继续其他节点；
+- 文档失败不得回滚或改写已成功、复用的 TS/TP/TC 状态；
 - 使用稳定 `source_value_uuid` 覆盖更新，禁止每次生成随机 UUID；
 - 具体章节、topic 和 UUID 规则由 `coretest-archive-agent` 执行。
 
@@ -228,7 +249,8 @@ Agent 负责：
 - TC 成功、失败、复用和 blocked 列表；
 - `archive_state.json` 路径；
 - Portal 卡片刷新与最终跳转结果。
-- 在线文档预检、写入和覆盖更新结果。
+- 在线文档各节点的成功、失败和未执行结果；
+- 对象成功或复用但任一文档节点失败时，整体结果为“部分成功”。
 
 主 Skill 不得在 Agent 返回后补做任何 MCP 创建调用。
 
@@ -236,13 +258,14 @@ Agent 负责：
 
 | 场景 | 处理 |
 |---|---|
-| 未提供 `tr_id`，或既无归档目标也无 `--document` | 停止并提示正确格式 |
+| 未提供 `tr_id` 或归档目标 | 停止并提示正确格式 |
 | `ts_catalog.json` 缺失或非法 | 停止并提示重新执行 Explore |
-| 输入 `TR` 目标 | 停止，说明 TR 不归档 |
+| 输入已废弃的 `--document` | 按未知参数停止并提示新用法 |
 | 找不到或找到多个 TR 上下文 | 报告候选并停止 |
 | 指定对象不存在或不唯一 | 停止，不调用 MCP |
 | Agent 调用失败 | 保留已写入的归档状态并报告 |
 | Portal 卡片失败 | 保留平台对象和状态，不重建已成功对象 |
+| 文档节点失败 | 记录失败并继续其他节点；保留对象状态，最终返回部分成功 |
 
 ## Guardrails
 
@@ -257,4 +280,5 @@ Agent 负责：
 - Agent 内顺序处理父子依赖；
 - 已成功对象不得重复创建；
 - 卡片失败时不得重做 MCP 写入；
+- 文档失败时不得重做或回滚已成功的对象写入；
 - Portal 卡片必须通过 `test-portal-card` Skill 更新。
