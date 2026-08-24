@@ -16,18 +16,15 @@ name: test-design
 
 ## 输入
 
-单个目标 TS：
+单个目标 TS 按来源提供：
 
--   ts_name
--   ts_type
--   requirement_ids
--   description
--   resolve_description
+-   `source=explore`：`ts_name`、`ts_type`、`requirement_ids`、`description`、`resolve_description` 和 `tr_ts_index`；
+-   `source=platform_dfx`：`ts_key`、`ts_name`、`ts_type`、`platform_ts_id`，以及 Explore 按该 ID 生成的 DFX 完整规格；DFX 不要求 `tr_ts_index`。
 
 以及：
 
 -   所属TR信息；
--   TR级背景素材；
+-   调用方精确提取的当前 TS 规格内容；
 -   当前TR完整TS列表；
 -   调用方指定的输出目录。
 
@@ -37,11 +34,11 @@ name: test-design
 
 默认格式：
 
-    .design_output/<IR>/test_design/
+    .design_output/<design_task_id>/TR_<tr_id>/test_design/
 
 必须输出：
 
-    .design_output/<IR>/test_design/
+    .design_output/<design_task_id>/TR_<tr_id>/test_design/
 
     ts_<NN>_test_design.md
     ts_<NN>_test_cases.md
@@ -112,6 +109,8 @@ cases文件：
 
 不得修改。
 
+只读取调用方明确传入的文件和上述两个公共规则文件。不得因 DFX 缺少普通 TS 字段而扫描 TR、`test_specs`、`test_design`、references 或历史样例，也不得读取其他 TS 产物。
+
 ## TP设计
 
 按：
@@ -120,11 +119,19 @@ cases文件：
 
 进行4维度展开。
 
+叙述区标题、TP 表 `dimension` 和 `tpSourceType` 是不同字段，必须分别按规则填写。例如：
+
+| 叙述区标题 | `dimension` | `tpSourceType` |
+|---|---|---|
+| `基于业务内部实现的设计` | `基于业务内部实现` | `基于业务内部实现设计—测试因子` |
+
+`dimension` 只能使用 `tp-tc-output.md` 定义的四类值：`基于业务场景`、`基于业务内部实现`、`功能交互设计`、`测试类型交互设计`。生成固定 TP 表后、执行 JSON 提取前必须逐行校验，不得直接复制带“的设计”的标题名称。
+
 每个TP必须：
 
 -   有明确测试目标；
 -   标注Level；
--   填写tpType/tpSourceType。
+-   填写合法的 `dimension`、`tpType` 和 `tpSourceType`。
 
 ## TC生成
 

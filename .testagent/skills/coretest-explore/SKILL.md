@@ -198,6 +198,17 @@ author: <tr_info.creator>(via spec-extractor)
 
 默认停顿并展示需求结构、SR 数量、来源覆盖和冲突数量。`--skip-clarify` 可跳过确认。
 
+### 阶段 5.5：查询并保存平台 TS
+
+复用阶段 0 已解析的 `<coretool_cmd>`，只查询一次当前 TR 的平台 TS：
+
+```bash
+"<coretool_cmd>" coretest testdesign ts query-by-type --tr-id <tr_id> --output json > \
+  "<tr_dir>/test_specs/platform_ts.json"
+```
+
+必须校验 `platform_ts.json` 是合法 JSON，且 DFX 条目具有唯一、非空的 `platform_ts_id`。后续测试规格生成和 `ts_catalog.json` 必须复用该文件，不得再次查询平台。
+
 ### 阶段 6：调用 test-spec-analysis
 
 只调用一次，明确传入：
@@ -205,6 +216,7 @@ author: <tr_info.creator>(via spec-extractor)
 ```yaml
 tr_info: <tr_dir>/tr_info.json
 sr_specs: <tr_dir>/sr_specs/
+platform_ts: <tr_dir>/test_specs/platform_ts.json
 output_dir: <tr_dir>/test_specs/
 ```
 
@@ -214,7 +226,9 @@ output_dir: <tr_dir>/test_specs/
 - TR 的 `requirement_ids` 等于 `tr_info.requirements[]` 的去重全集；
 - 每条 TS 的 `requirement_ids` 是该集合的子集；
 - TR 元数据直接来自 `tr_info.json`；
-- 不创建 TR，不追加平台已有的质量属性 TS。
+- 不创建 TR，不把平台已有的 DFX TS 追加到普通 TS 清单；
+- 对平台结果过滤 `scene/function/feature/constraint` 后，按 `platform_ts_id` 为每条 DFX 生成独立测试规格；
+- DFX 规格写在 `## 平台写入数据` 之外，不能进入 `tr_ts.json.test_specs[]`。
 
 输出一份 `<tr_dir>/test_specs/<TR名称>测试规格.md`。默认展示并等待确认；`--skip-clarify` 可跳过。
 
@@ -238,12 +252,11 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 
 ### 阶段 6.6：生成统一 TS 编号目录
 
-复用阶段 0 已解析并校验的 `<coretool_cmd>` 查询当前 TR 的平台 TS，不得重新解析路径或执行裸 `coretool`；将 JSON 通过 stdin 交给固定脚本：
+复用阶段 5.5 已保存的 `platform_ts.json`，不得再次查询平台；将该文件交给固定脚本：
 
 ```bash
-"<coretool_cmd>" coretest testdesign ts query-by-type --tr-id <tr_id> --output json | \
 python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
-  --platform-json - \
+  --platform-json "<tr_dir>/test_specs/platform_ts.json" \
   --tr-ts-json "<tr_dir>/test_specs/tr_ts.json" \
   --output "<tr_dir>/test_specs/ts_catalog.json"
 ```
@@ -308,6 +321,7 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 │   └── SR<编号>.md
 └── test_specs/
     ├── <TR名称>测试规格.md
+    ├── platform_ts.json
     ├── tr_ts.json
     └── ts_catalog.json
 ```
@@ -320,9 +334,9 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 |---|---|---|
 | `spec-extractor` | 全部 `docx_paths`、清单、`<tr_dir>` | 一份系统需求、一份功能设计 |
 | `requirement-parser` | 同一权威文档集合及辅助文件 | 一套 `sr_specs/` |
-| `test-spec-analysis` | `tr_info.json`、整套 `sr_specs/` | 一份已有 TR 测试规格 |
-| `coretool` | 当前 `tr_id` | 平台已有 TS 查询结果 |
-| `build_ts_catalog.py` | 平台 TS JSON、`tr_ts.json` | 稳定编号的 `ts_catalog.json` |
+| `test-spec-analysis` | `tr_info.json`、整套 `sr_specs/`、`platform_ts.json` | 普通 TS 与 DFX 规格共存的一份测试规格 |
+| `coretool` | 当前 `tr_id` | 保存一次的 `platform_ts.json` |
+| `build_ts_catalog.py` | `platform_ts.json`、`tr_ts.json` | 稳定编号的 `ts_catalog.json` |
 
 ## 6. 兼容模式
 

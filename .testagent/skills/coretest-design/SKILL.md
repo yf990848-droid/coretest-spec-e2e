@@ -72,9 +72,9 @@ name: coretest-design
 -   `cida_info.json` 只读，不得重新生成或覆盖；
 -   `tr_info.json`、完整 CIDA 上下文和完整 TS 清单必须传给每个 `test-design-agent`；
 -   TS 完整列表和稳定编号只来自 `ts_catalog.json.items[]`；
--   `source=platform_dfx` 的条目必须包含有效 `platform_ts_id`，不得创建平台 TS；
--   `source=explore` 的条目必须包含有效 `tr_ts_index`，其业务内容来自对应的 `tr_ts.json.test_specs[]`；
--   测试规格 Markdown 提供 TR 级背景信息；
+-   `source=platform_dfx` 的条目必须包含有效 `platform_ts_id`，并按该 ID 从测试规格 Markdown 的 `## DFX TS 测试规格` 中精确取得唯一规格，不得创建平台 TS，也不得查找 `tr_ts_index`；
+-   `source=explore` 的条目必须包含有效 `tr_ts_index`，其唯一规格来自对应的 `tr_ts.json.test_specs[]`；
+-   启动 Agent 前由主流程提取当前 TS 的完整规格内容；不得把目录或整份背景材料交给 Agent 自行搜索；
 -   所有设计产物写入当前 `TR_<tr_id>` 目录。
 
 ### Phase 1: TS Filtering
@@ -167,12 +167,12 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 3.  当前 TS 编号（如 `ts_01` 或 `01`）；
 4.  当前负责生成的完整 catalog 条目，包括 `source`、`ts_type`、`ts_name`，DFX 还包括 `platform_ts_id`；
 5.  当前 TR 信息；
-6.  TR级背景测试规格；
-7.  当前 TR 下完整 TS 清单；
+6.  按来源精确提取的当前 TS 完整规格内容：普通 TS 使用 `tr_ts_index`，DFX 使用 `platform_ts_id`；
+7.  当前 TR 下完整 TS 清单（仅用于边界判断）；
 8.  输出目录；
-9.  测试规格文件路径；
+9.  测试规格文件路径（仅用于来源审计，不允许 Agent 扫描其目录）；
 10. `design-task-id`；
-11. 完整 `cida_info.json` 上下文。
+11. 完整 `cida_info.json` 上下文；
 12. 完整 `ts_catalog.json`，并明确当前 TS 只能按 `tp-tc-design-logic.md` 中对应来源/类型的维度生成设计。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
@@ -271,7 +271,8 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 -   Phase 2 必须调用 `agents/test-design-agent`，不得把 `skills/test-design` 当作 subagent_type；
 -   `coretest-design` 主流程不得自行读取 test-design 规则文件后串行生成所有 TS；
 -   每个 `test-design-agent` 必须只处理一个 TS，并在 Agent 内部完成 markdown、JSON、卡片 completed 闭环；
--   每个 `test-design-agent` 必须接收完整 CIDA 上下文；
+-   每个 `test-design-agent` 必须接收完整 CIDA 上下文和当前 TS 的精确规格内容；
+-   DFX 只能按 `platform_ts_id` 定位 Explore 已生成的规格，禁止扫描 TR、`test_specs`、`test_design` 或历史样例；
 -   一个TS对应一个卡片；
 -   禁止SubAgent生成非目标TS的TP/TC；
 -   TS之间必须保持测试职责边界，避免重复覆盖。

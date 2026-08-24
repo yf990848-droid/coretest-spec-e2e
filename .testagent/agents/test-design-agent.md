@@ -27,12 +27,15 @@ metadata:
 - 需求编号 `requirement_id`（来自 `cida_info.json.requirement_number`，支持 IR/SR）；
 - 当前 TS 编号、当前 `ts_catalog.json` 条目和当前 TR 信息；
 - 当前 TR 下完整 `ts_catalog.json`；
-- 测试规格文件路径；
+- 按来源精确提取的当前 TS 完整规格内容：普通 TS 通过 `tr_ts_index`，DFX 通过 `platform_ts_id`；
+- 测试规格文件路径（只用于来源审计）；
 - `design_task_id`；
 - `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json` 文件路径及完整 CIDA 内容；
 - `.design_output/<design_task_id>/TR_<tr_id>/test_design/` 输出目录。
 
 必须使用当前 `TR_<tr_id>` 目录中的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
+
+只允许使用调用方传入的当前 TS 规格、当前 catalog 条目、完整 TS 清单和两个公共规则文件。DFX 不存在普通 `tr_ts_index`；不得扫描整个 TR、`test_specs`、`test_design` 或 `test-design/references` 目录，不得查找历史设计样例或读取其他 TS 产物。
 
 ## 执行流程
 
@@ -64,7 +67,16 @@ test-design
 
 标题文字不得改写，每个标题下必须有非空正文。只生成表中适用维度，禁止补写其他维度。平台 DFX 只复用 catalog 中的 `platform_ts_id` 作为下游归档上下文；本 Agent 不创建 TS，但必须正常生成 TP、TC 和测试用例卡片。
 
-TP 表中的 `tpType`、`tpSourceType` 必须严格使用 `tp-tc-design-logic.md` 映射，所有生成 TP 的 `tpSourceType` 必须非空。
+叙述区标题与 TP 表 `dimension` 不是同一套名称，必须按下表转换：
+
+| 叙述区二级标题 | TP 表 `dimension` |
+|---|---|
+| `基于业务场景的设计` | `基于业务场景` |
+| `基于业务内部实现的设计` | `基于业务内部实现` |
+| `功能交互设计` | `功能交互设计` |
+| `测试类型交互设计` | `测试类型交互设计` |
+
+禁止把标题 `基于业务内部实现的设计` 直接写入 `dimension`。TP 表中的 `tpType`、`tpSourceType` 必须严格使用 `tp-tc-design-logic.md` 映射，所有生成 TP 的 `tpSourceType` 必须非空。执行 JSON 脚本前，检查全部 `dimension` 均属于 `tp-tc-output.md` 定义的四类合法值。
 
 ---
 
