@@ -35,7 +35,14 @@ metadata:
 
 必须使用当前 `TR_<tr_id>` 目录中的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
 
-只允许使用调用方传入的当前 TS 规格、当前 catalog 条目、完整 TS 清单和两个公共规则文件。DFX 不存在普通 `tr_ts_index`；不得扫描整个 TR、`test_specs`、`test_design` 或 `test-design/references` 目录，不得查找历史设计样例或读取其他 TS 产物。
+步骤 1 开始前必须从扩展包仓库根目录精确读取：
+
+- `.testagent/rules/tp-tc-design-logic.md`；
+- `.testagent/rules/tp-tc-output.md`。
+
+两个文件均读取成功后才能调用 `test-design`。不得在 `.testagent/skills/test-design/rules/` 下查找，不得使用 glob 搜索替代文件；任一文件不存在或读取失败时，当前 TS 立即失败。
+
+只允许使用调用方传入的当前 TS 规格、当前 catalog 条目、完整 TS 清单和上述两个公共规则文件。DFX 不存在普通 `tr_ts_index`；不得扫描整个 TR、`test_specs`、`test_design` 或 `test-design/references` 目录，不得查找历史设计样例或读取其他 TS 产物。
 
 ## 执行流程
 
@@ -76,7 +83,7 @@ test-design
 | `功能交互设计` | `功能交互设计` |
 | `测试类型交互设计` | `测试类型交互设计` |
 
-禁止把标题 `基于业务内部实现的设计` 直接写入 `dimension`。TP 表中的 `tpType`、`tpSourceType` 必须严格使用 `tp-tc-design-logic.md` 映射，所有生成 TP 的 `tpSourceType` 必须非空。执行 JSON 脚本前，检查全部 `dimension` 均属于 `tp-tc-output.md` 定义的四类合法值。
+禁止把标题 `基于业务内部实现的设计` 直接写入 `dimension`。TP 表中的 `tpType`、`tpSourceType` 必须严格使用 `.testagent/rules/tp-tc-design-logic.md` 映射，所有生成 TP 的 `tpSourceType` 必须非空。执行 JSON 脚本前，检查全部 `dimension` 均属于 `.testagent/rules/tp-tc-output.md` 定义的四类合法值。
 
 ---
 
