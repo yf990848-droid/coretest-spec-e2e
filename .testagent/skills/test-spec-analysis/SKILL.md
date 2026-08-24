@@ -32,7 +32,12 @@ output_dir: <tr_dir>/test_specs/
 - 只生成一份测试规格 Markdown，不直接生成 JSON；
 - 在同一 Markdown 中生成平台 DFX 的独立测试规格，但不把 DFX 写入普通 TS 清单。
 
-分析方法见 [rules/analysis-guide.md](../../rules/analysis-guide.md)，TS 拆分、命名与描述规则见 [rules/ts-split.md](../../rules/ts-split.md)。
+开始分析前必须从仓库根目录完整读取：
+
+- `.testagent/rules/analysis-guide.md`；
+- `.testagent/rules/ts-split.md`。
+
+必须按上述仓库根目录路径定位，不得在 `.testagent/skills/test-spec-analysis/rules/` 下搜索。任一规则文件不存在或读取失败时立即停止并报告，不得跳过规则继续生成测试规格。
 
 ## 2. 上下文校验
 
