@@ -87,8 +87,10 @@ name: test-design
 
   文件                                用途
   ----------------------------------- --------------------------
-  ../../rules/tp-tc-design-logic.md   4维度展开、TP/TC设计规则
-  ../../rules/tp-tc-output.md         固定表格区格式
+  .testagent/rules/tp-tc-design-logic.md   4维度展开、TP/TC设计规则
+  .testagent/rules/tp-tc-output.md         固定表格区格式
+
+必须从扩展包仓库根目录精确读取以上两个文件。不得在 `.testagent/skills/test-design/rules/` 下查找，不得使用 glob 搜索替代文件；任一文件不存在或读取失败时立即停止，不得继续生成测试设计。
 
 ## 固定表格区约束
 
@@ -105,7 +107,7 @@ cases文件：
 
 锚点、表头、列顺序必须严格按照：
 
-    ../../rules/tp-tc-output.md
+    .testagent/rules/tp-tc-output.md
 
 不得修改。
 
@@ -115,7 +117,7 @@ cases文件：
 
 按：
 
-    ../../rules/tp-tc-design-logic.md
+    .testagent/rules/tp-tc-design-logic.md
 
 进行4维度展开。
 
@@ -125,7 +127,7 @@ cases文件：
 |---|---|---|
 | `基于业务内部实现的设计` | `基于业务内部实现` | `基于业务内部实现设计—测试因子` |
 
-`dimension` 只能使用 `tp-tc-output.md` 定义的四类值：`基于业务场景`、`基于业务内部实现`、`功能交互设计`、`测试类型交互设计`。生成固定 TP 表后、执行 JSON 提取前必须逐行校验，不得直接复制带“的设计”的标题名称。
+`dimension` 只能使用 `.testagent/rules/tp-tc-output.md` 定义的四类值：`基于业务场景`、`基于业务内部实现`、`功能交互设计`、`测试类型交互设计`。生成固定 TP 表后、执行 JSON 提取前必须逐行校验，不得直接复制带“的设计”的标题名称。
 
 每个TP必须：
 
