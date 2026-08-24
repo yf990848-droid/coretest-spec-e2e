@@ -14,6 +14,7 @@ metadata:
 ```yaml
 tr_info: <tr_dir>/tr_info.json
 sr_specs: <tr_dir>/sr_specs/
+platform_ts: <tr_dir>/test_specs/platform_ts.json
 output_dir: <tr_dir>/test_specs/
 ```
 
@@ -21,13 +22,15 @@ output_dir: <tr_dir>/test_specs/
 
 - `tr_info.json`；
 - `sr_specs/_index.md`；
-- `sr_specs/` 下全部 SR 文件。
+- `sr_specs/` 下全部 SR 文件；
+- `platform_ts.json`。
 
 本 Skill 面向平台已存在的当前 TR：
 
 - 不创建、不修改 TR；
 - 不从环境变量、任务级文件或其他 TR 补充 TR 字段；
-- 只生成一份测试规格 Markdown，不直接生成 JSON。
+- 只生成一份测试规格 Markdown，不直接生成 JSON；
+- 在同一 Markdown 中生成平台 DFX 的独立测试规格，但不把 DFX 写入普通 TS 清单。
 
 分析方法见 [rules/analysis-guide.md](../../rules/analysis-guide.md)，TS 拆分、命名与描述规则见 [rules/ts-split.md](../../rules/ts-split.md)。
 
@@ -40,7 +43,8 @@ output_dir: <tr_dir>/test_specs/
 3. 该集合是当前 TR 的直接关联需求全集，不能为空；
 4. `_index.md` 的“当前 TR 直接关联需求”必须覆盖相同集合；
 5. `sr_specs/` 至少包含一个有效 SR 文件；
-6. 存在未处理的高优先级解析冲突时停止并提示确认。
+6. 存在未处理的高优先级解析冲突时停止并提示确认；
+7. `platform_ts.json` 必须是合法 JSON；过滤 `scene/function/feature/constraint` 后的 DFX 条目必须具有唯一、非空的 `platform_ts_id`。
 
 不得使用 `cida_info.json` 的首条需求代替完整需求集合。
 
@@ -71,7 +75,28 @@ output_dir: <tr_dir>/test_specs/
 
 每条 TS 必须能够回溯到当前 TR 的一个或多个直接关联需求；`requirement_ids` 必须是 TR 需求全集的非空子集。不得引用其他 TR 的需求。
 
-## 4. 平台写入数据
+## 4. DFX TS 测试规格
+
+对 `platform_ts.json` 中过滤 `scene/function/feature/constraint` 后的每条平台 DFX，按原顺序生成一条规格：
+
+```markdown
+## DFX TS 测试规格
+
+### DFX TS：<platform_ts_id>
+
+| 字段 | 内容 |
+|---|---|
+| platform_ts_id | <平台 TS ID> |
+| ts_name | <TS 名称> |
+| ts_type | <平台 TS 类型> |
+| requirement_ids | <当前 TR 直接关联需求全集> |
+| description | <结合当前 TR 总结的 DFX 测试范围和目标> |
+| resolve_description | <测试重点、约束和设计方向> |
+```
+
+`## DFX TS 测试规格` 只出现一次，每个 `platform_ts_id` 只对应一个三级标题。该章节必须位于 `## 平台写入数据` 之前；不得按名称或类型代替 `platform_ts_id` 定位，不得把 DFX 行写入平台普通 TS 清单。
+
+## 5. 平台写入数据
 
 在 Markdown 末尾写入且只写入一个 `## 平台写入数据` 章节：
 
@@ -108,7 +133,7 @@ TS 规则：
 - 不生成 `performance`、`reliability` 等平台已有质量属性 TS；
 - 中文字段必须为可读 UTF-8 内容。
 
-## 5. 输出
+## 6. 输出
 
 输出唯一文件：
 
@@ -118,7 +143,7 @@ TS 规则：
 
 文件名中的 TR 名称须进行路径安全处理；若名称不适合作为文件名，使用 `tr_no`，仍不得改写 Markdown 中的真实 `tr_name`。
 
-完成后汇总 TR ID、直接需求数、SR 数、TS 数、各 TS 类型数及尚待确认的审计项。
+完成后汇总 TR ID、直接需求数、SR 数、普通 TS 数、DFX TS 数、各 TS 类型数及尚待确认的审计项。
 
 `tr_ts.json` 由 Explore 确认后调用：
 
