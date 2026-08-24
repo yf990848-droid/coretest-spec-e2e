@@ -30,7 +30,6 @@ name: coretest-explore
 - 每个下游 Skill 只调用一次；
 - 所有产物写入当前 `TR_<tr_id>/`。
 
-不得从 `design_task_info.json`、其他 TR、任务级功能或特性补充需求，不再生成 `tr_context.json`，不调用 `create-tr`。
 
 ## 2. 输入
 
@@ -46,7 +45,7 @@ name: coretest-explore
 /coretest-explore 3863
 ```
 
-第一位置参数为纯数字时必须解释为 `tr_id`，不能解释为 `design_task_id`。
+第一位置参数为纯数字时必须解释为 `tr_id`。
 
 需求编号和本地 `.docx` 仅作为独立兼容分析模式；兼容模式不得生成可进入 Design/Archive 的正式 `tr_ts.json`。
 
