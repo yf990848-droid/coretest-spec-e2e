@@ -57,9 +57,10 @@ name: coretest-explore
 ### 阶段 0：启动检查
 
 1. 读取仓库约束文件（若存在）。
-2. 执行 `pandoc --version`，并按 `coretool` Skill 检查 `coretool` 可用且已登录。
-3. 校验输入为纯数字 TR ID。
-4. 搜索：
+2. 执行 `pandoc --version`。
+3. 在执行任何 CoreTool 命令前，先读取 `.testagent/skills/coretool/SKILL.md`，严格按其环境准备流程解析并校验绝对路径 `<coretool_cmd>`；解析完成后只使用 `"<coretool_cmd>" version` 和 `"<coretool_cmd>" auth status` 检查可用性与登录状态。不得先执行裸 `coretool`，不得搜索 pip 包或额外探测子命令帮助。
+4. 校验输入为纯数字 TR ID。
+5. 搜索：
 
    ```text
    .design_output/*/TR_<tr_id>/tr_info.json
@@ -237,10 +238,10 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
 
 ### 阶段 6.6：生成统一 TS 编号目录
 
-调用 `coretool` Skill 查询当前 TR 的平台 TS，并将 JSON 通过 stdin 交给固定脚本：
+复用阶段 0 已解析并校验的 `<coretool_cmd>` 查询当前 TR 的平台 TS，不得重新解析路径或执行裸 `coretool`；将 JSON 通过 stdin 交给固定脚本：
 
 ```bash
-coretool coretest testdesign ts query-by-type --tr-id <tr_id> --output json | \
+"<coretool_cmd>" coretest testdesign ts query-by-type --tr-id <tr_id> --output json | \
 python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
   --platform-json - \
   --tr-ts-json "<tr_dir>/test_specs/tr_ts.json" \
