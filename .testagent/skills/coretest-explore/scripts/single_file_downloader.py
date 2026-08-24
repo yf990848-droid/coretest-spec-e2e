@@ -41,9 +41,10 @@ class DownloadConfig:
 
     # 默认参数
     DEFAULT_USERNAME = "test_name"
-    MAX_DOWNLOAD_RETRIES = 60
+    TOTAL_DOWNLOAD_TIMEOUT = 30 * 60
+    MAX_DOWNLOAD_RETRIES = 360
     RETRY_INTERVAL = 5
-    DOWNLOAD_TIMEOUT = 60000
+    TIMEOUT_MESSAGE = "IDP文档下载超过30分钟"
 
 
 @dataclass
@@ -77,7 +78,7 @@ class SingleDownloader:
         self.config = DownloadConfig()
         self.session = create_session()
 
-    def get_flow_id(self, doc_id: str) -> Optional[str]:
+    def get_flow_id(self, doc_id: str, timeout: float = 30) -> Optional[str]:
         """
         获取文档处理的flow_id
 
@@ -91,7 +92,7 @@ class SingleDownloader:
             response = self.session.post(
                 self.config.GET_FLOW_ID_URL,
                 json={"doc_id": doc_id},
-                timeout=30,
+                timeout=max(1, min(30, timeout)),
                 verify=False
             )
             response.raise_for_status()
@@ -111,7 +112,8 @@ class SingleDownloader:
 
     def poll_export_status(self, doc_id: str, flow_id: str,
                           max_retries: int = None,
-                          retry_interval: int = None) -> Optional[str]:
+                          retry_interval: int = None,
+                          timeout: float = None) -> Optional[str]:
         """
         轮询获取导出状态，完成后返回下载链接
 
@@ -126,6 +128,7 @@ class SingleDownloader:
         """
         max_retries = max_retries or self.config.MAX_DOWNLOAD_RETRIES
         retry_interval = retry_interval or self.config.RETRY_INTERVAL
+        timeout = timeout or self.config.TOTAL_DOWNLOAD_TIMEOUT
 
         try:
             response = self.session.post(
@@ -136,7 +139,7 @@ class SingleDownloader:
                     "max_retries": max_retries,
                     "retry_interval": retry_interval
                 },
-                timeout=max_retries * (retry_interval + 30),
+                timeout=max(1, timeout),
                 verify=False
             )
             response.raise_for_status()
@@ -152,7 +155,7 @@ class SingleDownloader:
             print(f"请求失败: {str(e)}")
             return None
 
-    def get_cookie(self) -> Optional[dict]:
+    def get_cookie(self, timeout: float = 30) -> Optional[dict]:
         """
         获取登录Cookie
 
@@ -163,7 +166,7 @@ class SingleDownloader:
             response = self.session.post(
                 self.config.GET_COOKIE_URL,
                 json={},
-                timeout=30,
+                timeout=max(1, min(30, timeout)),
                 verify=False
             )
             response.raise_for_status()
@@ -197,22 +200,30 @@ class SingleDownloader:
             filename += '.docx'
         return filename
 
-    def _download_file_content(self, download_url: str, cookies: dict, output_file: Path) -> bool:
+    def _download_file_content(self, download_url: str, cookies: dict,
+                               output_file: Path, deadline: float) -> bool:
         """下载文件内容并保存"""
         try:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(self.config.TIMEOUT_MESSAGE)
             response = self.session.get(
                 download_url,
                 cookies=cookies,
                 verify=False,
                 stream=True,
-                timeout=self.config.DOWNLOAD_TIMEOUT
+                timeout=max(1, remaining)
             )
             response.raise_for_status()
             with open(output_file, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError(self.config.TIMEOUT_MESSAGE)
                     if chunk:
                         f.write(chunk)
             return True
+        except TimeoutError:
+            raise
         except requests.RequestException as e:
             print(f"下载失败: {str(e)}")
             return False
@@ -220,7 +231,8 @@ class SingleDownloader:
             print(f"保存文件失败: {str(e)}")
             return False
 
-    def download_single_file(self, download_url: str, output_dir: str, doc_name: str = None) -> bool:
+    def download_single_file(self, download_url: str, output_dir: str,
+                             doc_name: str = None, deadline: float = None) -> bool:
         """
         实际下载文件
 
@@ -245,11 +257,19 @@ class SingleDownloader:
         print(f"开始下载文件: {filename}")
         print(f"保存到: {output_file}")
 
-        cookies = self.get_cookie()
+        deadline = deadline or (time.monotonic() + self.config.TOTAL_DOWNLOAD_TIMEOUT)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(self.config.TIMEOUT_MESSAGE)
+
+        cookies = self.get_cookie(remaining)
         if not cookies:
             print("无法获取Cookie，下载可能失败")
 
-        return self._download_file_content(download_url, cookies, output_file)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(self.config.TIMEOUT_MESSAGE)
+        return self._download_file_content(download_url, cookies, output_file, deadline)
 
     def download_by_doc_id(self, doc_id: str, us_num: str, output_dir: str = "./downloads") -> DownloadResult:
         """
@@ -264,11 +284,18 @@ class SingleDownloader:
             DownloadResult对象，包含下载结果信息
         """
         print(f"开始下载文档: {doc_id}")
+        deadline = time.monotonic() + self.config.TOTAL_DOWNLOAD_TIMEOUT
+
+        def remaining() -> float:
+            seconds = deadline - time.monotonic()
+            if seconds <= 0:
+                raise TimeoutError(self.config.TIMEOUT_MESSAGE)
+            return seconds
 
         try:
             # 步骤1：获取flow_id
             print("步骤1: 获取flow_id...")
-            flow_id = self.get_flow_id(doc_id)
+            flow_id = self.get_flow_id(doc_id, remaining())
             if not flow_id:
                 return DownloadResult(
                     success=False,
@@ -277,17 +304,30 @@ class SingleDownloader:
 
             # 步骤2：轮询获取下载URL
             print("步骤2: 轮询获取下载URL...")
-            download_url = self.poll_export_status(doc_id, flow_id)
+            download_url = self.poll_export_status(
+                doc_id,
+                flow_id,
+                max_retries=max(1, int(remaining() / self.config.RETRY_INTERVAL)),
+                retry_interval=self.config.RETRY_INTERVAL,
+                timeout=remaining()
+            )
             if not download_url:
+                error_message = (
+                    self.config.TIMEOUT_MESSAGE
+                    if time.monotonic() >= deadline
+                    else "获取下载URL失败"
+                )
                 return DownloadResult(
                     success=False,
-                    error_message="获取下载URL失败"
+                    error_message=error_message
                 )
 
             # 步骤3：下载文件
             print("步骤3: 下载文件...")
 
-            success = self.download_single_file(download_url, output_dir, us_num)
+            success = self.download_single_file(
+                download_url, output_dir, us_num, deadline
+            )
 
             # 构建文件路径
             file_path = None
