@@ -165,7 +165,9 @@ python .testagent/skills/coretest-explore/scripts/file_download.py \
 <首次关联需求编号>_<DOC_TYPE>_<doc_id>.docx
 ```
 
-读取命令最后一行 JSON；只有 `success=true` 且 `file_path` 为非空文件时才更新清单并继续。失败时保留清单中的失败状态，展示错误并停止。
+执行该命令时，必须将 Bash/Task 工具的命令超时设置为至少 1860 秒（31 分钟），不得使用默认 120 秒；若执行工具不支持该超时，必须停止并报告，不得先启动命令。
+
+读取命令最后一行 JSON；只有 `success=true` 且 `file_path` 为非空文件时才更新清单并继续。脚本内部以 1800 秒（30 分钟）为单文档总时限。失败或超时后保留清单中的失败状态，展示错误并停止；不得自动重新执行完整下载，避免重复创建 `flow_id` 和导出任务。
 
 ### 阶段 4：调用 spec-extractor
 
