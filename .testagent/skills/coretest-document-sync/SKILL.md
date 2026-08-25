@@ -69,7 +69,7 @@ python "<root>/.testagent/skills/coretest-document-sync/scripts/document_sync.py
 ## CoreTool 返回契约
 
 - `task list --output json`：在 `items[]` 中按 `id == design_task_id` 唯一匹配，并读取非空 `idp_doc_id`；
-- `idp topic list --output json`：要求退出码为 0、`items` 恰好一项、`pagination.total == 1`、`topic_id` 非空且 `topic_name` 等于活动名；
+- `idp topic list --output json`：返回可能包含目标 topic 及其子 topic；只筛选 `topic_name` 与活动名完全相等、`topic_id` 非空且 `deleted=0` 的项，并要求有效精确匹配恰好一项；不得要求整个 `items` 或 `pagination.total` 等于 1；
 - TR topic 的 `parent-activity-name` 必须使用 `tr_info.json.tr_name`；
 - `source-data write` 返回文本而非 JSON：要求退出码为 0，且 stdout/stderr 中包含 `Successfully wrote source data to topic <topic_id>`；
 - CLI 字节按 UTF-8 解码，写入 JSON 使用 UTF-8 无 BOM。
