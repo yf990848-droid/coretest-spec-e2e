@@ -276,16 +276,25 @@ def topic_id(coretool: str, timeout: int, responses: Path, idp_doc_id: str, user
     save_response(responses, response_name, response)
     payload = response_json(response, f"topic list: {activity}")
     items = payload.get("items")
-    total = (payload.get("pagination") or {}).get("total") if isinstance(payload.get("pagination"), dict) else None
-    if not isinstance(items, list) or len(items) != 1 or total != 1:
-        raise ValueError(f"活动 {activity} 的 topic 匹配数量不是 1")
-    item = items[0]
-    if not isinstance(item, dict) or str(item.get("topic_name", "")) != activity:
-        raise ValueError(f"活动 {activity} 的 topic_name 不匹配")
-    value = str(item.get("topic_id", "")).strip()
-    if not value:
-        raise ValueError(f"活动 {activity} 缺少 topic_id")
-    return value
+    if not isinstance(items, list):
+        raise ValueError(f"活动 {activity} 的 topic list 返回缺少 items 数组")
+    matches = [
+        item
+        for item in items
+        if isinstance(item, dict)
+        and str(item.get("topic_name", "")).strip() == activity
+        and str(item.get("topic_id", "")).strip()
+        and item.get("deleted", 0) in (0, "0", False)
+    ]
+    if len(matches) != 1:
+        total = (payload.get("pagination") or {}).get("total") if isinstance(payload.get("pagination"), dict) else None
+        names = [str(item.get("topic_name", "")) for item in items if isinstance(item, dict)]
+        raise ValueError(
+            f"活动 {activity} 的有效精确 topic 匹配数量不是 1："
+            f"返回 {len(items)} 条，精确匹配 {len(matches)} 条，"
+            f"pagination.total={total!r}，topic_name={names}"
+        )
+    return str(matches[0]["topic_id"]).strip()
 
 
 def write_activity(coretool: str, timeout: int, payload_dir: Path, responses: Path, idp_doc_id: str, user_id: str, node_type: str, node_id: str, activity: str, content: str, topic: str) -> Dict[str, Any]:
