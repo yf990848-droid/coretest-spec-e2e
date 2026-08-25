@@ -1,9 +1,9 @@
 ---
 name: coretest-archive
-description: 按 TR、TS、TP 或 TC 目标归档测试设计产物，复用既有 TR 和平台 DFX TS，并在全部对象处理完成后自动同步任务、TR 和 TS 在线文档。
+description: 按 TR、TS、TP 或 TC 目标归档测试设计产物，复用既有 TR 和平台 DFX TS，并在对象阶段后通过隔离 Agent 自动同步任务、TR 和 TS 在线文档。
 metadata:
   author: corespec
-  version: "2.8.0"
+  version: "2.9.0"
 ---
 
 # CoreTest Archive Skill
@@ -17,7 +17,7 @@ metadata:
 ```text
 coretest-archive-agent
 → coretest-object-archive（完整 TS/TP/TC）
-→ coretest-document-sync
+→ coretest-document-sync-agent（独立上下文）
 → test-portal-card
 → 汇总
 ```
@@ -168,7 +168,7 @@ Agent 必须依次：
 1. 初始化状态并锁定计划；
 2. 调用一次 `coretest-object-archive` 完成全部对象；
 3. 校验对象终态；
-4. 调用 `coretest-document-sync` 并生成终态 `document_plan.json`；
+4. 生成 `document_request.json`，调用一次隔离的 `coretest-document-sync-agent` 并生成终态 `document_plan.json`；
 5. 通过文档门禁后调用 `test-portal-card`；
 6. 汇总对象、文档和 Portal 结果。
 
@@ -205,7 +205,7 @@ Agent 必须依次：
 | 找不到或存在多个 TR 上下文 | 列出候选并停止 |
 | 指定对象不存在或不唯一 | 停止，不调用 Agent |
 | Object Skill 失败 | 保留即时状态，继续可执行文档节点并报告对象失败 |
-| Document Skill 失败 | 生成或保留失败计划，不回滚对象，最终不得返回成功 |
+| Document Agent 失败 | 生成或保留失败计划，不回滚对象，最终不得返回成功 |
 | Portal 失败 | 保留对象和文档结果，不重复写入 |
 
 ## Guardrails
@@ -216,7 +216,7 @@ Agent 必须依次：
 - 不重新查询或改变 TS 编号；
 - 真实平台 ID 只保存到 `archive/`；
 - 一次请求只调用一个 Archive Agent；
-- Object Skill 只调用一次且先于 Document Skill；
-- Document Skill 必须先于 Portal；
+- Object Skill 只调用一次且先于 Document Agent；
+- Document Agent 只调用一次且必须先于 Portal；
 - `document_plan.json` 未终态时禁止最终成功；
 - 已成功对象不得重复创建。

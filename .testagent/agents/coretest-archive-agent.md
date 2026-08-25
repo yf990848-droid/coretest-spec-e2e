@@ -1,8 +1,8 @@
 ---
-description: 测试设计归档闭环编排 Agent，锁定归档计划，依次调用对象归档、在线文档同步和 Portal Skill，并汇总三类结果。
+description: 测试设计归档闭环编排 Agent，锁定归档计划，依次调用对象归档 Skill、隔离的文档同步 Agent 和 Portal Skill，并汇总三类结果。
 metadata:
   author: corespec
-  version: "1.11.0"
+  version: "1.12.0"
 ---
 
 # Agent: coretest-archive-agent
@@ -15,7 +15,7 @@ metadata:
 初始化状态并锁定计划
 → coretest-object-archive
 → 对象终态校验
-→ coretest-document-sync
+→ coretest-document-sync-agent（独立上下文）
 → 文档计划终态校验
 → test-portal-card
 → 最终汇总
@@ -23,7 +23,7 @@ metadata:
 
 一次请求只运行一个本 Agent。对象归档 Skill 只调用一次并完整处理 TS、TP、TC。文档同步只能在对象阶段返回后调用；文档计划进入终态前禁止刷新 Portal 或输出最终结果。
 
-本 Agent 不直接调用 `create_tr/create_ts/create_tp/create_tc`，不直接执行 CoreTool 文档命令，也不复制两个下游 Skill 的业务规则。
+本 Agent 不直接调用 `create_tr/create_ts/create_tp/create_tc`，不直接执行 CoreTool 文档命令，也不加载或复制文档同步 Skill 的业务规则。
 
 ## 必需输入
 
@@ -147,21 +147,25 @@ Skill 返回后重新读取 `archive_state.json`，只针对本次计划校验�
 
 发现非终态节点时，对象阶段判定失败，不得将其报告为成功；仍继续文档同步，使任务、TR 和其他可写 TS 文档获得独立结果。
 
-## Phase 4：调用 coretest-document-sync
+## Phase 4：调用隔离的文档同步 Agent
 
-对象 Skill 返回且完成上述校验后，必须立即读取并调用：
-
-```text
-<root>/.testagent/skills/coretest-document-sync/SKILL.md
-```
-
-传入已核验的文档范围和对象阶段结束后的 `archive_state.json`。输出固定为：
+对象 Skill 返回且完成上述校验后，必须立即生成：
 
 ```text
-archive/document_plan.json
+archive/document_request.json
 ```
 
-Skill 返回后必须回读并检查：
+请求文件必须符合 `coretest-document-sync/SKILL.md` 的输入契约，只包含标量值、精确文件路径和已核验文档范围；禁止嵌入 Markdown 正文、对象调用记录或此前日志。
+
+只启动一次：
+
+```text
+<root>/.testagent/agents/coretest-document-sync-agent.md
+```
+
+只传入扩展包根目录、`document_request.json` 和 `document_plan.json` 的绝对路径。不得在本 Agent 中加载或直接调用 `coretest-document-sync` Skill。
+
+文档 Agent 返回后必须回读 `archive/document_plan.json` 并检查：
 
 - 文件存在且是合法 JSON；
 - `expected_nodes` 与文档范围完全一致；
@@ -169,24 +173,7 @@ Skill 返回后必须回读并检查：
 - 不存在 `pending`；
 - 顶层状态为 `succeeded`、`partial` 或 `failed`。
 
-若 Skill 异常退出或未生成有效计划，本 Agent只生成最小失败计划：
-
-```json
-{
-  "status": "failed",
-  "expected_nodes": ["<按文档范围生成>"],
-  "nodes": [
-    {
-      "node_type": "TASK|TR|TS",
-      "node_id": "<id>",
-      "status": "failed",
-      "error": "skill_invocation_failed"
-    }
-  ]
-}
-```
-
-不得在本 Agent 中重新实现 topic 查询、章节提取、UUID 或文档写入。文档失败不回滚对象状态。
+若文档 Agent 异常退出或未生成有效计划，本 Agent 只生成覆盖全部预期节点的最小终态失败计划，错误为 `agent_invocation_failed` 或 `invalid_document_plan`。不得自行实现 topic 查询、章节提取、UUID 或文档写入。文档失败不回滚对象状态。
 
 ## Phase 5：文档门禁与 Portal
 
@@ -255,11 +242,11 @@ python "<state-script>" summary --state-file "<state-file>"
 
 ## Guardrails
 
-- 顺序固定为对象 Skill → 文档 Skill → Portal Skill；
+- 顺序固定为对象 Skill → 文档 Agent → Portal Skill；
 - 对象 Skill 只调用一次；
-- 文档 Skill 只在对象 Skill 返回后调用；
+- 文档 Agent 只调用一次且只能在对象 Skill 返回后调用；
 - 文档门禁通过前禁止 Portal 和最终成功；
 - 不直接执行对象创建 MCP；
 - 不直接执行 CoreTool 文档命令；
-- 不复制或改写下游 Skill 的领域规则；
+- 不加载文档同步 Skill，不复制或改写下游 Skill 的领域规则；
 - 不覆盖任何设计输入 JSON。
