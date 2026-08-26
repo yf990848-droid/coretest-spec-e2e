@@ -1,6 +1,6 @@
 # CoreTest 领域参考
 
-CoreTest 是华为 CoreTool 的测试执行领域，支持 InFactory、Script、Pipeline、TestResult、LCM、TestDesign 六大平台。
+CoreTest 是华为 CoreTool 的测试执行领域，支持 InFactory、Script、Pipeline、TestResult、LCM、TestDesign、Common 七大平台。
 
 所有命令统一使用 `coretool coretest` 调用，通过 Bash 工具执行。所有查询命令支持 `--output table|json` 控制输出格式。
 
@@ -14,6 +14,7 @@ CoreTest 是华为 CoreTool 的测试执行领域，支持 InFactory、Script、
 | `coretool coretest testresult` | 测试结果、AI 分析、日志、历史、重执行、DTS提单、环境修复 |
 | `coretool coretest lcm` | LCM 环境查询、锁定、解锁 |
 | `coretool coretest testdesign` | 测试设计（组合、资产、任务、TR/TS/TP/TC） |
+| `coretool coretest common` | 通用查询（版本PBI、CIDA配置） |
 
 ---
 
@@ -91,9 +92,9 @@ coretool coretest infactory task create --basic-info '<基础信息JSON>' [--cas
 # 示例：完整4类参数
 coretool coretest infactory task create \
   --basic-info '{"inFactoryTaskName":"task_test_20260818","productLineName":"CSP","projectName":"CSP 26.1.0","codehubHttpAddress":"https://codehub-dg-y.huawei.com/CSPAutoTest/AITestForCSP.git","sourceCodehubBranchName":"personal/w00455952/master","destCodehubBranchName":"personal/w00455952/master_ruchang","cVersionName":"CSP 26.1.0","bVersionName":"CSP 26.1.0_用例预入场","factoryType":"Hutaf","executorType":"CLOUD_SPIDER","isAuto":"0","groupId":"1052","creator":"r30073095"}' \
-  --case-filter '{"envList":"[]","tepList":"[{\"id\":\"3085993856910165504\",\"type\":\"CLOUD_SPIDER\",\"name\":\"10.44.175.156:8090\",\"version\":\"1.1.57\",\"status\":\"idle\",\"network\":\"yellow\"}]","policyName":"只入厂","fileNames":[{"id":1,"fileName":"test_TC_CSP_ALM_MML_024.py","caseNumber":"test_TC_CSP_ALM_MML_024","isConfig":0}]}' \
+  --case-filter '{"envList":"[]","tepList":"[{\"id\":\"3085993856910165504\",\"type\":\"CLOUD_SPIDER\",\"name\":\"10.44.175.156:8090\",\"version\":\"1.1.57\",\"status\":\"idle\",\"network\":\"yellow\"}]","policyName":"只入厂","fileNames":[{"id":"","fileName":"test_TC_CSP_ALM_MML_024.py","caseNumber":"test_TC_CSP_ALM_MML_024","isConfig":0}]}' \
   --mr-config '{"templateName":"test_finish","mrTitle":"task_test_20260818","templateDesc":"1. test finish","isNeedVerifyBeforeMergeIntoMaster":1,"merger":[],"reviewer":[],"committer":[],"approvers":[]}' \
-  --script-refresh '{"killerScriptConfigBeforeId":42,"killerScriptConfigAfterId":45,"customParams":"{\"configPath\":\"/home/executor/JavaEnvCfg\",\"packageName\":\"TestforCSPDFPPython-22.1.0.tar\",\"serviceName\":\"TestforCSPDFPPython\",\"version\":\"22.1.0\",\"product\":\"csp\",\"executorType\":\"CLOUD_SPIDER\",\"purePython\":\"true\",\"customCmd\":\"pytest -v\"}","customFieldInfo":"[{\"fieldName\":\"\",\"tmssFieldValue\":\"\",\"fieldNameOptions\":[],\"tmssFieldValueOptions\":[]}]"}}'
+  --script-refresh '{"killerScriptConfigBeforeId":42,"killerScriptConfigAfterId":45,"customParams":"{\"configPath\":\"/home/executor/JavaEnvCfg\",\"packageName\":\"TestforCSPDFPPython-22.1.0.tar\",\"serviceName\":\"TestforCSPDFPPython\",\"version\":\"22.1.0\",\"product\":\"csp\",\"executorType\":\"CLOUD_SPIDER\",\"purePython\":\"true\",\"customCmd\":\"pytest -v\"}","customFieldInfo":"[{\"fieldName\":\"\",\"tmssFieldValue\":\"\",\"fieldNameOptions\":[],\"tmssFieldValueOptions\":[]}]"}'
 
 # 示例：仅基础信息（最少参数）
 coretool coretest infactory task create \
@@ -117,8 +118,10 @@ coretool coretest infactory task list --group-id 1052 --creator w30020094
 
 ```bash
 coretool coretest infactory task refresh <task-id> --scope <status|detail>
-# 示例
-coretool coretest infactory task refresh TASK001 --scope status
+# 示例：刷新状态
+coretool coretest infactory task refresh 35324 --scope status
+# 示例：刷新详情（需指定 group-id）
+coretool coretest infactory task refresh 35324 --scope detail --group-id 1052
 ```
 
 #### 重试失败任务
@@ -147,11 +150,14 @@ coretool coretest infactory task retry --basic-info '<基础信息JSON>' [--case
 ```bash
 # 示例：重试任务（最少参数）
 coretool coretest infactory task retry \
-  --basic-info '{"inFactoryTaskId":195,"inFactoryExecTaskId":1191}'
+  --basic-info '{"inFactoryTaskId":35324,"inFactoryExecTaskId":50938}'
 
-# 示例：重试任务（带完整参数，同 create 格式）
+# 示例：重试任务（带完整4类参数，同 create 格式）
 coretool coretest infactory task retry \
-  --basic-info '{"inFactoryTaskId":195,"inFactoryExecTaskId":1191,"productLineName":"CSP","projectName":"CSP 26.1.0","codehubHttpAddress":"https://codehub-dg-y.huawei.com/CSPAutoTest/AITestForCSP.git","sourceCodehubBranchName":"master","destCodehubBranchName":"master"}'
+  --basic-info '{"inFactoryTaskId":35324,"inFactoryExecTaskId":50938,"inFactoryTaskName":"task_test_20260818","productLineName":"CSP","projectName":"CSP 26.1.0","codehubHttpAddress":"https://codehub-dg-y.huawei.com/CSPAutoTest/AITestForCSP.git","sourceCodehubBranchName":"personal/w00455952/master","destCodehubBranchName":"personal/w00455952/master_ruchang","cVersionName":"CSP 26.1.0","bVersionName":"CSP 26.1.0_用例预入场","factoryType":"Hutaf","executorType":"CLOUD_SPIDER","isAuto":"0","groupId":"1052","creator":"r30073095"}' \
+  --case-filter '{"envList":"[]","tepList":"[{\"id\":\"3085993856910165504\",\"type\":\"CLOUD_SPIDER\",\"name\":\"10.44.175.156:8090\",\"version\":\"1.1.57\",\"status\":\"idle\",\"network\":\"yellow\"}]","policyName":"只入厂","fileNames":[{"id":"","fileName":"test_TC_CSP_ALM_MML_024.py","caseNumber":"test_TC_CSP_ALM_MML_024","isConfig":0}]}' \
+  --mr-config '{"templateName":"test_finish","mrTitle":"task_test_20260818","templateDesc":"1. test finish","isNeedVerifyBeforeMergeIntoMaster":1,"merger":[],"reviewer":[],"committer":[],"approvers":[]}' \
+  --script-refresh '{"killerScriptConfigBeforeId":42,"killerScriptConfigAfterId":45,"customParams":"{\"configPath\":\"/home/executor/JavaEnvCfg\",\"packageName\":\"TestforCSPDFPPython-22.1.0.tar\",\"serviceName\":\"TestforCSPDFPPython\",\"version\":\"22.1.0\",\"product\":\"csp\",\"executorType\":\"CLOUD_SPIDER\",\"purePython\":\"true\",\"customCmd\":\"pytest -v\"}","customFieldInfo":"[{\"fieldName\":\"\",\"tmssFieldValue\":\"\",\"fieldNameOptions\":[],\"tmssFieldValueOptions\":[]}]"}'
 ```
 
 > **提示**：`inFactoryTaskId` 对应 task list 输出的 `id` 字段，`inFactoryExecTaskId` 对应 task list 输出的 `exec_task_ids` 字段（JSON 数组，取第一个值即可）。
@@ -161,24 +167,27 @@ coretool coretest infactory task retry \
 #### 查询可用环境
 
 ```bash
-coretool coretest infactory environment list --project <项目> --product-line <产品线>
+coretool coretest infactory environment list --project <项目> --product-line <产品线> --group-id <组ID>
 # 示例
-coretool coretest infactory environment list --project CoreTool --product-line Cloud --status available
+coretool coretest infactory environment list --project "CSP 23.1.0" --product-line CSP --group-id 1052
+coretool coretest infactory environment list --project "CSP 23.1.0" --product-line CSP --group-id 1052 --status available
 ```
 
-可选筛选：`--name`、`--version`、`--status`。支持分页。
+必填：`--project`、`--product-line`、`--group-id`（int）。可选筛选：`--name`、`--version`、`--status`。分页：`--page`（默认1）、`--page-size`（默认10）。
 
 ### Runner 管理（runner）
 
 #### 查询可用 Runner
 
 ```bash
-coretool coretest infactory runner list --project <项目> --product-line <产品线>
+coretool coretest infactory runner list --project <项目> --product-line <产品线> --group-id <组ID>
 # 示例
-coretool coretest infactory runner list --project CoreTool --product-line Cloud --status idle --type CLOUD_SPIDER
+coretool coretest infactory runner list --project "CSP 23.1.0" --product-line CSP --group-id 1052
+coretool coretest infactory runner list --project "CSP 23.1.0" --product-line CSP --group-id 1052 --status idle --type CLOUD_SPIDER
+coretool coretest infactory runner list --project "CSP 23.1.0" --product-line CSP --group-id 1052 --page 2 --page-size 20
 ```
 
-可选筛选：`--network`（可多次）、`--type`（可多次）、`--status`（可多次）、`--version`、`--location`、`--ip`。支持分页。
+必填：`--project`、`--product-line`、`--group-id`（int）。可选筛选：`--network`（可多次）、`--type`（可多次）、`--status`（可多次）、`--version`、`--location`、`--ip`。分页：`--page`（默认1）、`--page-size`（默认10）。
 
 ---
 
@@ -189,12 +198,14 @@ coretool coretest infactory runner list --project CoreTool --product-line Cloud 
 #### 查询执行器连接信息
 
 ```bash
-coretool coretest script executor list [--username <用户名>] [--name <环境名>]
-# 示例
-coretool coretest script executor list --username zhangsan
+coretool coretest script executor list [--user-id <工号>] [--name <环境名>]
+# 示例：默认查当前登录用户名下的执行器
+coretool coretest script executor list
+# 示例：指定用户
+coretool coretest script executor list --user-id w30020094
 ```
 
-`--name` 默认 `test`。
+不传 `--user-id` 时自动从登录信息填充当前工号。`--name` 默认为空（返回用户默认执行器配置）。
 
 ### 用例执行（script case）
 
@@ -202,11 +213,20 @@ coretool coretest script executor list --username zhangsan
 
 ```bash
 coretool coretest script case run --file <用例文件路径>
-# 示例
-coretool coretest script case run --file tests/test_login.py --username zhangsan --env-name env01 --version-branch branch_new
+# 示例：通过后端查询执行器（默认）
+coretool coretest script case run --file tests/test_login.py
+# 示例：指定后端查询参数
+coretool coretest script case run --file tests/test_login.py --user-id w30020094 --env-name env01 --version-branch branch_new
+# 示例：直传执行器信息（跳过后端查询）
+coretool coretest script case run --file tests/test_login.py \
+  --executor-ip 10.90.120.56 --ssh-user root --ssh-password 'xxxx'
 ```
 
-必填：`--file`（`-f`）。可选：`--context`（`-c`）、`--env-name`（默认 `test`）、`--user-id`、`--username`、`--version-branch`（`branch_old` 或 `branch_new`，默认 `branch_old`）
+必填：`--file`（`-f`）。
+
+**后端查询模式**（不传 `--executor-ip` 时）：从后端 API 查询执行器连接信息。可选：`--context`（`-c`）、`--env-name`（默认空）、`--user-id`（默认当前登录工号）、`--version-branch`（`branch_old` 或 `branch_new`，默认 `branch_old`）。
+
+**直传模式**（传 `--executor-ip` 时）：跳过后端查询，直接使用命令行提供的连接信息。参数：`--executor-ip`（必填）、`--ssh-user`（默认 `root`）、`--ssh-port`（默认 `22`）、`--ssh-password`、`--case-root`（默认 `/tmp`）、`--execute-mode`（默认 `CloudSpider`）。
 
 ### 日志管理（script log）
 
@@ -215,12 +235,12 @@ coretool coretest script case run --file tests/test_login.py --username zhangsan
 ```bash
 coretool coretest script log extract-metadata --content <日志内容>
 # 示例：直接传内容
-coretool coretest script log extract-metadata --content "2026-08-17 10:00:00 ERROR Connection refused"
+coretool coretest script log extract-metadata --content "data:{'caseId': 'TC001', 'startTime': 1704067200, 'endTime': 1704153600}"
 # 示例：从文件读取
 coretool coretest script log extract-metadata --content-file /tmp/test.log
 ```
 
-`--content` 和 `--content-file` 二选一。
+`--content` 和 `--content-file` 二选一。从日志中正则提取 `caseId`、`startTime`、`endTime`，并查询后端关联 `groupId` 和 `testResultId`。
 
 ---
 
@@ -293,7 +313,8 @@ coretool coretest pipeline status --pipeline-id 1 --pipeline-id 2 --latest-recor
 ```bash
 coretool coretest testresult analysis get --test-result-id <结果ID>
 # 示例
-coretool coretest testresult analysis get --test-result-id 12345 --with-dts-status
+coretool coretest testresult analysis get --test-result-id 334463562
+coretool coretest testresult analysis get --test-result-id 334463562 --with-dts-status
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填）。可选 `--with-dts-status`。
@@ -303,10 +324,12 @@ coretool coretest testresult analysis get --test-result-id 12345 --with-dts-stat
 ```bash
 coretool coretest testresult analysis update --test-result-id <结果ID> --big-type <大类> --sub-type <子类> --analyse-state <状态>
 # 示例
-coretool coretest testresult analysis update --test-result-id 12345 --big-type env_issue --sub-type config_residual --analyse-state 2 --modify-type manual
+coretool coretest testresult analysis update --test-result-id 334463562 --big-type "脚本问题" --sub-type "脚本问题" --analysis-desc "脚本检查点不正确" --analyse-state 2 --modify-type AI_FILL
+# 示例：指定分析人
+coretool coretest testresult analysis update --test-result-id 334463562 --big-type "脚本问题" --sub-type "脚本问题" --analysis-desc "脚本检查点不正确" --analyse-state 2 --analyst w30020094
 ```
 
-`--test-result-id`（`-t`）为 int 类型（必填）。可选参数：`--big-type`、`--sub-type`、`--dts-number`、`--issue-url`、`--analysis-desc`、`--analyse-state`（0=未开始，1=进行中，2=已完成）、`--change-state`、`--change-details`、`--is-determine-case`（`1`=是，`2`=否）、`--modify-type`（`AI_FILL`、`AI_BATCH`、`一键确认`）
+`--test-result-id`（`-t`）为 int 类型（必填）。可选参数：`--big-type`、`--sub-type`、`--dts-number`、`--issue-url`、`--analysis-desc`、`--analyse-state`（0=未开始，1=进行中，2=已完成）、`--change-state`、`--change-details`、`--is-determine-case`（`1`=是，`2`=否）、`--modify-type`（`AI_FILL`、`AI_BATCH`、`一键确认`）、`--analyst`（分析人，不传则默认当前登录用户）。`source` 字段自动填充为 `CLI`。
 
 ### 日志分析（testresult log-analysis）
 
@@ -315,7 +338,7 @@ coretool coretest testresult analysis update --test-result-id 12345 --big-type e
 ```bash
 coretool coretest testresult log-analysis get --test-result-id <结果ID>
 # 示例
-coretool coretest testresult log-analysis get --test-result-id 12345
+coretool coretest testresult log-analysis get --test-result-id 334463562
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填）。
@@ -327,7 +350,7 @@ coretool coretest testresult log-analysis get --test-result-id 12345
 ```bash
 coretool coretest testresult log download --test-result-id <结果ID>
 # 示例
-coretool coretest testresult log download --test-result-id 12345
+coretool coretest testresult log download --test-result-id 334463562
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填）。
@@ -339,10 +362,14 @@ coretool coretest testresult log download --test-result-id 12345
 ```bash
 coretool coretest testresult history list --case-id <用例ID>
 # 示例
-coretool coretest testresult history list --case-id TC001 --is-last
+coretool coretest testresult history list --case-id TC_UPF_VVIP_QOSEXP_FUNC_240809_00001 --is-last
+# 示例：按任务ID过滤
+coretool coretest testresult history list --case-id TC_UPF_VVIP_QOSEXP_FUNC_240809_00001 --task-id 1042
 ```
 
-`--case-id`（`-c`）为 string 类型（必填）。可选筛选：`--case-result`（可多次）、`--start-time`、`--end-time`（ms 时间戳）、`--executor-ip`、`--product-version`、`--dts-number`、`--c-version`、`--analyse-state`（0/1/2/99，默认99=all）。支持分页。
+`--case-id`（`-c`）为 string 类型（必填）。可选筛选：`--case-result`（可多次）、`--start-time`、`--end-time`（ms 时间戳）、`--executor-ip`、`--product-version`、`--dts-number`、`--c-version`、`--analyse-state`（0/1/2/99，默认99=all）、`--task-id`（任务ID过滤）。支持分页。
+
+JSON 输出中额外包含 AI 分析字段（有值时才显示）：`is_determine_case`（是否确定性问题）、`intelligent_big_type_desc`（AI大类描述）、`intelligent_sub_type_desc`（AI子类描述）、`confidence`（置信度）。
 
 ### 最近成功（testresult latest-success）
 
@@ -351,7 +378,8 @@ coretool coretest testresult history list --case-id TC001 --is-last
 ```bash
 coretool coretest testresult latest-success get --test-result-id <结果ID>
 # 示例
-coretool coretest testresult latest-success get --test-result-id 12345 --c-version "v1.0"
+coretool coretest testresult latest-success get --test-result-id 334463562
+coretool coretest testresult latest-success get --test-result-id 334463562 --c-version "UDG 27.0.RC1.3.B006"
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填）。可选 `--c-version`（省略时自动检测）。
@@ -363,11 +391,11 @@ coretool coretest testresult latest-success get --test-result-id 12345 --c-versi
 ```bash
 coretool coretest testresult rerun --test-result-id <结果ID>
 # 示例：自动查找执行器重执行
-coretool coretest testresult rerun --test-result-id 12345
+coretool coretest testresult rerun --test-result-id 334463562
 # 示例：指定执行器
-coretool coretest testresult rerun --test-result-id 12345 --executor-ip 10.0.0.1
+coretool coretest testresult rerun --test-result-id 334463562 --executor-ip 10.113.175.208
 # 示例：指定操作者
-coretool coretest testresult rerun --test-result-id 12345 --user-id 30022769
+coretool coretest testresult rerun --test-result-id 334463562 --user-id w30020094
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填）。可选 `--executor-ip`（`-e`，默认自动查找原始失败环境）、`--user-id`（`-u`，默认当前登录用户）。
@@ -379,9 +407,9 @@ coretool coretest testresult rerun --test-result-id 12345 --user-id 30022769
 ```bash
 coretool coretest testresult dts-gpt-ticket --test-result-id <结果ID> --brief-desc <简要描述>
 # 示例
-coretool coretest testresult dts-gpt-ticket --test-result-id 12345 --brief-desc "环境配置残留导致用例失败"
+coretool coretest testresult dts-gpt-ticket --test-result-id 334463562 --brief-desc "脚本检查点不正确导致用例失败"
 # 示例：简化版问题单
-coretool coretest testresult dts-gpt-ticket --test-result-id 12345 --brief-desc "环境配置残留" --simplified
+coretool coretest testresult dts-gpt-ticket --test-result-id 334463562 --brief-desc "脚本检查点不正确" --simplified
 ```
 
 `--test-result-id`（`-t`）为 int 类型（必填），`--brief-desc`（`-d`）为 string 类型（必填）。可选 `--simplified`。
@@ -393,11 +421,11 @@ coretool coretest testresult dts-gpt-ticket --test-result-id 12345 --brief-desc 
 ```bash
 coretool coretest testresult env-repair --executor-ip <IP> --group-id <群组ID>
 # 示例：修复单个执行器
-coretool coretest testresult env-repair --executor-ip 10.0.0.1 --group-id 100
+coretool coretest testresult env-repair --executor-ip 10.113.175.208 --group-id 1042
 # 示例：修复多个执行器
-coretool coretest testresult env-repair --executor-ip 10.0.0.1 --executor-ip 10.0.0.2 --group-id 100
+coretool coretest testresult env-repair --executor-ip 10.113.175.208 --executor-ip 10.113.162.67 --group-id 1042
 # 示例：关联测试结果ID
-coretool coretest testresult env-repair --executor-ip 10.0.0.1 --group-id 100 --test-result-id 123 --test-result-id 456
+coretool coretest testresult env-repair --executor-ip 10.113.175.208 --group-id 1042 --test-result-id 334463562
 ```
 
 `--executor-ip`（`-e`）可多次指定（必填），`--group-id`（`-g`）为 int 类型（必填）。可选 `--test-result-id`（`-t`，int64Slice，可多次）、`--user-id`（`-u`，默认当前登录用户）。
@@ -413,20 +441,20 @@ coretool coretest testresult env-repair --executor-ip 10.0.0.1 --group-id 100 --
 ```bash
 coretool coretest lcm environment list --scope personal --test-result-id <结果ID>
 # 示例
-coretool coretest lcm environment list --scope personal --test-result-id 12345 --status running
+coretool coretest lcm environment list --scope personal --test-result-id 334801349
 ```
 
-`--scope personal` 时 `--test-result-id` 为 int 类型（必填）。可选筛选：`--name`、`--version`、`--status`。支持分页。
+`--scope personal` 时 `--test-result-id` 为 int 类型（必填）。可选筛选：`--name`、`--version`、`--status`。支持分页。`user` 字段自动从当前登录用户填充，无需手动指定。
 
 #### 查询公共 LCM 环境
 
 ```bash
 coretool coretest lcm environment list --scope public --lcm-server <服务器URL> --group-id <群组ID>
 # 示例
-coretool coretest lcm environment list --scope public --lcm-server https://lcm.huawei.com --group-id 100 --status available
+coretool coretest lcm environment list --scope public --lcm-server https://autofac-ccn.lcm.huawei.com/factory --group-id 1042
 ```
 
-`--scope public` 时 `--lcm-server` 和 `--group-id`（int）均必填。可选筛选：`--name`、`--version`、`--status`。支持分页。
+`--scope public` 时 `--lcm-server` 和 `--group-id`（int）均必填。`--lcm-server` 传原始 URL 即可（适配器内部自动编码）。可选筛选：`--name`、`--version`、`--status`。支持分页。
 
 ### 环境锁定/解锁（lcm lock/unlock）
 
@@ -435,7 +463,7 @@ coretool coretest lcm environment list --scope public --lcm-server https://lcm.h
 ```bash
 coretool coretest lcm lock --executor-ip <执行器IP>
 # 示例
-coretool coretest lcm lock --executor-ip 10.0.0.1
+coretool coretest lcm lock --executor-ip 10.113.175.184
 ```
 
 `--executor-ip`（`-e`）为 string 类型（必填）。
@@ -445,7 +473,7 @@ coretool coretest lcm lock --executor-ip 10.0.0.1
 ```bash
 coretool coretest lcm unlock --executor-ip <执行器IP>
 # 示例
-coretool coretest lcm unlock --executor-ip 10.0.0.1
+coretool coretest lcm unlock --executor-ip 10.113.175.184
 ```
 
 `--executor-ip`（`-e`）为 string 类型（必填）。
@@ -593,7 +621,7 @@ coretool coretest testdesign tr list --design-task-id 2342
 ```bash
 coretool coretest testdesign tr create --version-pbi <版本PBI> --design-task-id <设计任务ID> --name <TR名称> --idp-doc-id <IDP文档ID> --resource-type <资源类型>
 # 示例
-coretool coretest testdesign tr create --version-pbi 266926538 --design-task-id 2342 --name "登录功能测试需求" --idp-doc-id IDP001 --resource-type featureLib
+coretool coretest testdesign tr create --version-pbi 266926538 --design-task-id 2342 --name "登录功能测试需求" --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f --resource-type featureLib
 ```
 
 必填：`--version-pbi`（string）、`--design-task-id`（string）、`--name`（string）、`--idp-doc-id`（string，从 `task list` 返回的 `idp_doc_id` 字段获取）、`--resource-type`（可选值：`custom`、`sceneLib`、`functionLib`、`featureLib`）。
@@ -633,7 +661,7 @@ coretool coretest testdesign ts query-by-type --tr-id 3611 --ts-type scene --ts-
 ```bash
 coretool coretest testdesign ts create --version-pbi <版本PBI> --tr-id <TR ID> --type <TS类型> --name <TS名称> --idp-doc-id <IDP文档ID>
 # 示例
-coretool coretest testdesign ts create --version-pbi 266926538 --tr-id 3611 --type scene --name "登录功能测试规格" --idp-doc-id IDP001
+coretool coretest testdesign ts create --version-pbi 266926538 --tr-id 3611 --type scene --name "登录功能测试规格" --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f
 ```
 
 必填：`--version-pbi`（string）、`--tr-id`（int）、`--type`（可选值：`scene`、`function`、`feature`、`constraint`、`reliability`、`performance`、`compatibility`、`security`、`toughness`、`om`、`lifecycle`、`upgradepatch`、`inheritance`、`documentation`、`tool`、`customized`、`usability`、`serviceability`、`ai`、`funcSafety`、`testability`）、`--name`（string）、`--idp-doc-id`（string，从 `task list` 返回的 `idp_doc_id` 字段获取）。
@@ -718,17 +746,76 @@ coretool coretest testdesign idp topic list --idp-doc-id 5dcdfe1e-9114-48c7-8abd
 
 可选：`--parent-activity-id`（int）、`--parent-activity-name`（string）、`--parent-activity-type`（string，如 TR/TS/TP）。
 
+输出字段：`TOPIC_ID`、`TOPIC_NAME`。
+
 #### 写入 IDP 文档源数据
 
+支持三种类型：表格（row-table/display_type=2）、文本（text/display_type=3）、文件（file/display_type=6）。
+
+- 不传 `source_value_uuid`：新增数据源，IDP 自动分配 UUID
+- 传入已有的 `source_value_uuid`：覆盖该 UUID 对应的已有内容
+
 ```bash
-# flags 模式
-coretool coretest testdesign idp source-data write --topic-id <章节ID> --user-id <用户ID> --display-type <显示类型> --title <数据标题>
-# 示例（flags 模式）
-coretool coretest testdesign idp source-data write --topic-id 37a9b894-f695-4f39-9ba7-1222eb6cf617 --user-id w30020094 --display-type row-table --title "CLI测试-flags模式"
-# 示例（--data JSON 模式）
-coretool coretest testdesign idp source-data write --data '{"topic_id":"37a9b894-f695-4f39-9ba7-1222eb6cf617","user_id":"w30020094","display_type":2,"title":"CLI测试-JSON模式"}'
+# 表格写入（flags 模式）
+coretool coretest testdesign idp source-data write --topic-id <章节ID> --user-id <用户ID> --display-type row-table --title <数据标题>
+# 示例：新增表格
+coretool coretest testdesign idp source-data write --topic-id bfeb5299-ff2c-4db3-a6af-a71da527788e --user-id w30020094 --display-type row-table --title "测试类型交互设计"
+
+# 文本写入（flags 模式）
+coretool coretest testdesign idp source-data write --topic-id <章节ID> --user-id <用户ID> --display-type text --title <数据标题>
+# 示例：新增文本
+coretool coretest testdesign idp source-data write --topic-id bfeb5299-ff2c-4db3-a6af-a71da527788e --user-id w30020094 --display-type text --title "测试类型交互设计"
+
+# --data JSON 模式：表格写入（含完整 table_content）
+coretool coretest testdesign idp source-data write --data '{"topic_id":"bfeb5299-ff2c-4db3-a6af-a71da527788e","user_id":"w30020094","display_type":2,"title":"测试表格","table_content":{"headers":[{"content":"参数","rowspan":1,"colspan":1},{"content":"值","rowspan":1,"colspan":1}],"rows":[[{"content":"模式","rowspan":1,"colspan":1},{"content":"自动化","rowspan":1,"colspan":1}]],"col_widths":["100","100"]}}'
+
+# --data JSON 模式：文本写入
+coretool coretest testdesign idp source-data write --data '{"topic_id":"bfeb5299-ff2c-4db3-a6af-a71da527788e","user_id":"w30020094","display_type":3,"title":"测试类型交互设计","text_content":"这是通过CLI写入的文本内容"}'
+
+# --data JSON 模式：覆盖写入（传入已有 source_value_uuid）
+coretool coretest testdesign idp source-data write --data '{"topic_id":"bfeb5299-ff2c-4db3-a6af-a71da527788e","user_id":"w30020094","display_type":3,"title":"测试类型交互设计","source_value_uuid":"e5d9e605-89b6-63d1-eb26-018865eed44f-1a03bfae182","text_content":"覆盖后的新内容"}'
 ```
 
 flags 模式必填：`--topic-id`（string）、`--user-id`（string）、`--display-type`（可选值：`row-table`、`text`、`file`）、`--title`（string）。可选：`--source-value-uuid`（未提供时自动生成）。
 
-`--data <JSON>` 或 `--data-file <文件路径>` 模式：直接传入完整请求体 JSON，与 flags 模式互斥。JSON 字段：`topic_id`、`user_id`、`display_type`（2=row-table, 3=text, 6=file）、`title`、`source_value_uuid`（可选）、`table_content`（可选，行表格式）、`text_content`（可选，文本内容）、`file_content`（可选，ECM 文件 ID）。
+`--data <JSON>` 或 `--data-file <文件路径>` 模式：直接传入完整请求体 JSON，与 flags 模式互斥。JSON 字段：`topic_id`、`user_id`、`display_type`（2=row-table, 3=text, 6=file）、`title`、`source_value_uuid`（可选，不传为新增，传已有值为覆盖）、`table_content`（display_type=2 时使用，含 headers/rows/col_widths）、`text_content`（display_type=3 时使用，纯文本字符串）、`file_content`（display_type=6 时使用，ECM 文件 ID）。
+
+输出字段：`TOPIC_ID`、`SOURCE_VALUE_UUID`、`DISPLAY_TYPE`、`TITLE`、`WRITTEN`。
+
+---
+
+## Common 通用查询
+
+跨平台通用查询接口，包含版本 PBI 查询和 CIDA 配置查询。
+
+### 版本 PBI 查询（common version-pbi）
+
+#### 通过 C 版本名称查询 versionPBI
+
+```bash
+coretool coretest common version-pbi --name <版本名称>
+# 示例
+coretool coretest common version-pbi --name "UPCF 27.0.0"
+```
+
+`--name`（`-n`）为 string（必填），传入 C 版本名称。
+
+输出字段：`VERSION_PBI`（版本 PBI 编号，int64）。
+
+服务端点：`https://coreaidi.inhuawei.com`，接口路径 `/versioninfo/v2/get_version_pbi_by_name?versionName=<名称>`，返回纯数字（非 WebReturn 信封）。
+
+### CIDA 配置查询（common cida-config）
+
+#### 通过 groupName 查询 CIDA 配置
+
+```bash
+coretool coretest common cida-config --group-name <群组名称>
+# 示例
+coretool coretest common cida-config --group-name "UPCF测试组"
+```
+
+`--group-name`（`-g`）为 string（必填），传入群组名称。后端先通过 groupName 查询 groupId，再返回该组下的 CIDA 配置列表。
+
+输出字段：`ID`、`PRODUCT_NAME`、`TICC_SERVICE_ADDRESS`、`TMSS_SERVICE_ADDRESS`、`LCM_SERVICE_ADDRESS`、`GROUP_ID`。
+
+服务端点：`https://coretestresult.cloudspider.rnd.huawei.com`，接口路径 `/api/v1/cidaConfig/getCidaConfigsByGroupName/<groupName>`，标准 WebReturn 信封。
