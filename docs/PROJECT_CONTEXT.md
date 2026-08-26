@@ -1,85 +1,80 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-08-19  
-> 当前定稿版本：`0.2.3`  
+> 最后更新：2026-08-26  
+> 当前扩展版本：`0.2.3`  
+> 当前开发基线：`main`（已包含 0.2.3 之后的 DFX 与文档归档增强）  
 > 默认分支：`main`
 
 ## 1. 项目目标
 
-`coretest-spec-e2e` 是基于 TestAgent 的 E2E 测试设计能力扩展，用于完成从产品与需求上下文初始化、需求探索、测试规格生成、TS 级测试设计，到 TS/TP/TC 平台归档和 Portal 卡片刷新的自动化闭环。
+`coretest-spec-e2e` 是基于 TestAgent 的 E2E 测试设计扩展，围绕平台已有设计任务和 TR，完成需求探索、测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步及 Portal 刷新。
 
-当前正式流程以平台已有 TR 为主上下文：
+当前正式流程：
 
 ```text
 /coretest-init
-      ↓
-拉取设计任务、已有 TR 及其直接关联需求
-      ↓
-/coretest-explore <tr_id>
-      ↓
-生成当前 TR 唯一一套需求分析与测试规格
-      ↓
-/coretest-design <tr_id> [TS列表]
-      ↓
-按 TS 生成 TP/TC、JSON 和测试用例卡片
-      ↓
-/coretest-archive <tr_id> <TS|TP|TC|指定对象...>
-      ↓
-复用已有 TR，归档 TS、TP、TC
+→ 拉取设计任务、已有 TR 及直接关联需求
+→ /coretest-explore <tr_id>
+→ 生成普通/DFX 测试规格和统一 TS 编号目录
+→ /coretest-design <tr_id> [TS列表]
+→ 按 TS 生成 Markdown、TP/TC JSON 和测试用例卡片
+→ /coretest-archive <tr_id> <TR|TS|TP|TC|指定对象...>
+→ 复用 TR/平台 DFX TS，创建或复用普通 TS、TP、TC
+→ 同步设计任务、TR、相关 TS 在线文档
+→ 刷新 Portal 卡片
 ```
 
-项目目标：
+核心目标：
 
-- 减少人工需求分析和测试设计工作量；
-- 基于 TR 直接关联需求生成测试规格、测试点和测试用例；
-- 实现 TS、TP、TC 精确归档和断点续跑；
-- 建立需求、TR、TS、TP、TC 的端到端追踪链路；
-- 通过 Portal 卡片展示设计与归档进度。
+- 以 TR 直接关联需求作为唯一分析范围；
+- 对平台 DFX TS 和 Explore 普通 TS 建立稳定统一编号；
+- 每个 TS 独立完成测试设计和用例卡片闭环；
+- 支持 TR、TS、TP、TC 目标解析、父级补齐、幂等归档和断点续跑；
+- 将对象归档、在线文档同步和 Portal 结果分别记录并汇总；
+- 避免长上下文导致 Agent 跳步，将脆弱操作收敛到独立 Agent 和确定性脚本。
 
-## 2. 当前版本状态
+## 2. 当前版本与主分支状态
 
-当前版本：
+根目录 `codeagent-extension.json` 当前仍为：
 
 ```text
 coretest-spec-e2e 0.2.3
 ```
 
-0.2.3 继承 0.2.2 的 TR 级全流程和测试用例卡片归档能力，并完成用例上报字段的规则化生成与端到端透传：
+0.2.3 已完成并验证测试用例上报字段链路：
 
-- `TestType` 由 Agent 按完整映射生成，无法识别时默认使用 `"1"`；
-- `AutoType` 根据用例自动化属性生成，自动化为 `"1"`，非自动化或无法识别时为 `"0"`；
-- `envtype` 当前按规则生成空字符串，后续可直接调整规则；
-- `DesignNote` 由 Agent 根据测试目的和验证内容生成一句设计描述，不允许为空；
-- 四个字段通过 `tp-tc-output.md → build_tp_tc_json.py → prepare_test_case_card.py → archive_testcase.js` 传递至 CIDA；
-- `caseHandler` 本版本暂不处理；
-- `coretest-design` 和测试用例卡片归档链路已验证通过；
-- 根目录 `codeagent-extension.json` 已更新为 `0.2.3`。
+- `TestType` 按规则映射，无法识别时默认 `"1"`；
+- `AutoType` 自动化为 `"1"`，非自动化或无法识别时为 `"0"`；
+- `envtype` 当前为空字符串；
+- `DesignNote` 根据测试目的和验证内容生成，不允许为空；
+- 字段通过 `tp-tc-output.md → build_tp_tc_json.py → prepare_test_case_card.py → archive_testcase.js` 传递至 CIDA；
+- `caseHandler` 当前不处理。
 
-0.2.2 完成 CIDA 用例卡片归档字段接入，并修复扩展清单版本未同步导致旧版卡片代码被加载的问题。
+`main` 已在 0.2.3 基础上继续完成：
 
-0.2.1 已完成并验证以下定稿能力：
-
-- Init 拉取并保存平台已有 TR 的完整信息；
-- Explore、Design、Archive 全部适配 `TR_<tr_id>` 目录；
-- Explore 按 TR 的全部直接关联需求生成唯一一套测试规格；
-- Design 支持处理当前 TR 的全部 TS 或指定 TS；
-- Archive 不创建、不归档 TR，仅复用已有 TR 归档 TS、TP、TC；
-- Archive 使用文件方式持久化权威执行计划，避免 PowerShell JSON 参数转义和长度问题；
-- Archive 严格按状态文件中的执行计划执行，并支持对象状态保存与断点续跑。
+1. Explore 查询平台已有 TS，识别 DFX 并生成 DFX 测试规格；
+2. 使用 `platform_ts.json + tr_ts.json → ts_catalog.json` 建立统一编号；
+3. Design 按 `source=platform_dfx/explore` 精确取得单 TS 规格，禁止目录扫描补偿；
+4. 修复叙述区标题、TP 表 `dimension` 与 `tpSourceType` 混用；
+5. Archive 支持 `TR` 目标，但只复用 TR、不创建 TR；
+6. 将对象归档和在线文档同步拆为独立能力；
+7. 在线文档同步通过独立 Agent 隔离上下文，并由脚本确定性执行；
+8. 修复 IDP topic 查询返回“父 topic + 子 topic”时的父节点匹配问题。
 
 版本演进：
 
-| 版本 | 主要能力 |
+| 版本/阶段 | 主要能力 |
 |---|---|
 | 0.1.x | 打通 Init、Explore、Design、卡片和 Archive 基础链路 |
 | 0.2.0 | 完善 E2E 测试设计与 TR/TS/TP/TC 自动化处理 |
-| 0.2.1 | 完成 TR 级全流程适配，Archive 改为复用已有 TR 并仅归档 TS/TP/TC |
-| 0.2.2 | 增强 CIDA 用例卡片归档字段，并修复扩展版本未更新导致旧版卡片代码被加载的问题 |
-| 0.2.3 | 支持 TestType、AutoType、envtype、DesignNote 按规则生成并端到端透传至 CIDA |
+| 0.2.1 | 完成 TR 级目录适配、已有 TR 复用和文件化归档计划 |
+| 0.2.2 | 增强 CIDA 卡片字段，并修复扩展版本未同步导致旧卡片被加载的问题 |
+| 0.2.3 | 完成 TestType、AutoType、envtype、DesignNote 的规则化生成和端到端透传 |
+| 当前 `main` | 增加 DFX 规格/统一编号、Design 精确输入、归档能力拆分及确定性在线文档同步 |
 
 ## 3. 快速使用
 
-以下以产品版本 `UPCF 27.0.0`、TR ID `3863` 为例。
+以下命令中的第一位置参数均为平台 `tr_id`。
 
 ### 3.1 初始化
 
@@ -87,87 +82,58 @@ coretest-spec-e2e 0.2.3
 /coretest-init "UPCF 27.0.0"
 ```
 
-Init 查询产品版本对应的 PBI、设计任务、已有 TR 及其直接关联需求，并生成 TR 级上下文。
+Init 查询 PBI、设计任务、已有 TR 和直接关联需求，并生成 TR 级上下文。后续阶段不得自行创建 TR。
 
-如需在平台新增 TR，应先在右侧卡片中完成创建，再回复：
+### 3.2 Explore
 
 ```text
-TR已创建
+/coretest-explore <tr_id>
+/coretest-explore <tr_id> --skip-clarify
 ```
 
-系统随后重新执行一轮 Init，拉取最新 TR 信息。后续流程只使用本轮 Init 生成的 TR 上下文。
+### 3.3 Design
 
-### 3.2 需求探索与测试规格生成
-
-```text
-/coretest-explore 3863
-```
-
-跳过中途确认：
+处理 catalog 中全部 TS：
 
 ```text
-/coretest-explore 3863 --skip-clarify
-```
-
-### 3.3 测试设计
-
-处理全部 TS：
-
-```text
-/coretest-design 3863
+/coretest-design <tr_id>
 ```
 
 处理指定 TS：
 
 ```text
-/coretest-design 3863 TS_01 TS_02
+/coretest-design <tr_id> TS_01 TS_11
 ```
 
-### 3.4 测试资产归档
-
-归档全部 TS：
+### 3.4 Archive
 
 ```text
-/coretest-archive 3863 TS
+/coretest-archive <tr_id> TR
+/coretest-archive <tr_id> TS
+/coretest-archive <tr_id> TS_01 TS_11
+/coretest-archive <tr_id> TP
+/coretest-archive <tr_id> TS_01/TP.01.03.01
+/coretest-archive <tr_id> TC
 ```
 
-归档指定 TS：
+`TR` 目标只复用现有 TR 并同步设计任务/TR 文档，绝不调用 `create_tr`。`--document` 已废弃，传入时按未知参数报错。
 
-```text
-/coretest-archive 3863 TS_01 TS_02
-```
+## 4. 核心组件
 
-归档全部 TP 或全部 TC，并自动向上补齐父级依赖：
-
-```text
-/coretest-archive 3863 TP
-/coretest-archive 3863 TC
-```
-
-归档指定 TP：
-
-```text
-/coretest-archive 3863 TS_01/TP.01.03.01
-```
-
-Archive 不支持 `TR` 目标。
-
-## 4. 核心组件现状
-
-| 组件 | 当前版本 | 当前职责 |
+| 组件 | 当前版本 | 职责 |
 |---|---:|---|
-| `coretest-init` | 1.2.1 | 解析产品版本并调度 Init Agent，拉取设计任务和已有 TR 上下文 |
-| `coretest-explore` | 0.4.1 | 按 TR 的全部直接关联需求生成唯一一套 Explore 产物和 `tr_ts.json` |
-| `coretest-design` | 1.4.0 | 按 TR 处理全部或指定 TS，每个 TS 独立完成 Markdown、JSON 和卡片闭环 |
-| `coretest-archive` | 2.5.1 | 复用已有 TR，严格按权威计划顺序归档 TS、TP、TC |
+| `coretest-init` | 1.2.1 | 拉取设计任务、已有 TR 和直接关联需求 |
+| `coretest-explore` | 0.5.0 | 生成普通/DFX 测试规格、`tr_ts.json` 和统一 `ts_catalog.json` |
+| `coretest-design` | 1.5.0 | 按 catalog 处理全部或指定 TS，完成 Markdown、JSON 和卡片闭环 |
+| `coretest-archive` | 2.9.0 | 解析对象计划和文档范围，调度 Archive Agent |
+| `coretest-archive-agent` | 1.12.0 | 编排对象 Skill、文档 Agent、Portal 和最终汇总 |
+| `coretest-object-archive` | — | 串行创建或复用 TS、TP、TC，并即时保存状态 |
+| `coretest-document-sync-agent` | 1.0.0 | 以独立上下文调用文档同步 Skill 和脚本 |
+| `coretest-document-sync` | — | 定义文档输入、CLI 返回和终态门禁契约 |
 
-### 4.1 Init
+## 5. 阶段契约
 
-正式输入：
-
-```text
-/coretest-init "<product_name>"
-```
+### 5.1 Init
 
 关键产物：
 
@@ -179,12 +145,12 @@ Archive 不支持 `TR` 目标。
 
 约束：
 
-- 单轮初始化只调用一次 `get_design_task_info_init`；
-- 只有用户回复“TR已创建”时才启动新一轮初始化；
-- 后续阶段不得自行创建 TR；
-- TR 没有有效直接关联需求时，不进入正式 Explore 流程。
+- 单轮初始化只调用一次平台 Init 查询；
+- `tr_info.json.requirements[]` 是 Explore 的权威需求范围；
+- TR 没有有效直接关联需求时，不进入正式 Explore；
+- 后续阶段不创建 TR。
 
-### 4.2 Explore
+### 5.2 Explore
 
 正式输入：
 
@@ -192,34 +158,44 @@ Archive 不支持 `TR` 目标。
 /coretest-explore <tr_id> [--skip-clarify]
 ```
 
-权威分析范围：
+核心流程：
 
 ```text
-TR_<tr_id>/tr_info.json.requirements[]
+tr_info.json.requirements[]
+→ 查询全部需求并建立 document_manifest.json
+→ 下载并解析全部唯一 IDP/DBOX 文档
+→ 查询平台已有 TS，保存 platform_ts.json
+→ 一次 test-spec-analysis 生成普通与 DFX 测试规格
+→ build_tr_json.py 仅生成普通 tr_ts.json.test_specs[]
+→ build_ts_catalog.py 合并 DFX 与普通 TS
 ```
+
+统一编号规则：
+
+- 平台 `scene/function/feature/constraint` 不是 DFX，不进入平台 DFX 清单；
+- 其他平台 TS 作为 DFX，保留唯一 `platform_ts_id`；
+- DFX 从 `TS_01` 起按平台查询顺序编号；
+- Explore 普通 TS 接在 DFX 之后；
+- DFX 不进入 `tr_ts.json.test_specs[]`，避免 Archive 重复创建；
+- DFX 规格写入测试规格 Markdown 的独立章节，并通过 `platform_ts_id` 唯一定位；
+- 同一轮 Explore 只查询一次平台 TS，规格生成和 catalog 共用 `platform_ts.json`。
 
 主要产物：
 
 ```text
 TR_<tr_id>/
-├── design_doc/
+├── design_doc/document_manifest.json
 ├── 系统需求.md
 ├── 功能设计.md
 ├── sr_specs/
 └── test_specs/
     ├── <TR名称>测试规格.md
-    └── tr_ts.json
+    ├── platform_ts.json
+    ├── tr_ts.json
+    └── ts_catalog.json
 ```
 
-约束：
-
-- 第一位置参数是 `tr_id`，不是 `design_task_id`；
-- 处理当前 TR 的全部直接关联需求；
-- IDP/DBOX 文档按 `DOC_TYPE:doc_id` 去重；
-- 不从其他 TR、设计任务级功能或特性补充分析范围；
-- 不创建 TR。
-
-### 4.3 Design
+### 5.3 Design
 
 正式输入：
 
@@ -227,96 +203,147 @@ TR_<tr_id>/
 /coretest-design <tr_id> [TS列表]
 ```
 
+规则：
+
+- TS 完整列表和稳定编号只来自 `ts_catalog.json.items[]`；
+- 不传 TS 时处理全部 catalog 项；指定时按 `ts_key` 精确匹配；
+- 每批最多并行 3 个 TS Agent；
+- `source=platform_dfx` 根据 `platform_ts_id` 从 DFX 规格章节取得唯一规格，不查找 `tr_ts_index`；
+- `source=explore` 根据 `tr_ts_index` 读取 `tr_ts.json.test_specs[]`；
+- 主流程向单 TS Agent 传入精确规格，不传目录供 Agent 自行搜索；
+- Agent 不扫描其他 TS 产物、历史样例或不存在的 references 目录；
+- 一个 TS 对应一个测试用例卡片，key 为 `<requirement_id>_<ts-id>`。
+
 主要产物：
 
 ```text
-TR_<tr_id>/
-├── test_design/
-│   ├── ts_<NN>_test_design.md
-│   ├── ts_<NN>_test_cases.md
-│   ├── ts_<NN>_tp.json
-│   └── ts_<NN>_tc.json
-└── ts_<NN>_test_case.json
+TR_<tr_id>/test_design/
+├── ts_<NN>_test_design.md
+├── ts_<NN>_test_cases.md
+├── ts_<NN>_tp.json
+└── ts_<NN>_tc.json
 ```
 
-规则：
+设计维度必须区分三套名称：
 
-- `tr_ts.json.test_specs[0]` 对应 `TS_01`，依次递增；
-- 不传 TS 时默认处理全部 TS；
-- 每批最多并行处理 3 个 TS；
-- 每个 TS 由一个 `test-design-agent` 独立完成 Markdown、JSON 和卡片更新；
-- 一个 TS 对应一个测试用例卡片；
-- 卡片 key 保持 `<requirement_id>_<ts-id>`。
+| 用途 | 内部实现类正确值 |
+|---|---|
+| 叙述区标题 | `基于业务内部实现的设计` |
+| TP 表 `dimension` | `基于业务内部实现` |
+| `tpSourceType` | `基于业务内部实现设计—测试因子` |
 
-CIDA 用例卡片归档字段规则：
+`dimension` 只允许：
 
 ```text
-TestType   = Agent 按 tp-tc-output.md 中的映射判断，无法识别时为 "1"
-AutoType   = 自动化为 "1"，非自动化或无法识别时为 "0"
-envtype    = 当前为 ""，生成规则可配置
-DesignNote = Agent 根据测试目的和验证内容生成一句设计描述
-caseHandler = 本版本不设置
+基于业务场景
+基于业务内部实现
+功能交互设计
+测试类型交互设计
 ```
 
-字段链路：
+当前 `build_tp_tc_json.py --ts <NN>` 会在过滤目标前扫描全部设计文件，因此可能对其他 TS 输出无关的缺失配对警告；该警告不代表目标 TS 处理失败，过滤时机仍待最小修复。
 
-```text
-.testagent/rules/tp-tc-output.md
-→ ts_<NN>_test_cases.md
-→ build_tp_tc_json.py
-→ ts_<NN>_tc.json
-→ prepare_test_case_card.py
-→ ts_<NN>_test_case.json
-→ archive_testcase.js
-→ /GT3KServer/v3/testcase/sync
-```
-
-WebApp 的 `transformToCidaRequest()` 只读取卡片参数并组装请求，不再负责生成上述字段的业务值。
-
-已接受的使用约束：
-
-- 同一需求关联多个 TR 且存在相同 TS 编号时，卡片 key 可能冲突；
-- 同一需求同一时间只执行一个 TR 的 Design。
-
-### 4.4 Archive
+### 5.4 Archive
 
 正式输入：
 
 ```text
-/coretest-archive <tr_id> <TS|TP|TC|指定对象...>
+/coretest-archive <tr_id> <TR|TS|TP|TC|指定对象...>
 ```
 
-归档关系：
+对象范围：
 
 ```text
-既有 TR → TS → TP → TC
+TR           → 空对象计划，只复用 TR
+TS_01        → 指定 TS
+TS           → 全部 TS
+指定 TP      → 所属 TS + 指定 TP
+TP           → 全部 TS + 全部 TP
+指定 TC      → 所属 TS + 所属 TP + 指定 TC
+TC           → 全部 TS + 全部 TP + 全部 TC
 ```
 
-规则：
-
-- TR 由 Init 从平台拉取，Archive 不创建、不归档 TR；
-- `request.execution_plan.tr` 永远为空；
-- 指定对象只向上补齐父级依赖，不向下展开子级；
-- 主 Skill 生成本次权威计划，但不直接调用状态脚本或创建 MCP；
-- Archive Agent 将完整计划写入 `archive/request_plan.json`；
-- 状态脚本通过 `--request-file` 一次性记录计划，避免 PowerShell JSON 参数转义问题；
-- Agent 回读并校验状态计划后，才允许调用 `create_ts`、`create_tp`、`create_tc`；
-- Agent 只能遍历状态文件中的执行计划，禁止从 TP/TC 源 JSON 扩大范围；
-- 已成功对象直接复用，避免重复创建；
-- `tpSourceType` 为空的 TP 标记为 `skipped`，其下 TC 标记为 `blocked`。
-
-归档状态：
+文档范围：
 
 ```text
-.design_output/<design_task_id>/TR_<tr_id>/archive/
-├── request_plan.json
-├── archive_state.json
-└── responses/
+TR           → 设计任务 + TR
+TS           → 设计任务 + TR + 相关 TS
+TP/TC        → 设计任务 + TR + 所属 TS
 ```
 
-`archive_state.json` 使用 `schema_version=2`，完整保存 Init 拉取的 TR 信息，并记录 TS、TP、TC、卡片和原始响应状态。
+TP、TC 自身文档暂不同步。混合目标取并集，TS 按 catalog 顺序去重。
 
-## 5. 标准目录结构
+固定编排：
+
+```text
+coretest-archive-agent
+→ 初始化 archive_state.json 并锁定 request_plan.json
+→ coretest-object-archive（一次调用，串行处理全部对象）
+→ 对象终态校验
+→ 生成 document_request.json
+→ coretest-document-sync-agent（独立上下文，一次调用）
+→ document_plan.json 终态校验
+→ test-portal-card
+→ 汇总
+```
+
+对象规则：
+
+- TR 永远只复用，`execution_plan.tr=[]`；
+- DFX TS 复用 catalog 的 `platform_ts_id`，不调用 `create_ts`；
+- 普通 TS 通过 `tr_ts_index` 创建或复用；
+- 对象只能按已锁定计划执行，禁止从源 JSON 扩大范围；
+- 成功对象立即保存真实 ID 和原始响应；
+- 已成功对象重跑时直接复用；
+- TP 的 `tpSourceType` 必须在调用 Agent 前非空且合法，不允许运行时猜测或补写；
+- TC 以平台返回 `success=true` 为成功，不要求 `tcId/platform_id`。
+
+结果语义：
+
+- 对象全部成功或复用、文档全部成功：`成功`；
+- 对象全部成功或复用、任一文档失败：`部分成功`；
+- 对象失败或 blocked：沿用对象失败规则，并同时报告文档实际结果；
+- 文档失败不回滚对象；Portal 成功不能掩盖对象或文档失败。
+
+### 5.5 在线文档同步
+
+文档同步不在 Archive Agent 的长上下文内展开，而由独立 `coretest-document-sync-agent` 执行：
+
+```text
+读取 document_request.json
+→ 加载 coretest-document-sync
+→ 解析 CoreTool 绝对路径并检查认证
+→ 调用 document_sync.py 一次
+→ 回读 document_plan.json
+```
+
+脚本固定完成：
+
+- 在外部命令前初始化全部 TASK/TR/TS 节点；
+- 精确提取测试规格和 TS 设计 Markdown 章节；
+- 查询或复用设计任务 `idp_doc_id`；
+- 查询活动 topic；
+- 使用 URL namespace UUIDv5 生成稳定 `source_value_uuid`；
+- 生成 UTF-8 无 BOM payload；
+- 调用 `source-data write`；
+- 保存命令、stdout、stderr、退出码和超时状态；
+- 单节点失败后继续其他节点；
+- 返回前关闭全部 `pending`。
+
+CoreTool 契约：
+
+- 所有命令使用已解析的绝对路径，禁止裸 `coretool`；
+- 单条命令超时 120 秒，自动重试 0 次；
+- `task list` 在 `items[]` 中按 `id == design_task_id` 唯一匹配；
+- TR topic 的父名称使用 `tr_info.json.tr_name`，不能使用设计任务名称；
+- `topic list` 可能返回目标 topic 及子 topic；只接受 `topic_name` 完全相等、`topic_id` 非空、`deleted=0` 的唯一精确项；
+- 不要求整个 `items` 或 `pagination.total` 等于 1；
+- `source-data write` 返回成功文本，不按 JSON 解析；
+- 文档节点状态相互隔离，失败节点不阻塞其他节点。
+
+文档终态门禁只表示所有节点均已结束，不表示全部成功。`document_plan.status=partial` 时仍可刷新 Portal，但最终归档结果必须为“部分成功”。
+
+## 6. 标准目录结构
 
 ```text
 .design_output/
@@ -326,12 +353,15 @@ WebApp 的 `transformToCidaRequest()` 只读取卡片参数并组装请求，不
         ├── tr_info.json
         ├── cida_info.json
         ├── design_doc/
+        │   └── document_manifest.json
         ├── 系统需求.md
         ├── 功能设计.md
         ├── sr_specs/
         ├── test_specs/
         │   ├── <TR名称>测试规格.md
-        │   └── tr_ts.json
+        │   ├── platform_ts.json
+        │   ├── tr_ts.json
+        │   └── ts_catalog.json
         ├── test_design/
         │   ├── ts_<NN>_test_design.md
         │   ├── ts_<NN>_test_cases.md
@@ -341,122 +371,70 @@ WebApp 的 `transformToCidaRequest()` 只读取卡片参数并组装请求，不
         └── archive/
             ├── request_plan.json
             ├── archive_state.json
+            ├── document_request.json
+            ├── document_plan.json
+            ├── document_payloads/
             └── responses/
 ```
 
-## 6. 当前验证状态
+## 7. 当前验证状态
 
-0.2.1 正式链路已验证通过：
+### 7.1 已验证
 
-- Init：可拉取设计任务、已有 TR、IR/SR 关联并生成 TR 级上下文；
-- Explore：以 `TR_3863` 为上下文完成全部关联需求分析并生成测试规格；
-- Design：指定 TS 和全量 TS 流程均可执行，已验证 2 个 TS 完成 Markdown、TP/TC JSON 和卡片闭环；
-- Archive：复用已有 TR，仅归档 TS、TP、TC；
-- Archive 计划持久化：已验证 `request_plan.json → --request-file → archive_state.json` 链路；
-- Archive 一致性：已验证状态中的计划范围与实际归档范围一致；
-- 断点状态：重复初始化和重复归档可保留、复用已成功的下游平台对象。
+- Init 可拉取设计任务、已有 TR 和直接关联需求；
+- Explore 可在 TR 上下文内生成普通测试规格，并查询平台 DFX TS；
+- 实际平台查询曾返回 10 条 DFX TS，均具有唯一非空 `platform_ts_id`；
+- DFX 和普通 TS 可生成统一 `ts_catalog.json`，DFX 在前、普通 TS 接续编号；
+- Design 可分别处理 DFX 和普通 TS，且不再依赖目录扫描补偿规格；
+- `dimension` 标题映射已经在 Agent、Skill、规则和 JSON 脚本中统一；
+- TC 上报四字段链路和前端生产构建已验证通过；
+- Archive 对象阶段实际完成 2 个 TS（1 个 DFX 复用、1 个普通 TS 创建）、26 个 TP、48 个 TC；
+- Portal 卡片刷新调用成功；
+- 文档同步的 TS 节点现场写入成功；
+- 文档脚本完整成功、写入失败隔离、章节缺失隔离和 UTF-8 无 BOM均已通过离线测试；
+- topic 返回父节点及多个子节点的离线场景已验证 TASK/TR/TS 全部成功。
 
-代表性归档验证中：
+### 7.2 待现场复验
 
-- TS：2 个进入计划并完成处理；
-- TP：24 个进入计划，其中 10 个成功、14 个因 `tpSourceType` 为空而 skipped；
-- TC：29 个进入计划，其中 14 个成功、15 个因父 TP skipped 而 blocked。
+首次现场文档同步中：
 
-上述 skipped/blocked 属于既定数据规则，不代表归档流程失败。
+- TASK `概述` 返回父 topic 和两个子 topic；
+- TR `测试类型分析` 返回父 topic 和十个子 topic；
+- 旧判断错误要求整个返回只有一条，导致 TASK/TR 失败、TS 成功，结果为 `partial`。
 
-0.2.2 历史验证状态：
+该问题已在 `main` 修复为精确筛选目标父 topic。需要在实际环境重新执行 Archive，确认 TASK、TR 和 TS 全部写入成功。
 
-- 前端生产构建通过，构建产物路径确认为 `test-design/webapps/testCase`；
-- 首次归档加载旧版卡片代码，根因是 `codeagent-extension.json` 未从 `0.2.1` 同步更新；
-- 清单版本更新为 `0.2.2` 后，新版卡片加载问题得到解决。
+## 8. 关键工程约束
 
-0.2.3 当前验证状态：
-
-- `coretest-design` 已验证通过，TC Markdown、`ts_<NN>_tc.json` 和 `ts_<NN>_test_case.json` 可完整携带四个上报字段；
-- `TestType`、`AutoType`、`envtype`、`DesignNote` 已完成 rules 到 WebApp 的端到端透传验证；
-- 测试用例卡片通过 `/GT3KServer/v3/testcase/sync` 上报字段的链路验证成功；
-- 前端执行 `npm run build:prod` 成功；超过 500 kB 的 chunk 提示为非阻断性能警告，不影响构建产物；
-- `codeagent-extension.json` 已更新为 `0.2.3`。
-
-## 7. 关键工程约束
-
-- MCP 地址：`127.0.0.1:8765`；
-- MCP 协议：SSE；
-- Design 同一时间最多运行 3 个 TS Agent；
-- Archive 一次只运行一个 Archive Agent，父子依赖顺序处理；
-- 禁止使用旧的 `test-create-tr/ts/tp/tc` Skill，平台对象通过统一 MCP 调用；
-- 不手工修改 `tr_info.json`、`tr_ts.json`、TP JSON、TC JSON 或归档状态中的平台 ID；
+- MCP 地址：`127.0.0.1:8765`，协议 SSE；
 - Explore、Design、Archive 必须使用同一个 `TR_<tr_id>` 上下文；
-- Portal 当前不支持直接跳转到 TC，TC 完成后跳转到所属 TP；
-- 修改核心流程前必须核对上下游输入、输出和状态契约；
-- 扩展目录版本、根目录 `codeagent-extension.json.version` 和卡片 WebApp 实际加载版本必须保持一致；
-- 修改测试用例卡片前端后，需重新执行生产构建，并将产物放入当前扩展版本的 `webapps/testCase`；
-- 用例上报字段以 `.testagent/rules/tp-tc-output.md` 为生成规则的单一来源，后端脚本和 WebApp 只负责解析、透传及默认值保护。
+- Design 同时最多运行 3 个 TS Agent；
+- Archive 一次只运行一个 Archive Agent；
+- Object Skill 和 Document Agent 各调用一次；
+- 禁止使用旧的 `test-create-tr/ts/tp/tc` Skill，平台对象通过统一 MCP；
+- 禁止手工修改设计输入 JSON 或归档状态中的平台 ID；
+- Portal 不支持直接跳转到 TC，TC 完成后跳转到所属 TP；
+- 核心流程修改前必须核对上下游输入、输出和状态契约；
+- CoreTool 首选扩展包内置 CLI，解析后全程使用绝对路径；
+- 扩展目录版本、`codeagent-extension.json.version` 和 WebApp 实际加载版本必须一致；
+- 测试用例字段以 `.testagent/rules/tp-tc-output.md` 为业务规则单一来源。
 
-## 8. 已知问题与后续方向
+## 9. 已知问题与下一步
 
-### 8.1 Portal 卡片展示
+1. 在实际环境重新运行 Archive，验证 topic 树精确匹配修复和 TASK/TR/TS 全量文档写入；
+2. 完成回归后评估将当前 `main` 增强定稿为下一个扩展版本；
+3. 持续排查卡片缓存成功但 Portal 页面部分场景未展示的问题；
+4. 设计测试因子编码到平台树节点的独立解析和关联工具；
+5. 补充多需求 TR、多 TR 同需求、指定对象、断点续跑和文档失败隔离回归。
+6. 将 `build_tp_tc_json.py --ts` 的过滤提前到配对检查前，消除其他 TS 的无关缺失告警。
 
-历史现象：
+## 10. 新任务读取顺序
 
-- 卡片缓存接口调用成功并返回 `card_cache_id`；
-- 部分场景下 Portal 页面未展示对应卡片。
-
-后续需要继续核查：
-
-- 卡片缓存数据落库；
-- Portal 查询条件；
-- 页面刷新机制。
-
-该问题不影响 TP/TC 文件生成和平台归档主链路。
-
-### 8.2 测试因子自动关联
-
-目标是建设独立因子关联能力：
-
-```text
-factor_code → factor resolver → 平台树路径/节点 → TS 关联
-```
-
-当前约束：
-
-- 平台没有直接通过叶子 `factor_id` 关联的接口；
-- 页面操作需要逐层选择树节点；
-- 图谱可提供因子信息，但平台写入仍需树形路径适配。
-
-后续方向：
-
-- 建设独立因子解析与关联工具；
-- 以因子编码作为稳定输入；
-- 缓存产品因子树或维护编码到路径的索引；
-- 将平台树遍历和选择逻辑封装在单一工具中。
-
-### 8.3 测试用例卡片版本加载
-
-0.2.2 首次验证时，页面仍使用 `/GT3KServer/v1/resource/detail/<parentUri>` 旧链路。根因是扩展清单版本未同步更新，生成卡片时仍引用 `coretest-spec-e2e@0.2.1`。该问题已修复，0.2.3 的新版卡片和字段透传链路已验证通过。
-
-处理原则：
-
-- 升级扩展目录版本时同步更新 `codeagent-extension.json.version`；
-- 确认卡片脚本组合出的包标识与当前版本一致；
-- 将新构建产物部署到当前版本的 `webapps/testCase`；
-- 重启 TestAgent、禁用浏览器缓存后重新验证；
-- 以 Network 中出现 `/GT3KServer/v3/testcase/sync` 作为新版卡片加载的关键检查点。
-
-## 9. 下一步优先级
-
-1. 持续排查 Portal 卡片缓存成功但页面未展示的问题；
-2. 设计并验证测试因子编码到平台树节点的自动关联工具；
-3. 补充 0.2.3 回归用例，覆盖多需求 TR、多 TR 同需求、指定对象归档、断点续跑、字段规则默认值和卡片版本加载；
-4. 后续功能演进继续保持 TR 级目录、既有 TR 复用和字段规则单一来源原则。
-
-## 10. 新任务开始前的读取顺序
-
-处理本项目的新需求时，优先读取：
+处理本项目新任务时优先读取：
 
 1. `docs/PROJECT_CONTEXT.md`；
 2. 根目录 `README.md`；
 3. 目标阶段对应的 `.testagent/skills/<skill>/SKILL.md`；
 4. 相关 Agent、脚本和 MCP 源码。
 
-以仓库 `main` 的实际文件为最终依据；本文用于快速建立项目全局上下文。
+以仓库 `main` 实际文件为最终依据；本文用于快速恢复全局上下文，不替代具体 Skill 契约。
