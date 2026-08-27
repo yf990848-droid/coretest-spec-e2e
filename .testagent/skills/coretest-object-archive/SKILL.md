@@ -1,27 +1,33 @@
 ---
 name: coretest-object-archive
-description: 串行完成 CoreTest 归档计划中的 TR 复用以及 TS、TP、TC 创建或复用，并将每个对象结果即时保存到 archive_state.json。由 coretest-archive-agent 在计划锁定后调用；不负责在线文档同步、Portal 刷新或最终汇总。
+description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS、TP、TC 并即时保存 archive_state.json；可由 Archive Agent 调用完整计划，也可由 Explore 调用 TS-only 计划。
 ---
 
 # CoreTest Object Archive
 
 ## 职责
 
-严格执行调用方已经锁定并写入 `archive_state.json.request.execution_plan` 的对象归档计划：
+严格执行 Archive Agent 或 Explore 已锁定并写入 `archive_state.json.request.execution_plan` 的对象归档计划：
 
 ```text
 复用既有 TR → 创建或复用 TS → 创建或复用 TP → 创建或复用 TC
 ```
 
-一次调用完成全部对象阶段。禁止调用在线文档同步或 Portal Skill，禁止自行扩大计划。
+一次调用完成全部对象阶段。调用来源允许：
+
+- `archive`：由 Archive Agent 执行完整对象计划；
+- `explore_ts_only`：由 Explore 执行全量 TS-only 计划，此时 `tp/tc` 必须为空。
+
+禁止调用在线文档同步或 Portal Skill，禁止自行扩大计划。
 
 ## 必需输入
 
 - 扩展包根目录；
 - `tr_id`、`design_task_id`、PBI、`creator`；
 - `tr_info.json`、`tr_ts.json`、`ts_catalog.json` 路径及内容；
-- `test_design/` 路径；
+- `test_design/` 路径；Explore TS-only 只记录该标准路径，不得读取其中产物；
 - `archive/archive_state.json` 路径；
+- 调用来源 `archive` 或 `explore_ts_only`；
 - 仅当计划包含 TP/TC 时提供对应的 TP/TC JSON。
 
 缺少当前计划实际需要的输入时停止对象阶段，不调用创建 MCP。TS-only 不得读取 TP/TC JSON。
@@ -190,11 +196,16 @@ case_id             = TC JSON.case_id
 - 成功 TC 不要求 `platform_id`；
 - 计划数量和状态数量一致。
 
-若仍有非终态节点，先记录明确失败或 blocked；状态无法保存时报告对象阶段失败。最后明确输出：
+若仍有非终态节点，先记录明确失败或 blocked；状态无法保存时报告对象阶段失败。最后按调用来源输出：
 
-```text
-对象归档阶段已结束；必须继续调用 coretest-document-sync，当前结果不是最终归档结果。
-```
+- `archive`：
+  ```text
+  对象归档阶段已结束；必须继续调用 coretest-document-sync，当前结果不是最终归档结果。
+  ```
+- `explore_ts_only`：
+  ```text
+  Explore TS-only 归档阶段已结束；不得调用文档同步或 Portal，返回各 TS 的终态和真实平台 ID。
+  ```
 
 ## Guardrails
 
@@ -205,4 +216,5 @@ case_id             = TC JSON.case_id
 - 不重复创建已成功对象；
 - 不调用 CoreTool 文档命令；
 - 不调用 `coretest-document-sync` 或 `test-portal-card`；
+- `explore_ts_only` 模式要求计划覆盖 catalog 全部 TS，且 `tr/tp/tc` 均为空；
 - 不输出最终归档成功结论。

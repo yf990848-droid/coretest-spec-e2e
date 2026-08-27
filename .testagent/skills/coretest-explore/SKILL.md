@@ -1,10 +1,10 @@
 ---
-description: 以 init 生成的已有 TR 上下文为入口，汇总需求文档并生成测试规格；查询平台既有 DFX TS，与普通 TS 合并生成稳定编号目录 ts_catalog.json。
+description: 以 init 生成的已有 TR 上下文为入口，生成普通/DFX 测试规格和稳定 TS 编号目录，并在交互确认后可只归档全部 TS 对象。
 license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 0.5.0
+  version: 0.6.0
 name: coretest-explore
 ---
 
@@ -275,6 +275,34 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 
 平台查询失败、JSON 非法、DFX 条目缺少平台 ID 或平台 ID 重复时停止，不得进入 Design。平台没有 DFX 时允许继续，普通 TS 从 `TS_01` 开始。
 
+### 阶段 6.7：确认是否归档全部 TS
+
+完成 `ts_catalog.json` 后，普通交互模式必须让用户二选一：
+
+```text
+1. 跳过 TS 归档
+2. 直接归档全部 TS
+```
+
+不得增加部分 TS 选择。若入口包含 `--skip-clarify`，本阶段默认跳过 TS 归档，不产生任何平台写操作。
+
+选择“跳过 TS 归档”时直接进入阶段 7，不创建或修改归档状态。
+
+选择“直接归档全部 TS”时，只复用现有对象归档能力处理 catalog 中的全部 TS：
+
+1. 读取 `ts_catalog.json.items[]`，按稳定顺序生成 TS-only 计划：
+   ```json
+   {"tr": [], "ts": ["TS_01"], "tp": [], "tc": []}
+   ```
+2. 使用现有 `coretest-archive/scripts/archive_state.py init` 初始化或校验 `<tr_dir>/archive/archive_state.json`；PBI、任务名称来自任务级上下文，creator 来自 `tr_info.json`，`test_design_dir` 只记录为后续标准目录，本阶段不得读取其中产物。
+3. 将原始请求固定为 `["TS"]`，通过 `archive_state.py record-plan` 锁定上述完整计划。
+4. 只调用一次 `coretest-object-archive`，并明确标记调用来源为 `explore_ts_only`。
+5. `source=platform_dfx` 的 TS 只复用 catalog 中已有 `platform_ts_id`；`source=explore` 的 TS 全部调用现有 `core_test_design_mcp.create_ts`。
+6. 成功和失败结果即时保存到 `archive_state.json`；单个 TS 失败后继续其他 TS，允许最终为部分成功。
+7. 本阶段禁止同步在线文档、刷新 Portal、读取或归档 TP/TC，也不得修改 `ts_catalog.json`。
+
+归档完成后展示每个 `TS_<NN>` 对应的真实平台 TS ID。普通 TS 的真实 ID只保存在 `archive_state.json.ts[TS_<NN>].platform_id`。
+
 ### 阶段 7：汇总
 
 输出：TR、直接需求数、唯一文档数、SR 数、TS 数、冲突审计数量及所有产物路径。
@@ -300,10 +328,16 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 /coretest-design <tr_id>
 ```
 
-处理指定 TS：
+处理指定 TS（稳定编号）：
 
 ```text
 /coretest-design <tr_id> TS_01 TS_02
+```
+
+若 Explore 已归档 TS，也可使用真实平台 ID：
+
+```text
+/coretest-design TR_<tr_id> TS_<platform_ts_id>
 ```
 
 ## 4. 输出结构
@@ -338,6 +372,7 @@ python .testagent/skills/coretest-explore/scripts/build_ts_catalog.py \
 | `test-spec-analysis` | `tr_info.json`、整套 `sr_specs/`、`platform_ts.json` | 普通 TS 与 DFX 规格共存的一份测试规格 |
 | `coretool` | 当前 `tr_id` | 保存一次的 `platform_ts.json` |
 | `build_ts_catalog.py` | `platform_ts.json`、`tr_ts.json` | 稳定编号的 `ts_catalog.json` |
+| `coretest-object-archive` | 全部 catalog TS 的 TS-only 锁定计划 | `archive_state.json` 中的真实平台 TS ID |
 
 ## 6. 兼容模式
 

@@ -6,7 +6,7 @@ license: MIT
 metadata:
   author: corespec
   generatedBy: manual
-  version: 1.5.0
+  version: 1.6.0
 name: coretest-design
 ---
 
@@ -36,11 +36,11 @@ name: coretest-design
 
 ## Input
 
--   TR ID：必选第一个位置参数，如 `3863`
--   TS 列表：可选后续位置参数，如 `TS_01 TS_02 TS_03`
--   完整命令格式：`/coretest-design <tr_id> [TS列表]`
+-   TR ID：必选第一个位置参数，接受纯数字 `3863` 或 `TR_3863`，内部统一为纯数字
+-   TS 列表：可选后续位置参数，既可使用稳定编号 `TS_01`，也可使用真实平台 ID 选择器 `TS_35807`
+-   完整命令格式：`/coretest-design <tr_id|TR_tr_id> [TS选择器...]`
 -   不传 TS 时，默认处理当前 `ts_catalog.json` 中的全部 TS（平台 DFX + Explore 普通 TS）
--   TS 编号大小写不敏感，统一标准化为 `TS_<NN>`，去重后保持输入顺序
+-   TS 选择器大小写不敏感；解析为 catalog 中的稳定 `ts_key` 后去重并保持输入顺序
 
 ## Execution Flow
 
@@ -63,7 +63,8 @@ name: coretest-design
 -   TR 目录存在且只定位到一个；
 -   `tr_info.json`、`cida_info.json`、`test_specs/tr_ts.json` 和 `test_specs/ts_catalog.json` 存在；
 -   `test_specs/` 下存在测试规格 Markdown；
--   用户指定的 `TS_<NN>` 必须存在于 `ts_catalog.json.items[].ts_key`。
+-   用户指定的每个 TS 选择器必须按 Phase 1 唯一解析为 `ts_catalog.json.items[].ts_key`。
+-   使用真实平台 ID 选择普通 TS 时，必须存在 `archive/archive_state.json`，且对应 TS 已成功归档并具有非空 `platform_id`。
 
 其中：
 
@@ -79,17 +80,23 @@ name: coretest-design
 
 ### Phase 1: TS Filtering
 
-根据位置参数中的 TS 列表筛选目标 TS。
+根据位置参数中的 TS 选择器筛选目标 TS。未指定时处理全部 TS。
 
-未指定时处理全部 TS。
+先将第一个参数的 `TR_<tr_id>` 或纯数字统一为当前 TR 的纯数字 ID。每个 TS 选择器按以下固定顺序解析：
+
+1. 大小写标准化后，若能精确匹配 `ts_catalog.json.items[].ts_key`，直接使用该稳定编号；
+2. 否则要求格式为 `TS_<非零平台ID>`，取后缀作为真实平台 TS ID；
+3. 对 `source=platform_dfx`，匹配 catalog 条目的 `platform_ts_id`；
+4. 对 `source=explore`，匹配 `archive_state.json.ts[ts_key].platform_id`，并要求状态为 `succeeded`；
+5. 真实 ID 必须唯一匹配一个 catalog 条目，然后转为该条目的稳定 `ts_key` 执行后续流程。
 
 规则：
 
--   所有 TS 参数统一标准化为 `TS_<NN>`，不接受或要求中文名称后缀；
--   对重复 TS 去重并保持用户输入顺序；
+-   稳定编号优先于真实 ID 解析，因此现有 `TS_01` 命令保持兼容；
+-   对解析后的稳定 `ts_key` 去重并保持用户输入顺序；
 -   未指定时按 `ts_catalog.json.items[]` 顺序处理全部 TS；
--   指定时按 `items[].ts_key` 精确匹配；
--   任一编号不存在、重复或条目缺少来源必需字段时，在初始化卡片和启动 Agent 前停止并报告。
+-   任一选择器不存在、匹配不唯一、状态未成功或条目缺少来源必需字段时，在初始化卡片和启动 Agent 前停止并报告；
+-   卡片 key、设计文件名和 Agent 输入始终使用稳定 `ts_key`，不得改用真实平台 ID。
 
 ### Phase 1.5: Initialize TS Working Cards
 

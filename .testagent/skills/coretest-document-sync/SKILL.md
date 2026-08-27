@@ -57,7 +57,7 @@ python "<root>/.testagent/skills/coretest-document-sync/scripts/document_sync.py
 脚本固定完成：
 
 - 初始化并持续保存 `document_plan.json`；
-- 精确提取任务、TR、TS 章节；
+- 精确提取任务、TR、TS 章节；任务级内容分别写入 7 个叶子章节，不向“概述”或“测试设计策略”父章节写入聚合内容；
 - 查询 `idp_doc_id` 和唯一 topic；
 - 生成 UUIDv5 与无 BOM UTF-8 payload；
 - 调用 source-data write 并保存 stdout、stderr、退出码；
@@ -70,6 +70,7 @@ python "<root>/.testagent/skills/coretest-document-sync/scripts/document_sync.py
 
 - `task list --output json`：在 `items[]` 中按 `id == design_task_id` 唯一匹配，并读取非空 `idp_doc_id`；
 - `idp topic list --output json`：返回可能包含目标 topic 及其子 topic；只筛选 `topic_name` 与活动名完全相等、`topic_id` 非空且 `deleted=0` 的项，并要求有效精确匹配恰好一项；不得要求整个 `items` 或 `pagination.total` 等于 1；
+- 设计任务必须分别查询并写入 `被测对象概述`、`测试方案概述`、`特性风险分析（RBT）`、`测试重点难点分析`、`分层测试策略`、`底层硬件/组网差异测试策略分析`、`网元形态差异测试策略分析`；不得查询或写入父级 `概述`、`测试设计策略`；
 - TR topic 的 `parent-activity-name` 必须使用 `tr_info.json.tr_name`；
 - `source-data write` 返回文本而非 JSON：要求退出码为 0，且 stdout/stderr 中包含 `Successfully wrote source data to topic <topic_id>`；
 - CLI 字节按 UTF-8 解码，写入 JSON 使用 UTF-8 无 BOM。
@@ -92,6 +93,7 @@ python "<root>/.testagent/skills/coretest-document-sync/scripts/document_sync.py
 - 不修改 `archive_state.json` 或任何设计输入；
 - 不扫描范围外 TS；
 - 不写 TP/TC 文档；
+- 不向任务级父章节“概述”或“测试设计策略”写入聚合正文；
 - 不因单节点失败停止全部文档；
 - 不调用 Portal；
 - 不输出最终归档成功结论。

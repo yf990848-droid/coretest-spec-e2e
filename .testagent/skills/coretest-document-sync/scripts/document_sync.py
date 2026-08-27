@@ -16,16 +16,15 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 SCHEMA_VERSION = 1
-TASK_ACTIVITIES = {
-    "概述": ["被测对象概述", "测试方案概述"],
-    "测试设计策略": [
-        "特性风险分析（RBT）",
-        "测试重点难点分析",
-        "分层测试策略",
-        "底层硬件/组网差异测试策略分析",
-        "网元形态差异测试策略分析",
-    ],
-}
+TASK_ACTIVITIES = [
+    "被测对象概述",
+    "测试方案概述",
+    "特性风险分析（RBT）",
+    "测试重点难点分析",
+    "分层测试策略",
+    "底层硬件/组网差异测试策略分析",
+    "网元形态差异测试策略分析",
+]
 TR_ACTIVITIES = ["场景分析", "测试类型分析", "特性交互分析", "功能交互分析", "设计约束分析"]
 INTERNAL_DESIGN = "基于业务内部实现的设计"
 DFX_TYPES = {"performance", "reliability", "usability", "security", "serviceability", "ai", "funcsafety", "compatibility", "testability", "customized"}
@@ -394,7 +393,7 @@ def main() -> None:
         try:
             if spec_error:
                 raise spec_error
-            task_activities = [(name, exact_content(spec_sections, titles, True)) for name, titles in TASK_ACTIVITIES.items()]
+            task_activities = [(name, exact_content(spec_sections, [name], False)) for name in TASK_ACTIVITIES]
             sync_node(plan_path, plan, task_node, task_activities, None, context)
         except Exception as exc:
             fail_node(task_node, exc)
