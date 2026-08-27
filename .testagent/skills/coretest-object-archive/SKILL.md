@@ -1,6 +1,6 @@
 ---
 name: coretest-object-archive
-description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS、TP、TC 并即时保存 archive_state.json；可由 Archive Agent 调用完整计划，也可由 Explore 调用 TS-only 计划。
+description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS、TP、TC 并即时保存 archive_state.json；Explore TS-only 模式仅创建或复用普通 TS，不处理平台 DFX TS。
 ---
 
 # CoreTest Object Archive
@@ -16,7 +16,7 @@ description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS
 一次调用完成全部对象阶段。调用来源允许：
 
 - `archive`：由 Archive Agent 执行完整对象计划；
-- `explore_ts_only`：由 Explore 执行全量 TS-only 计划，此时 `tp/tc` 必须为空。
+- `explore_ts_only`：由 Explore 执行全部普通 TS 的 TS-only 计划，此时 `tr/tp/tc` 必须为空，且计划不得包含 `source=platform_dfx`。
 
 禁止调用在线文档同步或 Portal Skill，禁止自行扩大计划。
 
@@ -74,7 +74,7 @@ create_tc.tr_id
 按 `execution_plan.ts` 顺序处理。TS 编号和来源只读取 `ts_catalog.json.items[]`。
 
 - 状态已为 `succeeded` 且有有效 `platform_id`：直接复用；
-- `source=platform_dfx`：校验 `platform_ts_id`，保存 catalog 条目作为响应，并以该 ID 记录成功；禁止调用 `create_ts`；
+- `source=platform_dfx`：仅允许在 `archive` 调用来源中校验并复用 `platform_ts_id`；`explore_ts_only` 计划出现 DFX 时必须停止，禁止写入状态或调用 `create_ts`；
 - `source=explore`：通过 `tr_ts_index` 精确读取 `tr_ts.json.test_specs[]` 并调用 `core_test_design_mcp.create_ts`；
 - 其他来源：记录当前 TS 失败。
 
@@ -204,7 +204,7 @@ case_id             = TC JSON.case_id
   ```
 - `explore_ts_only`：
   ```text
-  Explore TS-only 归档阶段已结束；不得调用文档同步或 Portal，返回各 TS 的终态和真实平台 ID。
+  Explore TS-only 归档阶段已结束；不得调用文档同步或 Portal，返回各普通 TS 的终态和真实平台 ID，并报告未归档的 DFX 数量。
   ```
 
 ## Guardrails
@@ -216,5 +216,5 @@ case_id             = TC JSON.case_id
 - 不重复创建已成功对象；
 - 不调用 CoreTool 文档命令；
 - 不调用 `coretest-document-sync` 或 `test-portal-card`；
-- `explore_ts_only` 模式要求计划覆盖 catalog 全部 TS，且 `tr/tp/tc` 均为空；
+- `explore_ts_only` 模式要求计划按 catalog 顺序覆盖全部且仅覆盖 `source=explore` 的普通 TS，`tr/tp/tc` 均为空，DFX 不得进入计划；
 - 不输出最终归档成功结论。
