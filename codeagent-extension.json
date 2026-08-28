@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
   "version": "0.2.3",
-  "description": "E2E测试设计能力扩展，支持从需求探索、需求解析、测试规格分析、测试用例设计到TS、TP、TC精确归档的端到端流程。更新：在既有TR级全流程能力基础上，支持TestType、AutoType、envtype、DesignNote按规则生成并通过测试用例卡片透传至CIDA；TestType按映射生成且无法识别时默认为1，AutoType根据自动化属性判断且无法识别时默认为0，DesignNote由Agent生成用例设计描述，envtype规则支持后续配置。"
+  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：新增平台DFX TS查询与统一编号；Explore支持用户确认后仅归档本轮生成的普通TS，DFX TS复用平台对象、不重复创建；Design支持稳定TS编号和真实平台TS ID触发；Archive支持对象幂等复用、任务/TR/TS叶子章节精确写入及断点续跑。使用扩展包前需在本地完成CoreTool CLI登录和状态验证。"
 }
