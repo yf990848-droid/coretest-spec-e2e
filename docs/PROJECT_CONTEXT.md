@@ -1,10 +1,10 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-08-28  
-> 当前扩展版本：`0.2.3`  
+> 最后更新：2026-09-01  
+> 当前扩展版本：`0.2.4`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新状态：Archive 现场验证成功
+> 最新状态：0.2.4 卡片触发能力已实现，功能基线已同步到 `main`
 
 ## 1. 项目目标
 
@@ -19,6 +19,8 @@
 → TP/TC、JSON、测试用例卡片
 → /coretest-archive <tr_id> <目标...>
 → 对象归档 + 在线文档 + Portal
+
+Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 ```
 
 核心原则：
@@ -29,11 +31,14 @@
 - DFX 已存在，Explore 不归档；正式 Archive 只复用其平台 ID；
 - 普通 TS 可以在 Explore 末尾提前归档并保存真实 ID；
 - Object、Document、Portal 三类结果分别记录；
-- 脆弱的计划生成和在线文档写入由确定性脚本完成。
+- 脆弱的计划生成和在线文档写入由确定性脚本完成；
+- 卡片只负责转发节点上下文和生成命令，不改变 Explore/Design 的业务契约。
 
 ## 2. 当前开发基线
 
-`develop` 在 `main` 基础上已经完成：
+`develop` 已完成 0.2.4，并于 2026-09-01 fast-forward 合入 `main`。截至提交 `bec90e8`，两个分支的功能基线一致；本文件继续在 `develop` 维护。
+
+当前已完成：
 
 1. Explore 查询平台 TS，识别 DFX 并生成独立 DFX 测试规格；
 2. `platform_ts.json + tr_ts.json → ts_catalog.json` 统一编号；
@@ -44,20 +49,34 @@
 7. 修复 `ts-split.md` 与已有 TR 契约冲突；
 8. Archive 拆分对象、在线文档和 Portal 编排；
 9. 设计任务的 7 个叶子章节分别写入对应 topic；
-10. Archive 最新现场回归成功。
+10. Archive 最新现场回归成功；
+11. `webapps/default/index.html` 支持 Portal 卡片与 TestAgent 双向通信，从 TR 节点触发 Explore、从 TS 节点触发 Design。
 
 关键提交：
 
 - `cbd942d`：Explore TS 归档入口、真实 ID Design、叶子 topic 写入；
-- `d9f4574`：确定性普通 TS-only 计划、DFX 排除、`ts-split.md` 修复。
+- `d9f4574`：确定性普通 TS-only 计划、DFX 排除、`ts-split.md` 修复；
+- `f9a12c0`：新增全量测试设计 Portal 卡片入口与 `aiAnalyse` 消息转发；
+- `bec90e8`：更新 0.2.4 版本元数据和 README，并同步至 `main`。
 
 根目录版本仍为：
 
 ```text
-coretest-spec-e2e 0.2.3
+coretest-spec-e2e 0.2.4
 ```
 
 ## 3. 快速命令
+
+### Portal 卡片触发（0.2.4）
+
+在全量测试设计 Portal 卡片中对节点执行“AI分析”：
+
+```text
+TR 节点 → /coretest-explore <TR ID>
+TS 节点 → /coretest-design <TS ID>
+```
+
+卡片自动透传节点类型、节点 ID、IDP 文档 ID、活动名称、版本 PBI 和当前用户信息。手工命令入口继续保留。
 
 ### Init
 
@@ -254,6 +273,25 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
 - 退出码为 0；
 - 输出包含 `Successfully wrote source data to topic <topic_id>`。
 
+### 4.7 Portal 卡片通信
+
+消息流：
+
+```text
+TestAgent → type=chat → webapps/default/index.html → Portal iframe
+Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat → TestAgent
+```
+
+契约：
+
+- 卡片加载后发送 `iframeReady`，等待 TestAgent 下发版本和节点参数；
+- Portal 以 `aiAnalyse` 上报 `nodeType/nodeId/idpDocId/activityName`；
+- TR 节点生成 `/coretest-explore <nodeId>`；
+- TS 节点生成 `/coretest-design <nodeId>`；
+- 转发数据补充 `versionPbi` 和 `userId`；
+- Portal URL 固定携带 `isAgentMode=true`；
+- 卡片触发与手工输入使用相同命令，不新增独立业务流程。
+
 ## 5. 组件版本
 
 | 组件 | 版本/状态 |
@@ -265,6 +303,7 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
 | `coretest-archive-agent` | 1.12.0 |
 | `coretest-document-sync-agent` | 1.0.0 |
 | `build_ts_archive_request.py` | develop 新增 |
+| `webapps/default/index.html` | 0.2.4 卡片入口 |
 
 ## 6. 标准目录
 
@@ -297,7 +336,7 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
 
 ## 7. 已验证
 
-截至 2026-08-28：
+截至 2026-09-01：
 
 - Init 可拉取已有任务、TR 和直接需求；
 - Explore 可生成 SR、普通/DFX 规格、`tr_ts.json` 和统一 catalog；
@@ -308,7 +347,8 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
 - Archive 的对象、在线文档、Portal 闭环现场验证成功；
 - 新版 CLI `source-data write` 与现有成功判断兼容；
 - 任务级 7 个叶子 topic 可独立写入；
-- 对象失败/文档失败隔离和状态持久化逻辑已验证。
+- 对象失败/文档失败隔离和状态持久化逻辑已验证；
+- 0.2.4 卡片的 TR/TS 指令映射、上下文透传和 iframe 通信实现已完成代码核对。
 
 ## 8. 已知事项
 
@@ -316,7 +356,8 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
 2. 部分环境中卡片缓存成功但 Portal 页面展示仍可能延迟，需要结合实际页面继续观察。
 3. 需要继续补充多需求 TR、多 TR 同需求、指定对象和断点续跑回归。
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
-5. 扩展仍标记为 `0.2.3`；定稿新版本时需要同步更新 `codeagent-extension.json`、扩展目录和 WebApp。
+5. 0.2.4 卡片触发仍需在实际 TestAgent + Portal 环境完成现场回归，确认 TR、TS 节点分别启动正确流程且上下文完整。
+6. 发布安装包时需确保扩展目录、`codeagent-extension.json.version` 和 WebApp 均为 `0.2.4`。
 
 ## 9. 新窗口继续工作的读取顺序
 
@@ -333,4 +374,4 @@ TS topic 根据类型选择功能、场景、DFX 和内部实现章节。所有 
    - `.testagent/skills/coretest-document-sync/SKILL.md`
    - `.testagent/skills/coretest-document-sync/scripts/document_sync.py`
 
-以 `develop` 实际源码为最终依据；`main` 尚未包含本轮全部增强。
+以 `develop` 实际源码为最终依据。`main` 已包含 0.2.4 功能基线；后续尚未合并的交接文档或开发增量以 `develop` 为准。
