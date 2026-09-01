@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FullTestDesign Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #status {
+            position: fixed;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">等待版本信息...</div>
+    <iframe id="portal" src="" allowfullscreen></iframe>
+
+    <script>
+    (function () {
+        var statusEl = document.getElementById('status');
+        var iframeEl = document.getElementById('portal');
+        var BASE_URL = 'https://testdesign.cloudspider.rnd.huawei.com/fulltestdesign-portal/';
+
+        // ========== 通信协议定义（参考 Wiki: TestAgent Iframe自定义卡片开发与对接指南） ==========
+
+        // ETaskStatus 枚举
+        var ETaskStatus = {
+            UNSTART: 'undo',
+            WORKING: 'working',
+            COMPLETED: 'completed',
+            FAILED: 'failed',
+            HALF_FAILED: 'halfFailed',
+            WAITING: 'waiting',
+            START: 'start',
+            END: 'end'
+        };
+
+        // InputMessageType 枚举
+        var InputMessageType = {
+            CHAT: 'chat',
+            IFRAMEREADY: 'iframeReady'
+        };
+
+        // ========== 向 TestAgent 平台前端发送数据（OutCardDataType） ==========
+
+        function sendMessageToParent(data) {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(data, '*');
+            }
+        }
+
+        // 发送 iframeReady，通知平台卡片已就绪可接收数据
+        function notifyReady() {
+            sendMessageToParent({
+                type: InputMessageType.IFRAMEREADY,
+                data: null,
+                prompt: '',
+                action: 'ready'
+            });
+        }
+
+        // 发送 chat 消息给平台（如用户交互需要触发 Agent 动作）
+        function sendChatMessage(data, prompt, action) {
+            sendMessageToParent({
+                type: InputMessageType.CHAT,
+                data: data,
+                prompt: prompt || '',
+                action: action || 'update'
+            });
+        }
+
+        // ========== 接收 TestAgent 平台前端数据（InCardDataType） ==========
+
+        var cardState = {
+            cardId: null,
+            session: null,
+            userInfo: null,
+            status: ETaskStatus.UNSTART
+        };
+
+        // 保存最近一次加载参数，供刷新使用
+        var lastParams = null;
+
+        /**
+         * 统一消息处理入口，处理两类消息来源：
+         *   1. 外层 TestAgent 平台 → 本页面（InCardDataType，type='chat'）
+         *   2. 内层 Portal iframe → 本页面（右键菜单 AI分析等操作，event='aiAnalyse'）
+         *
+         * 消息流向：
+         *   TestAgent 平台 ──InCardDataType──→ index.html ──loadPortal──→ Portal iframe
+         *   Portal iframe ──postMessage──→ index.html ──sendChatMessage──→ TestAgent 平台
+         */
+        function handleIncomingMessage(event) {
+            var msg = event.data;
+            if (!msg) return;
+
+            // ========== 来源1：TestAgent 平台下发的消息 ==========
+            // 消息样例：
+            // {
+            //   type: 'chat',
+            //   cardId: 'card-001',
+            //   session: { id: 'sess-abc' },
+            //   userInfo: { name: 'zhangsan', id: '30012345' },
+            //   status: 'working',
+            //   data: {
+            //     versionPbi: '260989058',
+            //     userId: 's30024503',
+            //     analyseId: '401',
+            //     pageType: 'TS'
+            //   }
+            // }
+            if (msg.type === 'chat') {
+                // 保存卡片状态信息
+                if (msg.cardId) cardState.cardId = msg.cardId;
+                if (msg.session) cardState.session = msg.session;
+                if (msg.userInfo) cardState.userInfo = msg.userInfo;
+                if (msg.status) cardState.status = msg.status;
+
+                // 从 data 字段提取参数并加载 Portal
+                var data = msg.data;
+                if (data && (data.versionPbi || data.analyseId)) {
+                    loadPortal(data);
+                }
+                return;
+            }
+
+            // ========== 来源2：Portal iframe 上报的消息（右键菜单 AI分析） ==========
+            // 消息样例：
+            // {
+            //   event: 'aiAnalyse',
+            //   nodeType: 'TS',                                          // 节点类型：TR | TS | TP
+            //   nodeId: '401',                                           // 节点资源ID（resourceId）
+            //   idpDocId: '6f7dadcc-82db-49b6-bb61-3a115f6a344e',       // IDP文档ID
+            //   activityName: '特性X测试设计任务'                          // 活动/任务名称
+            // }
+            if (msg.event === 'aiAnalyse') {
+                handleAiAnalyse(msg);
+                return;
+            }
+        }
+
+        /**
+         * 处理 Portal iframe 中右键菜单"AI分析"点击事件。
+         *
+         * 接收来自 Portal iframe 的 aiAnalyse 消息，将节点信息封装为 chat 消息
+         * 转发给外层 TestAgent 平台，由平台 Agent 根据节点信息执行 AI 分析流程。
+         *
+         * 入参 msg 结构：
+         *   {
+         *     event: 'aiAnalyse',
+         *     nodeType: 'TS',                                          // 节点类型：TR | TS | TP
+         *     nodeId: '401',                                           // 节点资源ID
+         *     idpDocId: '6f7dadcc-82db-49b6-bb61-3a115f6a344e',       // IDP文档ID
+         *     activityName: '特性X测试设计任务'                          // 活动/任务名称
+         *   }
+         *
+         * 转发给 TestAgent 平台的消息样例：
+         *   {
+         *     type: 'chat',
+         *     data: {
+         *       action: 'aiAnalyse',
+         *       nodeType: 'TS',
+         *       nodeId: '401',
+         *       idpDocId: '6f7dadcc-82db-49b6-bb61-3a115f6a344e',
+         *       activityName: '特性X测试设计任务',
+         *       versionPbi: '260989058',                               // 从卡片状态补充
+         *       userId: 's30024503'                                    // 从卡片状态补充
+         *     },
+         *     prompt: '对TS节点[特性X测试设计任务]执行AI分析',
+         *     action: 'update'
+         *   }
+         */
+        function handleAiAnalyse(msg) {
+            // 组装转发数据：节点信息 + 当前卡片状态中的版本/用户信息
+            var payload = {
+                action: 'aiAnalyse',
+                nodeType: msg.nodeType,
+                nodeId: msg.nodeId,
+                idpDocId: msg.idpDocId,
+                activityName: msg.activityName,
+                versionPbi: (cardState.session && cardState.session.versionPbi) || '',
+                userId: (cardState.userInfo && cardState.userInfo.id) || ''
+            };
+
+            // 生成 prompt：与 CloudDragon 指令格式一致
+            // TR → /coretest-explore {id}，TS → /coretest-design {id}
+            var prompt = msg.nodeType === 'TR'
+                ? '/coretest-explore ' + msg.nodeId
+                : '/coretest-design ' + msg.nodeId;
+
+            // 通过 chat 消息转发给 TestAgent 平台
+            sendChatMessage(payload, prompt, 'update');
+        }
+
+        window.addEventListener('message', handleIncomingMessage);
+
+        // ========== Portal 加载逻辑 ==========
+
+        // 路由映射：pageType → 路径模板
+        var ROUTE_MAP = {
+            'fullTestDesign': '#/fullTestDesign',
+            'TR': '#/fullTestDesign/trAnalyse6_{analyseId}',
+            'TS': '#/fullTestDesign/tsAnalyse14_{analyseId}',
+            'TP': '#/fullTestDesign/tpAnalyse19_{analyseId}'
+        };
+
+        function buildUrl(params) {
+            var versionPbi = params.versionPbi || '';
+            var userId = params.userId || '';
+            var analyseId = params.analyseId || '';
+            var pageType = params.pageType || 'fullTestDesign';
+
+            var pathTemplate = ROUTE_MAP[pageType] || ROUTE_MAP['fullTestDesign'];
+            var path = pathTemplate.replace('{analyseId}', analyseId);
+
+            var hash = path + '?' +
+                'versionPbi=' + encodeURIComponent(versionPbi) +
+                '&userId=' + encodeURIComponent(userId) + '&isAgentMode=true';
+            return BASE_URL + hash;
+        }
+
+        function loadPortal(params) {
+            lastParams = params;
+            var url = buildUrl(params);
+            iframeEl.src = url;
+            var pageType = params.pageType || 'fullTestDesign';
+            statusEl.textContent = '已收到: pageType=' + pageType +
+                ', versionPbi=' + (params.versionPbi || '') +
+                ', userId=' + (params.userId || '') +
+                ', analyseId=' + (params.analyseId || '');
+            setTimeout(function () { statusEl.style.opacity = '0'; }, 3000);
+        }
+
+        // ========== 启动流程 ==========
+
+        // 1. 优先检查 URL 查询参数（直接打开场景）
+        var search = new URLSearchParams(window.location.search);
+        var urlParams = {
+            versionPbi: search.get('versionPbi') || '',
+            userId: search.get('userId') || '',
+            analyseId: search.get('analyseId') || '',
+            pageType: search.get('pageType') || 'fullTestDesign'
+        };
+
+        if (urlParams.versionPbi || urlParams.analyseId) {
+            loadPortal(urlParams);
+        } else {
+            // 2. 作为卡片嵌入时，通知平台已就绪，等待 InCardDataType 数据
+            notifyReady();
+        }
+    })();
+    </script>
+</body>
+</html>
