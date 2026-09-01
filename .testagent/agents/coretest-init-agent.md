@@ -56,7 +56,7 @@ core_test_design_mcp.get_design_task_info_init
 
 ```bash
 cd .testagent/skills/test-portal-card/scripts
-python -u card_generate.py "working" "coretest-explore" "{pbi}" "" "fullTestDesign" "{当前用户工号}"
+python -u card_generate.py "completed" "coretest-explore" "{pbi}" "" "fullTestDesign" "{当前用户工号}"
 ```
 
 卡片调用失败时报告失败，但继续保存初始化结果。
