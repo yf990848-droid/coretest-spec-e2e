@@ -2,7 +2,7 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.3`  
+当前扩展版本：`0.2.4`
 当前开发分支：`develop`
 
 ## 流程概览
@@ -26,6 +26,17 @@
 ```text
 .design_output/<design_task_id>/TR_<tr_id>/
 ```
+
+## 卡片触发（0.2.4）
+
+全量测试设计 Portal 卡片支持通过“AI分析”直接触发 TestAgent 流程：
+
+| 卡片节点 | 自动生成的指令 |
+|---|---|
+| TR | `/coretest-explore <TR ID>` |
+| TS | `/coretest-design <TS ID>` |
+
+卡片会将节点类型、节点 ID、IDP 文档 ID、活动名称、版本 PBI 和当前用户信息传递给 TestAgent。用户仍可继续在对话框中手工输入相同指令。
 
 ## 使用前准备
 
@@ -260,7 +271,7 @@ coretest-archive-agent
 
 ## 当前验证状态
 
-截至 2026-08-28，`develop` 已现场验证：
+截至 2026-09-01，`develop` 已验证：
 
 - 普通/DFX 测试规格和统一 TS catalog 可生成；
 - Explore 可确定性生成普通 TS-only 计划，DFX 不进入计划；
@@ -268,7 +279,8 @@ coretest-archive-agent
 - Design 可处理稳定编号和真实平台 TS ID；
 - Archive 对象、在线文档和 Portal 闭环验证成功；
 - 新版 CoreTool `source-data write` 返回格式与现有脚本兼容；
-- 任务级 7 个叶子章节按独立 topic 写入。
+- 任务级 7 个叶子章节按独立 topic 写入；
+- 全量测试设计卡片可从 TR、TS 节点分别触发 Explore、Design。
 
 ## 关键约束
 
@@ -308,4 +320,4 @@ Windows PowerShell 调用原生 Python 时，内联 JSON 可能丢失引号。�
 ## 分支说明
 
 - `main`：当前稳定基线；
-- `develop`：包含 DFX、统一编号、Explore 普通 TS-only 归档、真实 ID Design、确定性文档同步等最新增强。
+- `develop`：包含 DFX、统一编号、Explore 普通 TS-only 归档、真实 ID Design、确定性文档同步及卡片触发 Explore/Design 等最新增强。

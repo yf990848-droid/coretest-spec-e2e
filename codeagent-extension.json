@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
-  "version": "0.2.3",
-  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：新增平台DFX TS查询与统一编号；Explore支持用户确认后仅归档本轮生成的普通TS，DFX TS复用平台对象、不重复创建；Design支持稳定TS编号和真实平台TS ID触发；Archive支持对象幂等复用、任务/TR/TS叶子章节精确写入及断点续跑。使用扩展包前需在本地完成CoreTool CLI登录和状态验证。"
+  "version": "0.2.4",
+  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：全量测试设计Portal卡片支持与TestAgent双向通信，可从TR节点直接触发Explore、从TS节点直接触发Design，并自动传递节点、文档、版本及用户上下文。"
 }
