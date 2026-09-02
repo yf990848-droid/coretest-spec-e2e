@@ -7,7 +7,7 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
-每次会话首次使用时先解析 CoreTool CLI 的绝对路径并记为 `<coretool_cmd>`。后续命令中的 `coretool` 仅表示命令名占位符，实际执行时必须替换为带引号的 `<coretool_cmd>`。
+每次会话首次使用时先解析 CoreTool CLI 的绝对路径并记为 `<coretool_cmd>`。后续命令及 references 中的 `coretool-cli`、历史 `coretool` 均仅表示命令名占位符，实际执行时必须替换为带引号的 `<coretool_cmd>`。
 
 ## References 路由表
 
@@ -53,7 +53,7 @@ done
 扩展包内没有可用 CLI 时，按以下顺序从 PATH 查找并执行 `version` 校验：
 
 ```bash
-for command_name in coretool coretool.exe coretool-cli coretool-cli.exe; do
+for command_name in coretool-cli coretool-cli.exe coretool coretool.exe; do
   candidate="$(command -v "$command_name" 2>/dev/null || true)"
   if [ -n "$candidate" ] && "$candidate" version >/dev/null 2>&1; then
     CORETOOL_CMD="$candidate"
@@ -71,7 +71,7 @@ done
 npm config set @aimarket:registry=https://cmc.centralrepo.rnd.huawei.com/artifactory/api/npm/product_npm/ strict-ssl=false
 
 # 第二步：安装 coretool
-npx @aimarket/agentcenter cli add coretool-cli@0.0.6
+npx @aimarket/agentcenter cli add coretool-cli@1.0.0
 ```
 
 可选参数 `-g`：在命令末尾添加该参数可全局安装，不传则安装到当前项目。
@@ -96,10 +96,10 @@ npx @aimarket/agentcenter cli add coretool-cli@0.0.6
 本文及 references 中形如：
 
 ```bash
-coretool auth status
+coretool-cli auth status
 ```
 
-的命令，实际执行为：
+或历史 `coretool auth status` 的命令，实际执行均为：
 
 ```bash
 "<coretool_cmd>" auth status
@@ -114,7 +114,7 @@ rm -rf "$APPDATA/coretool-cli/"
 
 ## 认证
 
-所有业务命令执行前需先登录。未登录时会提示 `not logged in. Run 'coretool auth login' to authenticate`。
+所有业务命令执行前需先登录。未登录时会提示 `not logged in. Run 'coretool-cli auth login' to authenticate`。
 
 ### W3 登录（个人账号，推荐）
 
@@ -184,7 +184,9 @@ coretool auth logout
 | 查看某个配置项 | `coretool config get <key>` |
 | 设置下载目录 | `coretool config set download-dir ~/Downloads/coretool/` |
 
-可配置项：`endpoint`、`http.timeout`、`pager`、`color`、`interactive`、`debug`、`download-dir`、`username`
+可持久化配置项：`endpoint`、`http.timeout`、`pager`、`color`、`interactive`、`download-dir`、`username`
+
+`debug` 当前不可通过 `config set` 持久化，不应依赖该方式开启调试。
 
 ## 执行规则
 
@@ -194,10 +196,12 @@ coretool auth logout
 
 4. **缺少必要参数时追问**：不缺可选参数时不追问，使用默认值。
 
-5. **结果格式化**：命令输出直接展示给用户，必要时用自然语言解释表格内容。所有 CoreTest 查询命令支持 `--output json` 获取 JSON 格式输出。
+5. **JSON 参数**：Windows PowerShell 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免内联 JSON 被原生命令行重新转义。
 
-6. **错误处理**：
-   - `not logged in` → 引导用户登录
+6. **结果格式化**：命令输出直接展示给用户，必要时用自然语言解释表格内容。所有 CoreTest 查询命令支持 `--output json` 获取 JSON 格式输出。
+
+7. **错误处理**：
+   - `not logged in` → 引导用户执行 `coretool-cli auth login`
    - `--keyword is required` → 补充缺失参数后重试
    - HTTP 错误 → 简要说明原因（如网络问题、权限不足）
    - 可执行文件不存在或校验失败 → 继续下一层解析；扩展包和 PATH 均不可用时通过市场安装，安装后仍不可用则停止并提示用户
