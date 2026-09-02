@@ -23,22 +23,29 @@ CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、�
 
 `<extension-root>` 表示包含当前 `.testagent` 目录的扩展根目录。按固定顺序检查：
 
-1. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli.exe`
-2. `<extension-root>/.testagent/skills/coretool/tools/coretool.exe`
-3. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli`
-4. `<extension-root>/.testagent/skills/coretool/tools/coretool`
+1. `<extension-root>/.testagent/skills/coretool-cli/tools/coretool-cli.exe`
+2. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli.exe`
+3. `<extension-root>/.testagent/skills/coretool-cli/tools/coretool-cli`
+4. `<extension-root>/.testagent/skills/coretool/tools/coretool-cli`
+5. `<extension-root>/.testagent/skills/coretool-cli/tools/coretool.exe`
+6. `<extension-root>/.testagent/skills/coretool/tools/coretool.exe`
+7. `<extension-root>/.testagent/skills/coretool-cli/tools/coretool`
+8. `<extension-root>/.testagent/skills/coretool/tools/coretool`
 
 可在同一 shell 中按下面的逻辑解析；`<extension-root>` 必须替换为已确定的绝对路径：
 
 ```bash
 CORETOOL_CMD=""
-TOOL_DIR="<extension-root>/.testagent/skills/coretool/tools"
 
 for candidate in \
-  "$TOOL_DIR/coretool-cli.exe" \
-  "$TOOL_DIR/coretool.exe" \
-  "$TOOL_DIR/coretool-cli" \
-  "$TOOL_DIR/coretool"; do
+  "<extension-root>/.testagent/skills/coretool-cli/tools/coretool-cli.exe" \
+  "<extension-root>/.testagent/skills/coretool/tools/coretool-cli.exe" \
+  "<extension-root>/.testagent/skills/coretool-cli/tools/coretool-cli" \
+  "<extension-root>/.testagent/skills/coretool/tools/coretool-cli" \
+  "<extension-root>/.testagent/skills/coretool-cli/tools/coretool.exe" \
+  "<extension-root>/.testagent/skills/coretool/tools/coretool.exe" \
+  "<extension-root>/.testagent/skills/coretool-cli/tools/coretool" \
+  "<extension-root>/.testagent/skills/coretool/tools/coretool"; do
   if [ -f "$candidate" ] && "$candidate" version >/dev/null 2>&1; then
     CORETOOL_CMD="$candidate"
     break
