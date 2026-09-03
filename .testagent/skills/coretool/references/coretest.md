@@ -961,6 +961,38 @@ coretool-cli coretest testdesign asset principle update --ts-id 38058 --idp-doc-
 
 执行流程：自动查询 relativeTr 获取 `parentTrId`，查询 principle list 回填 `modeName`/`modeDescription`/`criteriaName` 等字段，合并用户变更后 POST 全量数组。
 
+#### 查询 TS 关联的场景因子
+
+```bash
+coretool-cli coretest testdesign asset scene-factor list --ts-id <TS ID>
+# 示例
+coretool-cli coretest testdesign asset scene-factor list --ts-id 38490
+```
+
+必填：`--ts-id`（int）。
+
+输出字段：
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 关系ID |
+| `ts_id` | TS ID |
+| `asso_act_type` | 关联活动类型 |
+| `source_type` | 来源类型 |
+| `name` | 因子名称 |
+| `number` | 因子编号 |
+| `description` | 描述 |
+| `type` | 类型 |
+| `pbi` | 版本PBI |
+| `status` | 状态 |
+| `valid_values` | 有效值 |
+| `invalid_values` | 无效值 |
+| `used` | 是否已使用 |
+| `creator` | 创建人 |
+| `create_time` | 创建时间 |
+| `modifier` | 修改人 |
+| `update_time` | 修改时间 |
+
 #### 添加场景因子关系到 TS
 
 ```bash
