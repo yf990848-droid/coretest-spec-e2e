@@ -977,17 +977,17 @@ coretool-cli coretest testdesign asset scene-factor list --ts-id 38490
 |------|------|
 | `id` | 关系ID |
 | `ts_id` | TS ID |
+| `scene_factor_code` | 场景因子编码 |
+| `custom_scene_factor_id` | 自定义场景因子ID |
+| `custom_scene_factor_code` | 自定义场景因子系统编号 |
+| `custom_type` | 是否自定义 |
 | `asso_act_type` | 关联活动类型 |
 | `source_type` | 来源类型 |
 | `name` | 因子名称 |
-| `number` | 因子编号 |
 | `description` | 描述 |
-| `type` | 类型 |
+| `data_type` | 数据类型 |
 | `pbi` | 版本PBI |
 | `status` | 状态 |
-| `valid_values` | 有效值 |
-| `invalid_values` | 无效值 |
-| `used` | 是否已使用 |
 | `creator` | 创建人 |
 | `create_time` | 创建时间 |
 | `modifier` | 修改人 |
@@ -1134,6 +1134,8 @@ coretool-cli coretest testdesign tp list --ts-id 35792
 coretool-cli coretest testdesign tp create --version-pbi <版本PBI> --ts-id <TS ID> --tp-type <TP类型> --tp-source-type <TP资源类型> --parent-tr-id <父TR ID> --name <TP名称> --creator <创建者> --idp-doc-id <IDP文档ID>
 # 示例
 coretool-cli coretest testdesign tp create --version-pbi 266926538 --ts-id 38058 --tp-type TestTypeInteractionAnalysis --tp-source-type test_type_test_factor_type --parent-tr-id 4029 --name "CLI测试TP" --creator w30020094 --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f
+# 创建 TP 并关联测试因子和场景因子
+coretool-cli coretest testdesign tp create --version-pbi 266926538 --ts-id 38490 --tp-type SceneAnalysis --tp-source-type scene --parent-tr-id 4029 --name "CLI测试TP" --creator w30020094 --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f --relations '{"testFactorIdList":[{"testFactorId":"28880","name":"所有的消息，都必须记录EDR","assoActType":"SceneAnalysis","sourceType":"TestFactorLibrary","number":"Flow_03_01","type":0,"pbi":"266926538"}],"sceneFactorIdList":[{"sceneFactorCode":"TFACTOR20240301001828","factorName":"产品环境IP类型","assoActType":"SceneAnalysis","sourceType":"scene","pbi":"266926538"}]}'
 ```
 
 **Query 参数**（拼接在 URL 上）：
@@ -1157,15 +1159,198 @@ coretool-cli coretest testdesign tp create --version-pbi 266926538 --ts-id 38058
 | `--description` | `description` | string | 否 | 描述 |
 | `--resolve-description` | `resolveDescription` | string | 否 | 分解描述 |
 | — | `pbi` | string | 否 | 版本 PBI（与 query 参数重复，自动填充） |
-| — | `testFactorIdList` | array | 否 | 测试因子列表（默认空数组） |
-| — | `testDesignCriteriaIdList` | array | 否 | 测试设计准则列表（默认空数组） |
-| — | `sceneFactorIdList` | array | 否 | 场景因子列表（默认空数组） |
-| — | `functionIdList` | array | 否 | 功能列表（默认空数组） |
-| — | `modelDataList` | array | 否 | 模式库列表（默认空数组） |
-| — | `tpAssociationRequirementAlmIdList` | array | 否 | 关联需求 ALM ID 列表（默认空数组） |
-| — | `funcReqFRAndTestSpecFTList` | array | 否 | 功能需求 FR & 测试规格 FT 列表（默认空数组） |
-| — | `securityConfigIdList` | array | 否 | 安全配置 ID 列表（默认空数组） |
-| — | `speiIdList` | array | 否 | SPEI ID 列表（默认空数组） |
+| `--relations` | — | JSON object | 否 | 关联列表（见下方） |
+
+**`--relations` JSON 字段**（可选，不传则所有列表为空数组）：
+
+| JSON key | 类型 | 说明 |
+|----------|------|------|
+| `testFactorIdList` | object[] | 测试因子对象列表（见下方字段） |
+| `sceneFactorIdList` | object[] | 场景因子对象列表（见下方字段） |
+| `testDesignCriteriaIdList` | object[] | 测试设计准则对象列表 |
+| `functionIdList` | object[] | 功能对象列表 |
+| `modelDataList` | object[] | 模式库对象列表 |
+| `tpAssociationRequirementAlmIdList` | string[] | 关联需求 ALM ID 列表 |
+| `funcReqFRAndTestSpecFTList` | object[] | 功能需求 FR & 测试规格 FT 对象列表 |
+| `securityConfigIdList` | string[] | 安全配置 ID 列表 |
+| `speiIdList` | string[] | SPEI ID 列表 |
+
+**`testFactorIdList` 项字段**（后端 `TestFactorBaseDomain`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | long | 自增主键 |
+| `assoActType` | string | 关联活动类型 |
+| `sourceType` | string | 来源类型 |
+| `testFactorId` | string | 测试因子 ID |
+| `customTestFactorId` | long | 自定义测试因子唯一标识 |
+| `customTestFactorCode` | string | 自定义测试因子系统编号 |
+| `customType` | int | 是否自定义 |
+| `name` | string | 因子名称 |
+| `number` | string | 因子编码 |
+| `description` | string | 描述 |
+| `type` | int | 因子类型 |
+| `pbi` | string | 版本 PBI |
+| `status` | string | 测试因子状态 |
+| `validValues` | string | 有效值 |
+| `invalidValues` | string | 无效值 |
+| `variableName` | string | 变量名 |
+| `variableType` | string | 变量类型 |
+| `logicDescription` | string | 因子逻辑描述（动作因子） |
+| `operation` | string | 因子操作描述（动作因子） |
+| `precondition` | string | 预置条件（动作因子） |
+| `expectedResult` | string | 预期结果描述（动作因子） |
+| `modeNumber` | string | 模式编号 |
+| `designSpecificationNumber` | string | 设计准则编号 |
+| `source` | string | 来源 |
+| `temporary` | int | 是否临时因子（0否/1是） |
+| `realNumber` | string | 因子编码 |
+| `creator` | string | 创建人 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改人 |
+| `updateTime` | string | 修改时间 |
+| `deleted` | int | 是否删除（0否/1是） |
+
+**`sceneFactorIdList` 项字段**（后端 `SceneFactorBaseDomain`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `sceneFactorCode` | string | 场景因子 ID |
+| `customSceneFactorId` | long | 自定义场景因子 ID |
+| `customSceneFactorCode` | string | 自定义场景因子系统编号 |
+| `customType` | int | 是否自定义场景因子 |
+| `assoActType` | string | 关联活动类型 |
+| `sourceType` | string | 来源类型 |
+| `factorCode` | string | 场景因子编号 |
+| `factorName` | string | 场景因子名称 |
+| `factorDesc` | string | 场景因子描述 |
+| `factorDataType` | string | 场景因子数据类型 |
+| `variableName` | string | 场景因子变量名称 |
+| `dataValidValue` | string | 场景因子数据有效值 |
+| `dataInvalidValue` | string | 场景因子数据无效值 |
+| `factorStatus` | string | 场景因子状态 |
+| `remark` | string | 场景因子备注 |
+| `pbi` | string | 版本 PBI |
+| `status` | string | 状态 |
+| `creator` | string | 创建人 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改人 |
+| `updateTime` | string | 修改时间 |
+| `deleted` | int | 是否删除（0否/1是） |
+
+**`testDesignCriteriaIdList` 项字段**（后端 `TpTestDesignCriteriaRelation`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | long | 主键 |
+| `tpId` | long | TP ID |
+| `testDesignCriteriaId` | string | 测试准则唯一标识 |
+| `testDesignCriteriaName` | string | 测试设计准则名字 |
+| `pbi` | string | 版本 PBI |
+| `modeDir` | string | 目录信息 |
+| `modeDescription` | string | 模式说明 |
+| `modeNumber` | string | 模式编号 |
+| `status` | string | 状态（draft/submitted） |
+| `applicableProduct` | string | 适用产品 |
+| `applicableObject` | string | 适用对象 |
+| `customDataSourceType` | string | 准则来源分类 |
+| `customDataTestExecMethod` | string | 执行分析方案 |
+| `customDataTestAnalyseMethod` | string | 执行分析方法 |
+| `creator` | string | 创建人 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改人 |
+| `updateTime` | string | 修改时间 |
+| `deleted` | int | 是否删除（0否/1是） |
+
+**`functionIdList` 项字段**（后端 `FunctionBaseDomain`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | long | 自增主键 |
+| `assoActType` | string | 关联活动类型 |
+| `sourceType` | string | 来源类型 |
+| `customFunctionId` | long | 自定义功能 ID |
+| `almCode` | string | ALM 编码 |
+| `almId` | string | ALM ID |
+| `name` | string | 名称 |
+| `keyId` | string | Key ID |
+| `status` | string | 状态 |
+| `involved` | string | 是否涉及 |
+| `notInvolvedReason` | string | 不涉及原因 |
+| `path` | string | 目录信息 |
+| `category` | string | 类型 |
+| `description` | string | 描述 |
+| `input` | string | 输入 |
+| `process` | string | 处理 |
+| `output` | string | 输出 |
+| `functionConstraint` | string | 约束 |
+| `resModifier` | string | 资源最近变更人 |
+| `resUpdateTime` | string | 资源最近变更时间 |
+| `pbi` | string | 版本 PBI |
+| `functionDomainId` | string | 功能域 ID |
+| `creator` | string | 创建人 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改人 |
+| `updateTime` | string | 修改时间 |
+| `deleted` | int | 是否删除（0否/1是） |
+
+**`modelDataList` 项字段**（后端 `ModelInfo`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `modeType` | string | 模式类型（resilience/security/reliability） |
+| `modeId` | string | 模式唯一标识 |
+| `name` | string | 模式名字 |
+| `number` | string | 模式编号 |
+| `description` | string | 模式说明 |
+| `pbi` | string | 版本 PBI |
+| `technologyType` | string | 技术类型 |
+| `relevance` | string | 相关性 |
+| `applicableProduct` | string | 模式适用产品 |
+| `attackerAccessLocation` | string | 攻击者接入位置 |
+| `attackComplexity` | string | 攻击复杂度 |
+| `attackImpactDegree` | string | 攻击影响程度 |
+| `riskAssessment` | string | 风险评估 |
+| `modePrerequisites` | string | 模式预置条件 |
+| `modeOperation` | string | 模式操作 |
+| `defense` | string | 防御 |
+| `detection` | string | 检测 |
+| `respond` | string | 响应 |
+| `restore` | string | 恢复 |
+| `creator` | string | 创建人 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改人 |
+| `updateTime` | string | 修改时间 |
+| `deleted` | int | 是否删除（0否/1是） |
+
+**`funcReqFRAndTestSpecFTList` 项字段**（后端 `Ft`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | long | 主键 ID |
+| `ftNo` | string | 功能测试编号 |
+| `ftUniqueNo` | string | 功能测试唯一编号 |
+| `ftName` | string | 功能测试名称 |
+| `ftDesc` | string | 功能测试描述 |
+| `ftTestTag` | string | 功能测试标签 |
+| `ftPurpose` | string | 功能测试目的 |
+| `ftTestTool` | string | 功能测试工具 |
+| `ftTestType` | string | 功能测试类型 |
+| `ftParentTestNo` | string | 功能测试父测试编号 |
+| `publicCaseNo` | string | 公共用例编号 |
+| `ruleNo` | string | 规则编号 |
+| `parentRuleNo` | string | 父规则编号 |
+| `relatedRuleNo` | string | 相关规则编号 |
+| `ruleUniqueNo` | string | 规则唯一编号 |
+| `ruleName` | string | 规则名称 |
+| `ruleTag` | string | 规则标签 |
+| `ruleRange` | string | 规则范围 |
+| `speiId` | string | SPEI ID |
+| `deleted` | string | 是否删除 |
+| `creator` | string | 创建者 |
+| `createTime` | string | 创建时间 |
+| `modifier` | string | 修改者 |
+| `updateTime` | string | 修改时间 |
 
 **--tp-type 枚举全集**（后端 NodeType 枚举，表示产生 TP 的活动页面）：
 
