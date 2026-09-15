@@ -51,6 +51,7 @@ coretool-cli coretest infactory task create --basic-info '<基础信息JSON>' [-
 | `topoName` | string | 否 | 网络拓扑名称 |
 | `sourceCodehubCheckBranchName` | string | 否 | 源分支检查分支名 |
 | `sourceCodehubMrBranchName` | string | 否 | 源分支MR分支名 |
+| `maxExecuteTimes` | string | 否 | 最大执行次数（如 `"1"`） |
 
 **--case-filter（入厂用例筛选，可选）**
 
@@ -170,6 +171,7 @@ coretool-cli coretest infactory task retry --basic-info '<基础信息JSON>' [--
 | `sourceCodehubBranchName` | string | 否 | 源分支名 |
 | `destCodehubBranchName` | string | 否 | 目标分支名 |
 | `reRunExecTaskId` | int | 否 | 重跑时关联的原执行任务ID |
+| `maxExecuteTimes` | string | 否 | 最大执行次数（如 `"1"`） |
 
 其余字段同 create 的 `--basic-info`、`--case-filter`、`--mr-config`、`--script-refresh`。`--executor-ip` / `--env-name` 用法同 create。
 
@@ -846,6 +848,39 @@ coretool-cli coretest testdesign asset factor list --ts-id 35792
 ```
 
 `--ts-id` 为 int 类型（必填）。
+
+输出字段：
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 关系ID |
+| `ts_id` | TS ID |
+| `test_factor_id` | 测试因子唯一标识（UUID，用于tp create关联） |
+| `custom_test_factor_id` | 自定义测试因子ID |
+| `custom_test_factor_code` | 自定义测试因子编号 |
+| `custom_type` | 是否自定义：0=否，1=是 |
+| `name` | 因子名称 |
+| `number` | 因子编码 |
+| `description` | 描述 |
+| `type` | 因子类别：0=动作因子，1=数据因子 |
+| `pbi` | 版本PBI |
+| `status` | 状态 |
+| `source_type` | 来源类型 |
+| `valid_values` | 数据有效值（Data因子） |
+| `invalid_values` | 数据无效值（Data因子） |
+| `variable_name` | 变量名称（Data因子） |
+| `variable_type` | 变量类型（Data因子） |
+| `logic_description` | 逻辑描述（Action因子） |
+| `operation` | 操作描述（Action因子） |
+| `precondition` | 预置条件（Action因子） |
+| `expected_result` | 预期结果描述（Action因子） |
+| `mode_number` | 模式编号 |
+| `temporary` | 是否临时因子：0=否，1=是 |
+| `used` | 是否被TP使用 |
+| `creator` | 创建人 |
+| `create_time` | 创建时间 |
+| `modifier` | 修改人 |
+| `update_time` | 修改时间 |
 
 #### 添加测试因子关系到 TS
 
