@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "core_test_design_mcp": {
+      "type": "remote",
+      "url": "http://127.0.0.1:8765/sse",
+      "enabled": true,
+      "timeout": 346562,
+      "headers": {
+        "X-USER-TOKEN": "hHMDWVd5EnfsIF8ybqK1ul_VnQ9qx2wWFemd4cb5nfsS7VGPGjQ-jnc_TugZVQdPL2NNDjMC63-lM7SoxMn6naZJxJsfObGHF2WMwacHrquh9dIGTKASy7NDIbJuOZOVcYyVGB4zvEsCHFqDimajwWm_WyO03WL_Tvp-vWYa-nTvDE80K1T1-kmhj46CmJjzIoeAB4ffZGUiskYbESVz6Ze4Z8AtNmMX7-tiO_L86vR9NxrjxyGgIZjQo_E9CuxCtSDGmJxcBZ3azxZQ_EzTPWHlVN6hEqKyYtRcA9_bGqadVwE-aQmRJ2sv4HweDfR2qem_2IzC28E-MYo8Fj6MrA",
+        "X-AUTH-TOKEN": "hHMDWVd5EnfsIF8ybqK1ul_VnQ9qx2wWFemd4cb5nfsS7VGPGjQ-jnc_TugZVQdPL2NNDjMC63-lM7SoxMn6naZJxJsfObGHF2WMwacHrquh9dIGTKASy7NDIbJuOZOVcYyVGB4zvEsCHFqDimajwWm_WyO03WL_Tvp-vWYa-nTvDE80K1T1-kmhj46CmJjzIoeAB4ffZGUiskYbESVz6Ze4Z8AtNmMX7-tiO_L86vR9NxrjxyGgIZjQo_E9CuxCtSDGmJxcBZ3azxZQ_EzTPWHlVN6hEqKyYtRcA9_bGqadVwE-aQmRJ2sv4HweDfR2qem_2IzC28E-MYo8Fj6MrA"
+      }
+    }
+  }
+}
