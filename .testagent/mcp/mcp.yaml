@@ -1,0 +1,11 @@
+mcp:
+  - name: core_test_design_mcp
+    config:
+      enabled: true
+      timeout: 300000
+      type: remote
+      url: http://127.0.0.1:8765/sse
+      w3Token: true
+    startup:
+      command:
+        - .\core_test_design_mcp\start_mcp.bat
