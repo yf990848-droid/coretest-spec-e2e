@@ -28,10 +28,24 @@ if exist "%ROOT_DIR%\.venv\Scripts\python.exe" (
 
     echo [MCP] Using existing venv
 
+    "%ROOT_DIR%\.venv\Scripts\python.exe" -c "import requests, fastmcp, cryptography" >nul 2>nul
+    if !errorlevel! neq 0 (
+        echo [MCP] Installing missing dependencies
+        "%ROOT_DIR%\.venv\Scripts\python.exe" ^
+        -m pip install ^
+        -r "%ROOT_DIR%\requirements.txt" ^
+        -i http://cmc-cd-mirror.rnd.huawei.com/pypi/simple/ ^
+        --trusted-host cmc-cd-mirror.rnd.huawei.com
+        if !errorlevel! neq 0 (
+            echo [MCP ERROR] Install dependencies failed
+            exit /b 1
+        )
+    )
+
     "%ROOT_DIR%\.venv\Scripts\python.exe" ^
     "%MCP_DIR%mcp_server.py"
 
-    exit /b %errorlevel%
+    exit /b !errorlevel!
 )
 
 
