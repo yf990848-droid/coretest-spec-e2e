@@ -28,7 +28,8 @@ description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS
 - `test_design/` 路径；Explore TS-only 只记录该标准路径，不得读取其中产物；
 - `archive/archive_state.json` 路径；
 - 调用来源 `archive` 或 `explore_ts_only`；
-- 仅当计划包含 TP/TC 时提供对应的 TP/TC JSON。
+- 仅当计划包含 TP/TC 时提供对应的 TP/TC JSON 和每个相关 TS 的
+  `test_design/ts_<NN>_factor_plan.json`；TP 计划缺少因子计划时禁止创建 TP。
 
 缺少当前计划实际需要的输入时停止对象阶段，不调用创建 MCP。TS-only 不得读取 TP/TC JSON。
 
@@ -103,6 +104,31 @@ result.data.tsId 为有效非零 ID
 
 TS 失败时，将该 TS 下计划内 TP/TC 记录为 `blocked`，继续其他 TS 分支。
 
+### TS 因子（仅正式 Archive）
+
+TS 成功创建或从状态复用后，若当前 TS 存在已完成的 TP JSON 和因子计划，
+即使 TS 对象状态已为 `succeeded`，也必须执行因子同步。`explore_ts_only`
+禁止读取设计产物和同步因子。尚未 Design 的 TS-only 归档可以先保存 TS ID，
+待 Design 完成后在正式 Archive 补做因子同步。
+
+使用 `coretool` Skill 确定当前可用 CLI 的绝对路径，固定调用：
+
+```bash
+python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" sync-ts \
+  --cli "<coretool-cli绝对路径>" --state-file "<archive_state.json>" \
+  --plan-file "<test_design/ts_<NN>_factor_plan.json>" \
+  --tp-file "<test_design/ts_<NN>_tp.json>" \
+  --ts-key TS_<NN> --ts-type "<catalog.ts_type>" \
+  --ts-id <真实tsId> --pbi <PBI>
+```
+
+脚本逐因子查询已有关系、必要时调用 CLI `asset factor create` 或
+`asset scene-factor create`，随后查询确认。每个因子的请求、响应和独立终态
+即时保存到 `archive_state.json.factor`；单个因子失败不阻断 TP/TC，最终汇总
+必须逐项检查 `results[].status` 并报告失败的因子。脚本的 `success=true`
+只表示批次执行结束，不表示全部因子成功。TS 的 `succeeded` 对象状态不能
+代替因子状态。
+
 ## TP：创建或复用
 
 `execution_plan.tp` 为空时直接跳过，不得读取 `ts_*_tp.json`。通过 `TS_<NN>/<tp_id_temp>` 唯一定位 TP。
@@ -120,35 +146,33 @@ TS 失败时，将该 TS 下计划内 TP/TC 记录为 `blocked`，继续其他 T
 
 非法时记录当前 TP 失败，不调用 `create_tp`，不得根据 `_dimension`、`tpType` 或 `_raw_factors` 猜测或修改输入。
 
-`create_tp` 参数映射：
+新建 TP 时调用固定脚本，以参数数组执行 CLI `tp create --relations`：
 
-```text
-designTaskId       = design_task_id
-tsId               = 所属 TS 真实 tsId
-parentTrId         = tr.platform_id
-tpType             = TP JSON.tpType
-tpSourceType       = TP JSON.tpSourceType
-tpName             = TP JSON.tpName
-creator            = TP JSON.creator；为空时使用上下文 creator
-description        = TP JSON.description
-resolveDescription = TP JSON.resolveDescription
-requirement_ids    = TP JSON.requirement_ids
+```bash
+python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" create-tp \
+  --cli "<coretool-cli绝对路径>" --state-file "<archive_state.json>" \
+  --plan-file "<test_design/ts_<NN>_factor_plan.json>" \
+  --tp-file "<test_design/ts_<NN>_tp.json>" --ts-key TS_<NN> \
+  --ts-type "<catalog.ts_type>" --ts-id <真实tsId> --pbi <PBI> \
+  --tr-id <TR平台ID> --creator "<creator>" --idp-doc-id "<IDP文档ID>" \
+  --tr-info-file "<tr_info.json>" --tp-id-temp "<tp_id_temp>"
 ```
 
-因子映射：
-
-- `_raw_factors` 为空时不传因子名称；
-- 场景因子或功能交互来源传 `sceneFactorNames`；
-- 内部实现或测试类型测试因子来源传 `testFactorNames`；
-- 测试设计准则或模式库不传因子名称；
-- 同一组因子不得同时传给两个参数。
+脚本校验因子计划，保持 TP JSON 的 `tpType`、名称、描述、需求关联，
+只在 CLI 调用边界把中文 `tpSourceType` 转成 CLI 枚举；`testFactorIdList`
+使用因子 UUID（`test_factor_id`），`sceneFactorIdList` 使用场景因子编码。
+禁止使用 TS 因子关系的数字 `id`，禁止回退到旧 MCP 按名称推断因子。
+脚本返回 `id`、`request_file`、`response_file`；先检查 `success=true` 和
+有效非零 ID，再按原流程通过 `archive_state.py record-success --entity tp`
+保存平台 ID 与原始响应。脚本返回的文件路径相对于 `archive/`，调用
+`record-success/record-failure --response-file` 时先拼成绝对路径。返回失败时
+用 `record-failure` 保存错误，所属 TC
+保持原有 blocked 语义。已有成功 TP 直接复用，不补录旧 TP 因子。
 
 真实 TP ID 按以下顺序提取：
 
-1. `result.data.tpId`；
-2. `result.data.id`；
-3. `result.data.resourceId`；
-4. `result.data` 本身为有效数字或数字字符串。
+1. 新 CLI 脚本输出的 `id`；
+2. 历史已成功状态的 `platform_id`（仅复用，不再次创建）。
 
 即使 `success=true`，提取不到有效 TP ID 也记录失败并阻断其 TC。TP 失败时将所属计划内 TC 记录为 `blocked`。
 

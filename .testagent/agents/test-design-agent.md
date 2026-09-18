@@ -15,7 +15,8 @@ metadata:
 
 1. 调用 `test-design` skill 生成当前 TS markdown；
 2. 调用 `build_tp_tc_json.py` 生成当前 TS TP/TC JSON；
-3. 调用 `test-case-card-adapter` skill 更新当前 TS working 卡片为 completed。
+3. 根据完整 TS 规格和 TP JSON 生成并校验本地因子计划；
+4. 调用 `test-case-card-adapter` skill 更新当前 TS working 卡片为 completed。
 
 当前 TS 未完成卡片闭环时，不允许返回成功。
 
@@ -119,7 +120,62 @@ cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.p
 
 ---
 
-### 3. 更新测试用例卡片
+### 3. 生成因子计划（只在本地，不写平台）
+
+使用 `test-graph` 检索当前完整 TS 规格对应的 TestFactor 候选；仅当
+`ts_type=scene` 时同时检索 SceneFactor。只从实际查到的因子中选择，不按名称
+伪造 ID。先选择 TS 因子，再根据生成的 TP 为每个 `tp_id_temp` 选择 TS 因子子集。
+测试因子的 `testFactorId` 使用图谱的 `test_factor_id` UUID；平台关系数字 `id`
+仅用于 Archive 查询和幂等核验。候选缺少 UUID、编码或名称时不要选入计划。
+
+写入 `test_design/ts_<NN>_factor_plan.json`，结构为：
+
+```json
+{
+  "ts_key": "TS_17",
+  "ts_type": "scene",
+  "limits": {"max_ts_factors": 5, "max_tp_factors": 3},
+  "test_factors": [{
+    "testFactorId": "测试因子UUID", "number": "因子编码", "name": "因子名称",
+    "type": 0, "assoActType": "SceneAnalysis",
+    "sourceType": "TestFactorLibrary", "factorType": "BusinessInterImplAnalysis",
+    "pbi": "版本PBI"
+  }],
+  "scene_factors": [{
+    "factorCode": "场景因子编码", "sceneFactorCode": "场景因子编码",
+    "factorName": "场景因子名称", "assoActType": "SceneAnalysis",
+    "sourceType": "scene", "pbi": "版本PBI"
+  }],
+  "tp_factors": {
+    "TP.17.01": {
+      "test_factor_ids": ["测试因子UUID"],
+      "scene_factor_codes": ["场景因子编码"]
+    }
+  }
+}
+```
+
+`limits` 可按本次设计策略调整，缺省均采用 5/3；Design 与 Archive 读取同一计划。
+`factorType`、`assoActType` 和 `sourceType` 按检索结果与 CLI 的当前 TS 活动契约
+选择，禁止把示例值套用到所有 TS。TP key 必须以真实 `tp.json.tps[].tp_id_temp`
+为准。每 TS 默认最多 5 个、每 TP 默认最多 3 个因子，未被 TP 使用的 TS 因子
+删除；没有候选时两个 TS 数组为空，每个 TP 也必须有两个空数组。
+
+执行确定性校验：
+
+```bash
+python "<root>/.testagent/skills/coretest-design/scripts/factor_plan.py" \
+  --plan-file "<test-design-dir>/ts_<NN>_factor_plan.json" \
+  --tp-file "<test-design-dir>/ts_<NN>_tp.json" \
+  --ts-key "TS_<NN>" --ts-type "<catalog.ts_type>"
+```
+
+只有输出 `success=true` 才能更新卡片；因子为空也是有效计划。上限写入
+`limits`，Archive 按同一计划校验；不得在两个阶段分别设置不一致的值。
+
+---
+
+### 4. 更新测试用例卡片
 
 调用：
 
@@ -197,6 +253,7 @@ test-case-card-adapter
 - ts_<NN>_test_cases.md 存在；
 - ts_<NN>_tp.json 存在；
 - ts_<NN>_tc.json 存在；
+- ts_<NN>_factor_plan.json 存在且已通过校验；
 - ts_<NN>_test_case.json 存在；
 - working 卡片已更新为 completed。
 
@@ -210,7 +267,7 @@ test-case-card-adapter
 TSxx失败
 
 失败阶段:
-test-design / JSON / test-case-card-adapter
+test-design / JSON / factor-plan / test-case-card-adapter
 
 失败原因:
 xxx

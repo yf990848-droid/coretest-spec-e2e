@@ -4,7 +4,7 @@
 > 仓库扩展版本元数据：`0.2.4`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新状态：`main` 包含 0.2.4 功能基线；`develop` 正在准备 0.2.5 的因子关联闭环，尚未完成正式接入
+> 最新状态：`main` 包含 0.2.4 功能基线；`develop` 已接入 0.2.5 因子计划与归档代码，等待内网现场回归后更新扩展版本
 
 ## 1. 项目目标
 
@@ -350,7 +350,7 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 - 对象失败/文档失败隔离和状态持久化逻辑已验证；
 - 0.2.4 卡片的 TR/TS 指令映射、上下文透传和 iframe 通信实现已完成代码核对。
 
-2026-09 的本地 CLI 现场验证（尚未接入正式 Design/Archive 流程）：
+2026-09 的本地 CLI 现场验证（扩展包集成仍待现场回归）：
 
 | 对象 | 因子 | 现场结果 |
 |---|---|---|
@@ -360,7 +360,10 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 | performance/DFX TS `38058` | TestFactor `Info_02_01` | 列表查到关系 ID `28882`；同 TS 原有 `CLI_TEST_002`，总数 2；未进行重复写入 |
 | scene TS `38490` | SceneFactor「产品环境IP类型」 | CLI `scene-factor list` 查询到关系 ID `23151`，页面可见；返回 `number` 为空 |
 
-本地新版 CLI 的 `tp create --relations` 已创建 TP `24891`。页面显示 SceneFactor，但 TestFactor 的名称、编码未显示；该问题仍需工具侧定位。Feature TS 尚未现场验证，按现有约定不阻断 0.2.5，但须做契约测试。
+早期 TP `24891` 传入了 TS 关系数字 ID，页面未显示 TestFactor。新 CLI
+现场对照确认 `testFactorId` 必须使用因子 UUID：scene TP 双因子、function、
+constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未现场验证，
+按现有约定不阻断 0.2.5，但须做契约测试。
 
 ## 8. 已知事项
 
@@ -370,9 +373,9 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
 5. 0.2.4 卡片触发仍需在实际 TestAgent + Portal 环境完成现场回归，确认 TR、TS 节点分别启动正确流程且上下文完整。
 6. 0.2.4 安装包的扩展目录、`codeagent-extension.json.version` 和 WebApp 应保持同版；准备 0.2.5 时再统一更新版本，不能从本地 CLI 版本推断扩展包版本。
-7. 现有 `.testagent/rules/tp-tc-design-logic.md` 和对象归档规则把“功能交互设计”的测试因子映射到 `sceneFactorNames`；0.2.5 接入时须改为 TestFactor 的实际契约。scene TS/TP 可同时选 SceneFactor 与 TestFactor，其他 TS 类型只选 TestFactor。
-8. TP 页面 TestFactor 名称和编码缺失，尚未确认 `--relations` 中应使用图谱 UUID 还是 TS 关系 ID，也未确认需要哪些额外字段；工具侧定位后再实现正式归档。
-9. 新版 CLI 的 TS/SceneFactor 写入和查询均已做过单点现场验证，但扩展包 Design/Archive 的选择、写入、重跑和状态回写尚未完成。
+7. 因子选择规则和归档适配已改为显式 ID 计划；scene TS/TP 可同时选两类因子，其他 TS 类型只选 TestFactor。需要完整扩展包现场回归。
+8. 旧 TP 不做因子补录；只有新 TP 在创建时原子关联。平台已有但本地无成功状态的同名 TP 需人工核对。
+9. CLI 单点验证已通过；扩展包 Design/Archive 的选择、写入、重跑和状态回写仍需内网现场回归。
 
 ## 9. 新窗口继续工作的读取顺序
 
@@ -397,9 +400,24 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 
 0.2.5 只做因子关联闭环，具体范围和后续版本拆分以[开发计划](0.2.5_AND_FOLLOWUP_DEVELOPMENT_PLAN.md)为准：
 
-1. 先让工具侧确认并现场验证 TP `--relations` 的 TestFactor 字段，使 TP 页面正常展示名称和编码；保留创建请求、响应和页面证据。
-2. Design 根据完整 TS 规格先选 TS 因子，再让 TP 从 TS 因子中选子集；暂存本地，不写平台。默认每 TS 合计最多 5 个、每 TP 合计最多 3 个，作为可配置规则；未被 TP 使用的 TS 因子剔除，没有匹配时继续空数组。
-3. Archive 在 TS 创建或复用后写 TS 因子，在创建 TP 时传其因子关系；保存原始请求、响应和状态。因子关联失败记录局部失败，不阻断 TP/TC；重跑核对已有关系。
-4. 回归 scene/function/constraint/DFX、无匹配、重复归档及 TP 页面展示。Feature 缺现场对象时做契约测试。完成后才调整扩展版本并准备发布。
+1. 使用已确认的 `test_factor_id` UUID 契约进行扩展包现场回归，核对新 TP 页面名称和编码。
+2. 验证 Design 对完整 TS 规格选择因子并产出本地计划；无匹配因子为空数组。
+3. 验证 Archive 在 TS 创建或复用后关联因子、在 TP 新建时原子关联；检查请求、响应和独立状态，重复执行不新增关系。
+4. 回归 scene/function/constraint/DFX、无匹配、重复归档。Feature 缺现场对象时做契约测试。完成后才调整扩展版本并准备发布。
 
 0.2.6 以后按开发计划依次处理新版测试用例卡片与在线文档、Init 全量功能/特性关系与 DFX 准则、Explore 的 TR 分组和策略配置。
+
+## 11. 0.2.5 develop 实施增量（待现场回归）
+
+- Design 每 TS 新增 `test_design/ts_<NN>_factor_plan.json`，经
+  `.testagent/skills/coretest-design/scripts/factor_plan.py` 校验；TP/TC Markdown
+  固定表格与 JSON 继续保持原结构。无匹配因子明确保存空数组。
+- 正式 Archive 的 TS 创建/复用后运行 `factor_archive.py sync-ts`，逐因子
+  查询、必要时写入、再查询；独立结果保存在 `archive_state.json.factor`。
+  Explore TS-only 归档不提前读取 Design 产物。
+- 新 TP 通过 `factor_archive.py create-tp` 调用 CLI `--relations`；
+  TestFactor 使用 `test_factor_id` UUID，SceneFactor 使用编码。旧 TP 复用，
+  本版不补录。CLI 原始响应和请求保存在 `archive/responses/`。
+- scene 双因子、function、constraint、DFX 的手工 CLI 页面验证已通过；
+  **扩展包 Design/Archive 端到端、空因子、断点重跑仍需内网现场回归**。
+  回归完成后再更新 `codeagent-extension.json` 与 README 至 0.2.5。

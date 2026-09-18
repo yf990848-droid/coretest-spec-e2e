@@ -29,12 +29,17 @@
 - `测试类型交互设计—测试设计准则`
 - `测试类型交互设计—模式库`
 
-因子参数映射：
+因子选择独立保存在当前 TS 的 `ts_<NN>_factor_plan.json`，由归档阶段按 ID
+构造 TP `--relations`，不再按名称映射 `sceneFactorNames/testFactorNames`。
 
-- `基于业务场景设计—场景因子`、`功能交互设计-功能与测试因子` → `sceneFactorNames`；
-- `基于业务内部实现设计—测试因子`、`测试类型交互设计—测试因子` → `testFactorNames`；
-- `_raw_factors` 为空时两个因子参数均不传或传空；
-- 同一组因子不得同时传给两个参数。
+- `scene` TS/TP 可同时使用 SceneFactor 与 TestFactor；
+- `function`、`feature`、`constraint`、平台 DFX TS/TP 仅使用 TestFactor；
+- 先根据完整 TS 规格选择 TS 因子，再让每个 TP 从该集合中选择子集；
+- TS 因子必须至少被一个 TP 使用；每 TS 默认最多 5 个，每 TP 默认最多 3 个，两类因子合并计数；
+- 无匹配因子时保留空数组并继续，不编造因子；
+- TestFactor 的 `testFactorId` 必须是因子 UUID（图谱 `test_factor_id`，平台查询的
+  `test_factor_id`），不得使用 TS 因子关系行的数字 `id`；
+- `_raw_factors` 保持现有 Markdown 表格格式，用于设计展示；归档只读取经校验的因子计划。
 
 ## 三、TP → TC：覆盖展开
 

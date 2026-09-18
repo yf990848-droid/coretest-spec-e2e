@@ -32,7 +32,7 @@ name: coretest-design
     并行调用test-design-agent
             |
             v
-    每个TS独立完成：TP/TC设计 -> JSON提取 -> 测试用例卡片completed
+    每个TS独立完成：TP/TC设计 -> JSON提取 -> 因子计划 -> 测试用例卡片completed
 
 ## Input
 
@@ -164,7 +164,9 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 1.  调用 `skills/test-design` 生成当前 TS 的 `ts_<NN>_test_design.md` 和 `ts_<NN>_test_cases.md`；
 2.  调用 `build_tp_tc_json.py --ts <NN>` 只提取当前 TS 的 JSON；
-3.  调用 `skills/test-case-card-adapter` 将当前 TS 已初始化的 working 卡片更新为 completed；
+3.  根据当前 TS 完整规格生成 `ts_<NN>_factor_plan.json`，用 `factor_plan.py`
+    校验 UUID、TP 子集与数量上限；无匹配时保存明确的空数组；
+4.  调用 `skills/test-case-card-adapter` 将当前 TS 已初始化的 working 卡片更新为 completed；
 4.  当前 TS 分支结束。
 
 每个 `test-design-agent` 调用时必须同时提供：
@@ -234,7 +236,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 -   目标 TS 数量；
 -   成功完成闭环的 TS 数量；
 -   失败 TS 列表及失败阶段（test-design / JSON / card）；
--   已生成的 TP/TC markdown、TP/TC JSON、测试用例卡片数据。
+-   已生成的 TP/TC markdown、TP/TC JSON、因子计划、测试用例卡片数据。
 
 每个 TS 的产物校验、JSON 提取和卡片更新由对应 `test-design-agent` 在分支内部完成。
 
@@ -247,6 +249,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
   agents/test-design-agent          Phase 2       单TS闭环：markdown、JSON、卡片completed
   skills/test-design                Agent内部     TS级TP/TC设计文件
   scripts/build_tp_tc_json.py       Agent内部     单TS TP/TC JSON
+  scripts/factor_plan.py            Agent内部     单TS 因子计划校验
   skills/test-case-card-adapter     Agent内部     单TS测试用例卡片数据
 
 ## Error Handling
@@ -262,6 +265,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
   test-design-agent 调用失败   记录失败TS并继续其他已启动TS
   单TS设计失败                 由 test-design-agent 返回失败，不生成该TS JSON和卡片
   单TS JSON生成失败            由 test-design-agent 返回失败，不生成该TS卡片
+  单TS 因子计划校验失败        由 test-design-agent 返回失败，不生成该TS卡片
   单TS卡片失败                 由 test-design-agent 返回失败，不影响其他TS
   汇总阶段发现失败TS           列出失败阶段和失败原因
 

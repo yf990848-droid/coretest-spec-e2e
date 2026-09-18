@@ -243,6 +243,7 @@ def command_init(args: argparse.Namespace) -> None:
         "ts": {},
         "tp": {},
         "tc": {},
+        "factor": {},
         "card": {},
         "created_at": timestamp,
         "updated_at": timestamp,
@@ -486,6 +487,14 @@ def command_summary(args: argparse.Namespace) -> None:
             status = record.get("status", "unknown")
             entity_counts[status] = entity_counts.get(status, 0) + 1
         counts[entity] = entity_counts
+    factor_counts: Dict[str, int] = {}
+    planned_ts = set(state.get("request", {}).get("execution_plan", {}).get("ts", []))
+    for key, record in state.get("factor", {}).items():
+        if key.split("/", 1)[0] not in planned_ts:
+            continue
+        status = record.get("status", "unknown")
+        factor_counts[status] = factor_counts.get(status, 0) + 1
+    counts["factor"] = factor_counts
     output({
         "success": True,
         "state_file": str(state_file),

@@ -1104,6 +1104,14 @@ coretool-cli coretest testdesign tp create --version-pbi <版本PBI> --ts-id <TS
 coretool-cli coretest testdesign tp create --version-pbi 266926538 --ts-id 38058 --tp-type TestTypeInteractionAnalysis --tp-source-type test_type_test_factor_type --parent-tr-id 4029 --name "CLI测试TP" --creator w30020094 --idp-doc-id 5dcdfe1e-9114-48c7-8abd-aa5222f6312f
 ```
 
+新版 CLI 可用 `--relations <JSON对象>` 在创建 TP 时原子关联因子。
+`testFactorIdList[].testFactorId` 必须使用 `asset factor list` 返回的
+`test_factor_id` UUID，不能使用其数字 `id`（TS 关系 ID）；scene TP 的
+`sceneFactorIdList` 可与 `testFactorIdList` 同时传入。2026-09 现场已验证
+scene、function、constraint、DFX TP 的名称和编码在页面显示。
+Windows PowerShell 中应通过 Python `subprocess.run([...])` 传递 JSON 参数，
+避免因子名称内的空格导致参数拆分。
+
 **Query 参数**（拼接在 URL 上）：
 
 | 字段 | JSON key | 类型 | 必填 | 说明 |

@@ -41,7 +41,7 @@ metadata:
 10. 测试规格 Markdown；
 11. `tr_ts.json`、`ts_catalog.json` 路径及完整内容；
 12. `test_design/`；
-13. 仅当计划包含 TP/TC 时提供相关 JSON；
+13. 仅当计划包含 TP/TC 时提供相关 TP/TC JSON 和对应 TS 的因子计划；
 14. `archive/archive_state.json`。
 
 缺少当前目标实际需要的输入时停止，不调用任何下游 Skill。所有本地命令使用 `/` 路径。
@@ -226,6 +226,7 @@ python "<state-script>" summary --state-file "<state-file>"
 - 计划和实际 TS/TP/TC 数量；
 - TR 的 Init 复用状态；
 - 当前计划内 TS、TP、TC 的成功、失败、blocked 和真实 ID；
+- 本次涉及 TS 的因子关联成功或失败状态；
 - `archive_state.json` 路径；
 - 任务、TR、TS 文档节点的成功、失败、未执行状态；
 - `document_plan.json` 路径；

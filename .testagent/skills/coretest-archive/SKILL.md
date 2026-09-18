@@ -87,6 +87,7 @@ test_specs/ts_catalog.json
 测试规格 Markdown
 test_design/ts_*_test_design.md
 test_design/ts_*_tp.json（计划需要时）
+test_design/ts_*_factor_plan.json（计划包含 TP 时必需）
 test_design/ts_*_tc.json（计划需要时）
 .design_output/design_task_info.json
 archive/archive_state.json
