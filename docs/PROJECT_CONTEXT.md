@@ -1,10 +1,10 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-09-01  
-> 当前扩展版本：`0.2.4`  
+> 最后更新：2026-09-18  
+> 仓库扩展版本元数据：`0.2.4`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新状态：0.2.4 卡片触发能力已实现，功能基线已同步到 `main`
+> 最新状态：`main` 包含 0.2.4 功能基线；`develop` 正在准备 0.2.5 的因子关联闭环，尚未完成正式接入
 
 ## 1. 项目目标
 
@@ -36,7 +36,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 
 ## 2. 当前开发基线
 
-`develop` 已完成 0.2.4，并于 2026-09-01 fast-forward 合入 `main`。截至提交 `bec90e8`，两个分支的功能基线一致；本文件继续在 `develop` 维护。
+0.2.4 功能基线已于 2026-09-01 合入 `main`（提交 `bec90e8`）。此后 `develop` 继续更新文档和依赖；阅读时以 `develop` 当前文件为准。0.2.5 因子关联仍处于现场验证与实现规划阶段，不能把本地新版 CLI 的验证结果当作扩展包功能已交付。
 
 当前已完成：
 
@@ -336,7 +336,7 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 
 ## 7. 已验证
 
-截至 2026-09-01：
+0.2.4 功能基线截至 2026-09-01 的验证：
 
 - Init 可拉取已有任务、TR 和直接需求；
 - Explore 可生成 SR、普通/DFX 规格、`tr_ts.json` 和统一 catalog；
@@ -350,6 +350,18 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 - 对象失败/文档失败隔离和状态持久化逻辑已验证；
 - 0.2.4 卡片的 TR/TS 指令映射、上下文透传和 iframe 通信实现已完成代码核对。
 
+2026-09 的本地 CLI 现场验证（尚未接入正式 Design/Archive 流程）：
+
+| 对象 | 因子 | 现场结果 |
+|---|---|---|
+| scene TS `38490` | TestFactor `Flow_03_01` | 首次 `created=1`、重复 `created=0`；查询关系 ID `28880`，总数保持 1 |
+| function TS `38489` | TestFactor `Insp_01_01` | 首次 `created=1`、重复 `created=0`；查询关系 ID `28881`，总数保持 1 |
+| constraint TS `38485` | TestFactor `Mtn_02_01` | `created=1`，查询关系 ID `28883` |
+| performance/DFX TS `38058` | TestFactor `Info_02_01` | 列表查到关系 ID `28882`；同 TS 原有 `CLI_TEST_002`，总数 2；未进行重复写入 |
+| scene TS `38490` | SceneFactor「产品环境IP类型」 | CLI `scene-factor list` 查询到关系 ID `23151`，页面可见；返回 `number` 为空 |
+
+本地新版 CLI 的 `tp create --relations` 已创建 TP `24891`。页面显示 SceneFactor，但 TestFactor 的名称、编码未显示；该问题仍需工具侧定位。Feature TS 尚未现场验证，按现有约定不阻断 0.2.5，但须做契约测试。
+
 ## 8. 已知事项
 
 1. `build_tp_tc_json.py --ts` 仍可能在过滤目标前扫描其他 TS，产生无关缺失配对警告；不代表目标 TS 失败。
@@ -357,21 +369,37 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 3. 需要继续补充多需求 TR、多 TR 同需求、指定对象和断点续跑回归。
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
 5. 0.2.4 卡片触发仍需在实际 TestAgent + Portal 环境完成现场回归，确认 TR、TS 节点分别启动正确流程且上下文完整。
-6. 发布安装包时需确保扩展目录、`codeagent-extension.json.version` 和 WebApp 均为 `0.2.4`。
+6. 0.2.4 安装包的扩展目录、`codeagent-extension.json.version` 和 WebApp 应保持同版；准备 0.2.5 时再统一更新版本，不能从本地 CLI 版本推断扩展包版本。
+7. 现有 `.testagent/rules/tp-tc-design-logic.md` 和对象归档规则把“功能交互设计”的测试因子映射到 `sceneFactorNames`；0.2.5 接入时须改为 TestFactor 的实际契约。scene TS/TP 可同时选 SceneFactor 与 TestFactor，其他 TS 类型只选 TestFactor。
+8. TP 页面 TestFactor 名称和编码缺失，尚未确认 `--relations` 中应使用图谱 UUID 还是 TS 关系 ID，也未确认需要哪些额外字段；工具侧定位后再实现正式归档。
+9. 新版 CLI 的 TS/SceneFactor 写入和查询均已做过单点现场验证，但扩展包 Design/Archive 的选择、写入、重跑和状态回写尚未完成。
 
 ## 9. 新窗口继续工作的读取顺序
 
 1. 读取本文件；
-2. 读取根目录 `README.md`；
-3. 根据任务读取对应 Skill：
+2. 读取 [`0.2.5 及后续版本开发计划`](0.2.5_AND_FOLLOWUP_DEVELOPMENT_PLAN.md)；需保留 TS/TP/TC 产物格式时读取 [`Markdown 产物契约`](TS_TP_TC_MARKDOWN_CONTRACT.md)；
+3. 读取根目录 `README.md`；
+4. 根据任务读取对应 Skill：
    - Explore：`.testagent/skills/coretest-explore/SKILL.md`
    - Design：`.testagent/skills/coretest-design/SKILL.md`
    - Archive：`.testagent/skills/coretest-archive/SKILL.md`
-4. 涉及对象状态时读取：
+5. 涉及对象状态时读取：
    - `.testagent/skills/coretest-object-archive/SKILL.md`
    - `.testagent/skills/coretest-archive/scripts/archive_state.py`
-5. 涉及在线文档时读取：
+6. 涉及在线文档时读取：
    - `.testagent/skills/coretest-document-sync/SKILL.md`
    - `.testagent/skills/coretest-document-sync/scripts/document_sync.py`
+7. 涉及因子接口时读取 `.testagent/skills/coretool/references/coretest.md`、`.testagent/skills/coretool/SKILL.md`，并在本地核对实际 `coretool-cli --help`；文档与 CLI 版本可能不同。
 
-以 `develop` 实际源码为最终依据。`main` 已包含 0.2.4 功能基线；后续尚未合并的交接文档或开发增量以 `develop` 为准。
+以 `develop` 实际源码为最终依据。`main` 包含 0.2.4 功能基线；后续交接文档或开发增量以 `develop` 为准。
+
+## 10. 接手后的下一步
+
+0.2.5 只做因子关联闭环，具体范围和后续版本拆分以[开发计划](0.2.5_AND_FOLLOWUP_DEVELOPMENT_PLAN.md)为准：
+
+1. 先让工具侧确认并现场验证 TP `--relations` 的 TestFactor 字段，使 TP 页面正常展示名称和编码；保留创建请求、响应和页面证据。
+2. Design 根据完整 TS 规格先选 TS 因子，再让 TP 从 TS 因子中选子集；暂存本地，不写平台。默认每 TS 合计最多 5 个、每 TP 合计最多 3 个，作为可配置规则；未被 TP 使用的 TS 因子剔除，没有匹配时继续空数组。
+3. Archive 在 TS 创建或复用后写 TS 因子，在创建 TP 时传其因子关系；保存原始请求、响应和状态。因子关联失败记录局部失败，不阻断 TP/TC；重跑核对已有关系。
+4. 回归 scene/function/constraint/DFX、无匹配、重复归档及 TP 页面展示。Feature 缺现场对象时做契约测试。完成后才调整扩展版本并准备发布。
+
+0.2.6 以后按开发计划依次处理新版测试用例卡片与在线文档、Init 全量功能/特性关系与 DFX 准则、Explore 的 TR 分组和策略配置。
