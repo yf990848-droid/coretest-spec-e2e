@@ -409,7 +409,9 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 
 ## 11. 0.2.5 develop 实施增量（待现场回归）
 
-- Design 每 TS 新增 `test_design/ts_<NN>_factor_plan.json`，经
+- Design 每 TS 先通过 `factor_candidates.py` 调用图谱查询并保存
+  `test_design/ts_<NN>_factor_candidates.json`；查询成功后生成
+  `test_design/ts_<NN>_factor_plan.json`，经
   `.testagent/skills/coretest-design/scripts/factor_plan.py` 校验；TP/TC Markdown
   固定表格与 JSON 继续保持原结构。无匹配因子明确保存空数组。
 - 正式 Archive 的 TS 创建/复用后运行 `factor_archive.py sync-ts`，逐因子

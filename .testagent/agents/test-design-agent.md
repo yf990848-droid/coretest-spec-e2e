@@ -15,7 +15,7 @@ metadata:
 
 1. 调用 `test-design` skill 生成当前 TS markdown；
 2. 调用 `build_tp_tc_json.py` 生成当前 TS TP/TC JSON；
-3. 根据完整 TS 规格和 TP JSON 生成并校验本地因子计划；
+3. 用固定脚本检索图谱因子，保存候选证据，再生成并校验本地因子计划；
 4. 调用 `test-case-card-adapter` skill 更新当前 TS working 卡片为 completed。
 
 当前 TS 未完成卡片闭环时，不允许返回成功。
@@ -33,6 +33,7 @@ metadata:
 - `design_task_id`；
 - `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json` 文件路径及完整 CIDA 内容；
 - `.design_output/<design_task_id>/TR_<tr_id>/test_design/` 输出目录。
+- 当前版本的产品名，用于图谱检索时过滤产品。
 
 必须使用当前 `TR_<tr_id>` 目录中的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
 
@@ -122,8 +123,22 @@ cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.p
 
 ### 3. 生成因子计划（只在本地，不写平台）
 
-使用 `test-graph` 检索当前完整 TS 规格对应的 TestFactor 候选；仅当
-`ts_type=scene` 时同时检索 SceneFactor。只从实际查到的因子中选择，不按名称
+先调用固定脚本，使用 `test-graph/scripts/query.py search` 按当前 TS 和每个 TP
+检索 TestFactor；仅当 `ts_type=scene` 时同时检索 SceneFactor。产品名使用
+当前版本的产品名（例如 `UPCF`），不能由 TS 名称猜测。脚本读取 catalog 与 TP JSON，
+把每次查询、原始 JSON 响应和去重候选写入 `ts_<NN>_factor_candidates.json`：
+
+```bash
+python "<root>/.testagent/skills/coretest-design/scripts/factor_candidates.py" \
+  --catalog-file "<tr_dir>/test_specs/ts_catalog.json" \
+  --tp-file "<test-design-dir>/ts_<NN>_tp.json" \
+  --graph-script "<root>/.testagent/skills/test-graph/scripts/query.py" \
+  --ts-key "TS_<NN>" --ts-type "<catalog.ts_type>" \
+  --product "<产品名>" --output "<test-design-dir>/ts_<NN>_factor_candidates.json"
+```
+
+脚本返回 `success=false`、产品名无法确定或查询失败时停止当前 TS 的因子计划与卡片完成，
+不得用空数组替代查询结果。检索成功后只从证据中实际查到的因子中选择，不按名称
 伪造 ID。先选择 TS 因子，再根据生成的 TP 为每个 `tp_id_temp` 选择 TS 因子子集。
 测试因子的 `testFactorId` 使用图谱的 `test_factor_id` UUID；平台关系数字 `id`
 仅用于 Archive 查询和幂等核验。候选缺少 UUID、编码或名称时不要选入计划。
@@ -167,10 +182,11 @@ cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.p
 python "<root>/.testagent/skills/coretest-design/scripts/factor_plan.py" \
   --plan-file "<test-design-dir>/ts_<NN>_factor_plan.json" \
   --tp-file "<test-design-dir>/ts_<NN>_tp.json" \
+  --candidates-file "<test-design-dir>/ts_<NN>_factor_candidates.json" \
   --ts-key "TS_<NN>" --ts-type "<catalog.ts_type>"
 ```
 
-只有输出 `success=true` 才能更新卡片；因子为空也是有效计划。上限写入
+只有检索和校验均输出 `success=true` 才能更新卡片；检索成功而候选不匹配时因子为空也是有效计划。上限写入
 `limits`，Archive 按同一计划校验；不得在两个阶段分别设置不一致的值。
 
 ---
@@ -253,7 +269,7 @@ test-case-card-adapter
 - ts_<NN>_test_cases.md 存在；
 - ts_<NN>_tp.json 存在；
 - ts_<NN>_tc.json 存在；
-- ts_<NN>_factor_plan.json 存在且已通过校验；
+- ts_<NN>_factor_candidates.json 的所有查询成功，ts_<NN>_factor_plan.json 已通过校验；
 - ts_<NN>_test_case.json 存在；
 - working 卡片已更新为 completed。
 

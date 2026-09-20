@@ -164,8 +164,10 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 1.  调用 `skills/test-design` 生成当前 TS 的 `ts_<NN>_test_design.md` 和 `ts_<NN>_test_cases.md`；
 2.  调用 `build_tp_tc_json.py --ts <NN>` 只提取当前 TS 的 JSON；
-3.  根据当前 TS 完整规格生成 `ts_<NN>_factor_plan.json`，用 `factor_plan.py`
-    校验 UUID、TP 子集与数量上限；无匹配时保存明确的空数组；
+3.  调用 `factor_candidates.py` 检索当前 TS 和每个 TP 对应的图谱候选并保存
+    `ts_<NN>_factor_candidates.json`；查询成功后生成 `ts_<NN>_factor_plan.json`，
+    用 `factor_plan.py --candidates-file` 校验 UUID、候选来源、TP 子集与数量上限；
+    只有查询成功且无匹配时才能保存明确的空数组；
 4.  调用 `skills/test-case-card-adapter` 将当前 TS 已初始化的 working 卡片更新为 completed；
 4.  当前 TS 分支结束。
 
@@ -183,6 +185,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 10. `design-task-id`；
 11. 完整 `cida_info.json` 上下文；
 12. 完整 `ts_catalog.json`，并明确当前 TS 只能按 `tp-tc-design-logic.md` 中对应来源/类型的维度生成设计。
+13. 当前版本的产品名（如 `UPCF`），用于图谱检索的产品过滤；无法确定时停止该 TS 的因子检索，不能填空计划。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
 
@@ -249,7 +252,8 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
   agents/test-design-agent          Phase 2       单TS闭环：markdown、JSON、卡片completed
   skills/test-design                Agent内部     TS级TP/TC设计文件
   scripts/build_tp_tc_json.py       Agent内部     单TS TP/TC JSON
-  scripts/factor_plan.py            Agent内部     单TS 因子计划校验
+  scripts/factor_candidates.py      Agent内部     单TS 图谱候选查询与证据
+  scripts/factor_plan.py            Agent内部     单TS 因子计划与候选校验
   skills/test-case-card-adapter     Agent内部     单TS测试用例卡片数据
 
 ## Error Handling

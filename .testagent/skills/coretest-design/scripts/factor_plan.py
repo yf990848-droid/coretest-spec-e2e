@@ -81,10 +81,46 @@ def validate(plan, tp_json, ts_key, ts_type, max_ts=None, max_tp=None):
             "scene_factors": len(scenes)}
 
 
+def verify_candidates(evidence, plan, tp_json, ts_key, ts_type):
+    require(isinstance(evidence, dict) and evidence.get("success") is True,
+            "图谱检索未成功，不能判定无匹配因子")
+    require(evidence.get("ts_key") == ts_key and evidence.get("ts_type") == ts_type
+            and isinstance(evidence.get("product"), str) and evidence["product"].strip(),
+            "检索证据与当前 TS 或产品不一致")
+    labels = ["TestFactor", "SceneFactor"] if ts_type == "scene" else ["TestFactor"]
+    targets = ["ts"] + [tp["tp_id_temp"] for tp in tp_json["tps"]]
+    queries = evidence.get("queries")
+    require(isinstance(queries, list) and len(queries) == len(targets) * len(labels),
+            "TS/TP 的因子查询次数不足")
+    require(all(isinstance(row, dict) for row in queries), "图谱查询记录格式错误")
+    require([(row.get("target"), row.get("label")) for row in queries]
+            == [(target, label) for target in targets for label in labels],
+            "图谱查询目标或因子类型不完整")
+    for row in queries:
+        response = row.get("response")
+        require(isinstance(row.get("query"), str) and row["query"].strip()
+                and isinstance(response, dict) and response.get("ok") is True
+                and isinstance(response.get("data"), list)
+                and response.get("count") == len(response["data"]),
+                "图谱查询缺少有效成功响应")
+    for kind, id_field, plan_id in (("test_factors", "test_factor_id", "testFactorId"),
+                                    ("scene_factors", "factor_code", "factorCode")):
+        found = evidence.get(kind)
+        require(isinstance(found, list), "图谱候选列表缺失")
+        identifiers = {item.get(id_field) for item in found if isinstance(item, dict)}
+        label = "TestFactor" if kind == "test_factors" else "SceneFactor"
+        raw_ids = {item.get(id_field) for row in queries if row["label"] == label
+                   for item in row["response"]["data"] if isinstance(item, dict)}
+        require(identifiers <= raw_ids, "候选标识不属于图谱原始查询结果")
+        require(all(item[plan_id] in identifiers for item in plan[kind]),
+                "因子计划包含未在图谱查询中查到的标识")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan-file", required=True)
     parser.add_argument("--tp-file", required=True)
+    parser.add_argument("--candidates-file", required=True)
     parser.add_argument("--ts-key", required=True)
     parser.add_argument("--ts-type", required=True)
     parser.add_argument("--max-ts-factors", type=int)
@@ -93,6 +129,8 @@ def main():
     try:
         result = validate(read_json(args.plan_file), read_json(args.tp_file), args.ts_key,
                           args.ts_type, args.max_ts_factors, args.max_tp_factors)
+        verify_candidates(read_json(args.candidates_file), read_json(args.plan_file),
+                          read_json(args.tp_file), args.ts_key, args.ts_type)
         print(json.dumps({"success": True, **result}, ensure_ascii=False))
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         parser.exit(1, json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False) + "\n")
