@@ -392,7 +392,7 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 6. 涉及在线文档时读取：
    - `.testagent/skills/coretest-document-sync/SKILL.md`
    - `.testagent/skills/coretest-document-sync/scripts/document_sync.py`
-7. 涉及因子接口时读取 `.testagent/skills/coretool/references/coretest.md`、`.testagent/skills/coretool/SKILL.md`，并在本地核对实际 `coretool-cli --help`；文档与 CLI 版本可能不同。
+7. 涉及因子接口时读取 `.testagent/skills/coretool-cli/references/coretest.md`、`.testagent/skills/coretool-cli/SKILL.md`，并在本地核对实际 `coretool-cli --help`；文档与 CLI 版本可能不同。
 
 以 `develop` 实际源码为最终依据。`main` 包含 0.2.4 功能基线；后续交接文档或开发增量以 `develop` 为准。
 

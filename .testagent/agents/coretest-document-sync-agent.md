@@ -30,7 +30,7 @@ metadata:
 ## 执行
 
 1. 读取 `<root>/.testagent/skills/coretest-document-sync/SKILL.md`；
-2. 按 `<root>/.testagent/skills/coretool/SKILL.md` 解析 `<coretool_cmd>`，只执行 `version` 和 `auth status` 检查；
+2. 按 `<root>/.testagent/skills/coretool-cli/SKILL.md` 解析 `<coretool_cmd>`，只执行 `version` 和 `auth status` 检查；
 3. 使用绝对路径执行：
 
 ```bash

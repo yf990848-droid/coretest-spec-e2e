@@ -57,7 +57,7 @@ name: coretest-explore
 
 1. 读取仓库约束文件（若存在）。
 2. 执行 `pandoc --version`。
-3. 在执行任何 CoreTool 命令前，先读取 `.testagent/skills/coretool/SKILL.md`，严格按其环境准备流程解析并校验绝对路径 `<coretool_cmd>`；解析完成后只使用 `"<coretool_cmd>" version` 和 `"<coretool_cmd>" auth status` 检查可用性与登录状态。不得先执行裸 `coretool`，不得搜索 pip 包或额外探测子命令帮助。
+3. 在执行任何 CoreTool 命令前，先读取 `.testagent/skills/coretool-cli/SKILL.md`，严格按其环境准备流程解析并校验绝对路径 `<coretool_cmd>`；解析完成后只使用 `<coretool_cmd> version` 和 `<coretool_cmd> auth status` 检查可用性与登录状态。不得先执行裸 `coretool`，不得搜索 pip 包或额外探测子命令帮助。
 4. 校验输入为纯数字 TR ID。
 5. 搜索：
 

@@ -111,7 +111,7 @@ TS 成功创建或从状态复用后，若当前 TS 存在已完成的 TP JSON �
 禁止读取设计产物和同步因子。尚未 Design 的 TS-only 归档可以先保存 TS ID，
 待 Design 完成后在正式 Archive 补做因子同步。
 
-使用 `coretool` Skill 确定当前可用 CLI 的绝对路径，固定调用：
+使用 `coretool-cli` Skill 确定当前可用 CLI 的绝对路径，固定调用：
 
 ```bash
 python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" sync-ts \

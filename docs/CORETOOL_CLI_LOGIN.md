@@ -1,6 +1,6 @@
 # CoreTool CLI 本地登录指南
 
-在使用 `coretest-spec-e2e@0.2.3` 前，请先在本机完成 CoreTool CLI 登录。Explore 的平台 TS 查询、TS 归档以及 Archive 在线文档同步都依赖有效的 CLI 认证状态。
+在使用 `coretest-spec-e2e@0.2.5` 前，请先在本机完成 CoreTool CLI 登录。Explore 的平台 TS 查询、TS 归档以及 Archive 在线文档同步都依赖有效的 CLI 认证状态。
 
 本文以 Windows PowerShell 和扩展包内置 CLI 为例。
 
@@ -9,8 +9,8 @@
 将 `$Root` 修改为本机扩展包实际目录：
 
 ```powershell
-$Root = "D:\TestAgent\templates\coretest-spec-e2e@0.2.3\coretest-spec-e2e"
-$CoreTool = Join-Path $Root ".testagent\skills\coretool\tools\coretool-cli.exe"
+$Root = "D:\TestAgent\templates\coretest-spec-e2e@0.2.5\coretest-spec-e2e"
+$CoreTool = Join-Path $Root ".testagent\skills\coretool-cli\tools\coretool-cli.exe"
 
 Test-Path -LiteralPath $CoreTool
 & $CoreTool version
