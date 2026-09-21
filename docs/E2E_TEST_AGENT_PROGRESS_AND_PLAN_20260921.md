@@ -31,34 +31,14 @@ E2E测试Agent的建设目标，是以**测试Spec和领域知识**为核心，�
 
 ## 2. E2E测试Agent目标与效果衡量
 
-### 2.1 目标、子专题与衡量方式
+### 2.1 目标
 
-| 子专题 | 建设目标 | 核心建设内容 | 效果衡量 | 当前效果 |
-|---|---|---|---|---|
-| 需求 → 测试规格 | 从需求上下文自动完成测试分析和测试规格设计 | Init、Explore、TR/TS、Spec质检、普通/DFX测试规格 | TR/TS产出、Spec质量、人工修改量 | 主流程已打通，支持普通TS和平台DFX TS统一处理 |
-| 测试规格 → 测试设计 | 根据TS生成可落入平台的TP/TC，并逐步引入专业测试准则 | Design、TP/TC生成、DFX设计、测试因子/场景因子 | 用例接纳率、TP/TC覆盖、DFX覆盖 | 穿刺需求用例接纳率 **92.6%**；因子关联主能力完成 |
-| 测试资产平台化 | Agent产出直接进入现有测试生产流程 | Archive、TR/TS/TP/TC归档、在线文档、Portal卡片 | 自动归档范围、失败恢复、人工操作减少 | 已支持对象归档、在线文档同步、Portal刷新和卡片触发 |
-| 测试领域知识增强 | 让Agent基于专业知识进行设计，而不是只依赖Prompt生成 | 图谱、测试因子、场景因子、DFX Spec、历史资产、调测经验 | 知识命中、因子关联、DFX设计效果 | 图谱和因子已融入主流程，DFX自主匹配正在建设 |
-| E2E测试闭环 | 测试设计继续进入代码生成、执行与调测 | 自动化测试方案、AW/Codebase、脚本生成、自动执行、经验回流 | E2E测试占比、自动化执行覆盖 | E2E测试占比从 **0提升至5.29%** |
-| 公共能力与多产品复用 | 将能力沉淀为公共Extension，减少产品重复开发 | Extension、卡片、流程配置、公共Skill、产品差异适配 | 下载量、复用产品数、用户问题闭环 | **247次下载，至少9个产品**基于公共包开发 |
+| 目标方向 | 目标值 | 当前值 | 当前差距 |
+|---|---:|---:|---:|
+| 先锋PDU E2E测试占比 | **30%** | **5.29%** | **24.71个百分点** |
+| 脚本调测 + AW代码生成：AI生成脚本代码入库占比 | **100%** | **待补充** | 待补充 |
 
-### 2.2 阶段效果数据
-
-截至 **2026-09-21**：
-
-| 指标 | 当前结果 | 说明 |
-|---|---:|---|
-| `coretest-spec-e2e` 下载量 | **247** | 公共Extension已有实际使用基础 |
-| 基于公共包开发的产品 | **≥9个** | 已从UPCF单场景穿刺扩展到多产品复用 |
-| E2E累计产出测试用例 | **880个** | 分组实际业务产出 |
-| E2E测试占比 | **0 → 5.29%** | 已从无E2E产出进入实际生产链路 |
-| 同期AI生成用例占比 | **0.88% → 44.69%** | 整体AI生成指标，同期提升，不全部归因于E2E Test Agent |
-| 穿刺需求用例接纳率 | **92.6%** | 独立穿刺需求效果评测，与880个用例统计口径不同 |
-| 用户问题闭环 | **10个** | 已进入真实用户使用、反馈、修复闭环 |
-| 发布版本记录 | **7个** | 从v0.1.11到v0.2.4 |
-| 持续版本升级 | **6轮** | 7月28日至9月1日持续演进 |
-
-**E2E测试占比口径：**
+其中，E2E测试占比按以下口径统计：
 
 ```text
 AI辅助测试设计
@@ -70,7 +50,35 @@ AI辅助测试设计
 ÷ 新增用例
 ```
 
-该指标强调的不只是“AI生成了测试设计”，而是AI辅助设计进一步进入代码生成、自动化执行或AI辅助执行链路。
+E2E测试Agent的建设重点，是围绕以上两个业务目标逐步打通“需求 → 测试设计 → 自动化实现 → 执行调测”的端到端链路，而不是只建设单点生成能力。
+
+### 2.2 子专题
+
+| 子专题 | 核心建设内容 | 解决的问题 |
+|---|---|---|
+| 需求 → 测试规格 | Init、Explore、需求文档解析、TR/TS、普通/DFX测试规格、Spec质检 | 从需求中明确**测什么** |
+| 测试规格 → 测试设计 | Design、TP/TC生成、测试因子/场景因子、DFX准则 | 形成可落入平台的**测试设计** |
+| 测试资产平台化 | Archive、TR/TS/TP/TC归档、在线文档、Portal卡片 | 让Agent产出进入现有**测试生产流程** |
+| 测试知识增强 | 图谱、历史测试资产、测试因子、DFX Spec、调测经验 | 从“Prompt生成”升级为**知识驱动设计** |
+| 自动化测试方案与AW | 自动化Spec、AW Function Advisor、Codebase检索 | 从测试设计继续进入**自动化实现** |
+| 脚本生成与调测 | 脚本生成、自动执行、调测、经验回流 | 打通测试实现和**执行反馈闭环** |
+| 公共能力与多产品复用 | Extension、公共Skill、卡片、策略配置化 | 降低不同产品重复建设和适配成本 |
+
+### 2.3 效果衡量
+
+截至 **2026-09-21**：
+
+| 衡量维度 | 指标 | 当前结果 | 说明 |
+|---|---|---:|---|
+| 核心目标 | 先锋PDU E2E测试占比 | **5.29%** | 目标30%，当前仍有24.71个百分点提升空间 |
+| 业务产出 | E2E累计产出测试用例 | **880个** | 分组实际业务产出 |
+| 设计质量 | 穿刺需求用例接纳率 | **92.6%** | 独立穿刺需求效果评测，与880个用例统计口径不同 |
+| AI化程度 | 同期测试用例AI生成占比 | **0.88% → 44.69%** | 整体AI生成指标，同期提升，不全部归因于E2E Test Agent |
+| 公共复用 | `coretest-spec-e2e` 下载量 | **247** | 公共Extension已有实际使用基础 |
+| 公共复用 | 基于公共包开发的产品 | **≥9个** | 已从UPCF单场景穿刺扩展到多产品复用 |
+| 工程成熟度 | 发布版本记录 / 持续升级 | **7个版本记录 / 6轮升级** | 从v0.1.11持续演进到v0.2.4 |
+| 用户反馈 | 已闭环用户问题 | **10个** | 已进入真实用户使用、反馈和持续修复阶段 |
+| 脚本目标 | AI生成脚本代码入库占比 | **待补充** | 目标100%；当前值需按脚本代码入库统计口径补充 |
 
 > 数据来源：产品数字化与IT装备运营工作台、AgentCenter、穿刺需求效果评测及用户问题跟踪记录。
 
@@ -178,90 +186,23 @@ DocSync --> OnlineDoc
 
 ### 3.2 当前E2E流程设计
 
-当前正式流程围绕**平台已有设计任务和TR**执行。Init负责准备统一上下文；Explore完成需求解析、普通/DFX测试规格及统一TS目录；Design按TS并行生成TP/TC和因子计划；Archive按用户指定范围完成对象、文档和Portal闭环。
+当前E2E流程由4个核心命令组成，各命令通过统一的 `.design_output/<design_task_id>/TR_<tr_id>/` 目录传递上下文和产物。
 
-```plantuml
-@startuml
-start
+| 命令 | 主要功能 | 核心输入 | 主要产出/结果 |
+|---|---|---|---|
+| `/coretest-init "<产品版本>"` | 初始化测试设计上下文；查询设计任务、平台已有TR及TR直接关联需求，为后续Explore提供统一上下文 | 产品版本，例如 `UPCF 27.0.0` | `design_task_info.json`、`tr_info.json`、`cida_info.json` |
+| `/coretest-explore <tr_id>` | 基于TR关联需求下载并解析IDP/DBOX文档，生成系统需求、功能设计、SR规格和普通/DFX测试规格；统一普通TS与平台DFX TS编号；可选提前归档本轮普通TS | TR ID | `系统需求.md`、`功能设计.md`、`sr_specs/`、`platform_ts.json`、`tr_ts.json`、`ts_catalog.json` |
+| `/coretest-design <tr_id> [TS选择器...]` | 按全部或指定TS生成TP/TC；每批最多并行3个TS；完成测试因子/场景因子候选检索、本地因子计划和测试用例卡片更新 | TR ID，可选稳定TS编号或真实平台TS ID | TS级测试设计Markdown、TP/TC JSON、`factor_candidates.json`、`factor_plan.json`、completed测试用例卡片 |
+| `/coretest-archive <tr_id> <目标...>` | 按TR/TS/TP/TC或指定对象锁定归档范围；创建或复用平台对象；执行TS/TP因子关联；同步在线文档并刷新Portal | TR ID + 归档目标 | 平台TR/TS/TP/TC对象、因子关系、`archive_state.json`、在线文档同步结果、Portal结果 |
 
-:coretest-init;
-:获取设计任务、已有TR、直接关联需求;
-:保存 design_task_info.json / tr_info.json / cida_info.json;
+四个命令之间的职责边界：
 
-:coretest-explore <tr_id>;
-:读取TR直接关联需求;
-:下载并解析全部有效 IDP / DBOX 文档;
-:生成 系统需求.md / 功能设计.md / SR Specs;
-:查询平台已有TS;
-
-if (TS来源是平台DFX?) then (是)
-  :生成DFX测试规格;
-  :保存 platform_ts_id;
-  :后续Archive复用平台DFX TS;
-else (否)
-  :生成普通测试规格;
-  :生成 tr_ts.json;
-endif
-
-:普通TS + DFX TS统一生成 ts_catalog.json;
-
-if (归档Explore普通TS?) then (是)
-  :生成普通TS-only归档计划;
-  :创建普通TS并保存真实平台ID;
-else (否)
-  :跳过Explore阶段TS归档;
-endif
-
-:coretest-design <tr_id> [TS选择器];
-:解析稳定TS编号或真实平台TS ID;
-:目标TS按每批最多3个处理;
-
-while (仍有目标TS?) is (是)
-  :初始化当前TS working卡片;
-  :test-design-agent 单TS设计;
-  :生成 TP / TC Markdown;
-  :提取 TP / TC JSON;
-  :检索测试因子 / 场景因子;
-  :生成并校验 factor_plan;
-  :更新当前TS completed卡片;
-endwhile (否)
-
-:coretest-archive <tr_id> <目标>;
-:解析 TR / TS / TP / TC 精确归档范围;
-:锁定对象计划和文档范围;
-
-:coretest-object-archive;
-:创建或复用 TS / TP / TC;
-:写入TS因子关联;
-:新TP创建时原子关联TP因子;
-:保存 archive_state.json;
-
-:coretest-document-sync-agent;
-:同步设计任务 / TR / 相关TS在线文档;
-
-:test-portal-card;
-:刷新Portal;
-
-:汇总对象 / 文档 / Portal结果;
-stop
-@enduml
-```
-
-### 3.3 当前流程的核心约束
-
-| 设计点 | 当前规则 |
-|---|---|
-| TR范围 | 正式流程以Init获取的已有TR为入口，后续阶段统一使用同一TR上下文 |
-| 需求范围 | `tr_info.json.requirements[]` 是当前TR直接关联需求的权威范围 |
-| TS统一编号 | 普通TS与平台DFX TS统一进入 `ts_catalog.json`，后续Design/Archive使用稳定 `TS_<NN>` |
-| DFX TS | 平台已有DFX TS只查询和复用，不在Explore或正式Archive中重复创建 |
-| Explore普通TS归档 | 用户可选择跳过，或仅归档本轮Explore生成的全部普通TS |
-| Design并发 | 每批最多并行3个TS；一个 `test-design-agent` 只负责一个TS |
-| 因子处理 | Design只生成本地因子计划；Archive执行平台真实关联 |
-| 因子规则 | Scene TS/TP可使用场景因子+测试因子；其他TS/TP仅使用测试因子 |
-| Archive | 指定对象只向上补齐父级依赖，不向下展开；成功对象重跑时复用 |
-| 在线文档 | 对象归档与文档同步状态隔离；文档失败不回滚已成功对象 |
-| 状态管理 | `archive_state.json` 持久化对象、因子和执行状态，支持幂等和断点续跑 |
+| 阶段 | 主要职责 | 不负责的内容 |
+|---|---|---|
+| Init | 获取并固化平台测试设计上下文 | 不生成测试规格或测试设计 |
+| Explore | 完成“需求 → 测试规格”，建立统一TS目录 | 不生成TP/TC |
+| Design | 完成“TS → TP/TC”，并生成本地因子计划 | 不直接写入平台因子关系 |
+| Archive | 执行真实平台对象、因子和文档写入 | 不重新生成测试规格和TP/TC |
 
 
 ---
@@ -270,16 +211,57 @@ stop
 
 ### 4.1 概览
 
-| 维度 | 当前进展 | 状态/数据 |
-|---|---|---|
-| E2E主流程 | 已打通 Init → Explore → Design → Archive 主链路，并与全量测试设计平台衔接 | **主流程已具备** |
-| 测试资产 | 已覆盖 TR / TS / TP / TC，支持普通、Scene、DFX等测试规格 | **4类核心资产** |
-| 平台融合 | 已支持对象归档、在线文档同步、Portal刷新，以及TR/TS卡片触发TestAgent | **已形成生产链路** |
-| 知识增强 | 图谱、测试因子、场景因子已进入设计流程，DFX准则自主匹配继续建设 | **由流程驱动向知识驱动演进** |
-| 公共复用 | `coretest-spec-e2e` 已作为公共Extension发布，至少9个产品基于公共包开发 | **247次下载，≥9个产品** |
-| 业务效果 | 分组累计通过E2E流程产出880个测试用例，穿刺需求用例接纳率92.6% | **E2E占比0 → 5.29%** |
-| 工程迭代 | 从v0.1.11持续演进到v0.2.4，develop继续推进后续能力 | **7个发布版本记录，6轮升级** |
-| 用户反馈 | 已进入真实用户使用、问题跟踪和持续修复阶段 | **闭环10个用户问题** |
+下面按当前模块状态展示E2E测试Agent建设进展。**已完成**表示主能力已进入当前流程；**进行中**表示已有基础但仍在补齐本阶段目标；**未开始**表示已明确规划、尚未进入实现。
+
+```plantuml
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "已完成" {
+  [Explore基础能力\n需求解析 / 普通+DFX TS] as DoneExplore
+  [Design基础能力\nTP / TC生成] as DoneDesign
+  [Archive主能力\nTR / TS / TP / TC归档] as DoneArchive
+  [在线文档同步] as DoneDoc
+  [Portal双向通信] as DonePortal
+  [测试因子 / 场景因子主能力] as DoneFactor
+  [知识图谱接入] as DoneGraph
+  [公共Extension发布] as DoneExtension
+}
+
+package "进行中" {
+  [Init全量特性 / 功能关系] as DoingInit
+  [DFX准则自主匹配] as DoingDFX
+  [Explore TR多分支] as DoingTR
+  [流程策略配置化] as DoingConfig
+  [0.2.5因子关联完整回归] as DoingFactor
+}
+
+package "未开始" {
+  [新版测试用例卡片] as TodoCard
+  [兼容性Spec体系化融入] as TodoCompat
+  [自动化Spec体系化融入] as TodoAutoSpec
+}
+
+DoneExplore --> DoneDesign
+DoneDesign --> DoneArchive
+DoneArchive --> DoneDoc
+DoneArchive --> DonePortal
+
+DoingInit --> DoingTR
+DoingTR --> DoneExplore
+DoingDFX --> DoneDesign
+DoneFactor --> DoneArchive
+DoingConfig --> DoingTR
+DoingConfig --> DoneDesign
+
+TodoCard --> DoneDesign
+TodoCompat --> DoingDFX
+TodoAutoSpec --> DoingDFX
+@enduml
+```
+
 
 ### 4.2 已完成
 
