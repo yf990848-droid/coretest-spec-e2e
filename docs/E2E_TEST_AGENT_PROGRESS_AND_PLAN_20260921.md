@@ -76,89 +76,194 @@ AI辅助测试设计
 
 ---
 
-## 3. E2E测试Agent总体方案
+## 3. E2E测试Agent当前架构与流程设计
 
-### 3.1 总体方案
+### 3.1 当前E2E架构
+
+当前架构以 `coretest-spec-e2e` 公共Extension为流程主体，TestAgent和全量测试设计Portal作为入口；Init、Explore、Design、Archive负责主流程编排，专项Skill/Agent负责需求解析、测试设计、因子检索、对象归档、在线文档和卡片等具体能力；各阶段通过统一的 `.design_output` 目录传递确定性产物。
 
 ```plantuml
 @startuml
-left to right direction
+top to bottom direction
 skinparam componentStyle rectangle
+skinparam packageStyle rectangle
 
 actor "测试人员" as User
 
-rectangle "使用入口" {
-  component "TestAgent" as TestAgent
-  component "全量测试设计
-Portal卡片" as Portal
+package "入口层" {
+  [TestAgent] as TestAgent
+  [全量测试设计 Portal] as Portal
 }
 
-rectangle "coretest-spec-e2e 公共Extension" {
-  component "Init
-需求上下文" as Init
-  component "Explore
-TR / TS" as Explore
-  component "Design
-TP / TC" as Design
-  component "Archive
-对象 / 文档 / Portal" as Archive
+package "coretest-spec-e2e 流程编排层" {
+  [coretest-init] as Init
+  [coretest-explore] as Explore
+  [coretest-design] as Design
+  [coretest-archive] as Archive
 
   Init --> Explore
   Explore --> Design
   Design --> Archive
 }
 
-cloud "测试领域知识" as Knowledge {
-  component "产品知识" as ProductKnowledge
-  component "测试设计知识" as DesignKnowledge
-  component "DFX Spec / 准则" as DFX
-  component "测试因子 / 场景因子" as Factor
-  component "历史测试资产" as History
-  component "调测经验" as Experience
+package "专项能力层" {
+  [coretest-init-agent] as InitAgent
+  [Spec提取 / Requirement解析] as SpecParse
+  [测试规格分析] as SpecAnalysis
+  [test-design-agent] as DesignAgent
+  [测试因子 / 场景因子检索] as Factor
+  [测试用例卡片] as CaseCard
+  [coretest-archive-agent] as ArchiveAgent
+  [对象归档] as ObjectArchive
+  [在线文档同步] as DocSync
+  [Portal刷新] as PortalCard
 }
 
-rectangle "测试生产平台" {
-  database "全量测试设计平台
-TR / TS / TP / TC" as Platform
-  component "在线文档" as Document
-}
+database ".design_output\n统一过程数据与状态" as LocalData
 
-rectangle "自动化测试能力" {
-  component "自动化测试方案 Spec" as AutoSpec
-  component "AW / Codebase" as AW
-  component "测试脚本生成" as Script
-  component "自动执行 / 调测" as Execute
-
-  AutoSpec --> AW
-  AW --> Script
-  Script --> Execute
+package "平台与知识底座" {
+  [core_test_design_mcp] as MCP
+  [CoreTool CLI] as CLI
+  [测试设计知识图谱] as Graph
+  [全量测试设计平台\nTR / TS / TP / TC] as Platform
+  [在线测试设计文档] as OnlineDoc
 }
 
 User --> TestAgent
 User --> Portal
-Portal <--> TestAgent : 节点上下文 / AI分析
+Portal <--> TestAgent : AI分析 / 节点上下文
 
 TestAgent --> Init
+TestAgent --> Explore
+TestAgent --> Design
+TestAgent --> Archive
 
-Knowledge --> Explore : 需求分析 / 规格设计
-Knowledge --> Design : 准则 / 因子 / 历史资产
+Init --> InitAgent
+Explore --> SpecParse
+Explore --> SpecAnalysis
+Design --> DesignAgent
+DesignAgent --> Factor
+DesignAgent --> CaseCard
+Archive --> ArchiveAgent
+ArchiveAgent --> ObjectArchive
+ArchiveAgent --> DocSync
+ArchiveAgent --> PortalCard
 
-Archive --> Platform
-Archive --> Document
-Archive --> Portal : 刷新结果
+Init --> LocalData
+Explore --> LocalData
+Design --> LocalData
+Archive --> LocalData
 
-Design --> AutoSpec : 后续延伸
-Execute --> Experience : 经验回流
+InitAgent --> MCP
+SpecAnalysis --> CLI
+Factor --> Graph
+ObjectArchive --> CLI
+ObjectArchive --> MCP
+DocSync --> CLI
+PortalCard --> Platform
+
+CLI --> Platform
+MCP --> Platform
+DocSync --> OnlineDoc
 @enduml
 ```
 
-### 3.2 方案重点
+架构中的几个关键设计点：
 
-- **主链路统一**：需求上下文经过Init、Explore、Design、Archive，形成TR、TS、TP、TC并归档到全量测试设计平台。
-- **与现有生产流程融合**：Portal卡片与TestAgent双向通信，TR节点可触发Explore、TS节点可触发Design，避免再建设一套独立入口。
-- **知识增强测试设计**：图谱、测试因子、场景因子、DFX Spec、历史资产和调测经验逐步进入Explore/Design决策。
-- **确定性平台操作**：对象归档、执行计划、在线文档等高确定性环节通过脚本和CLI/MCP完成，Agent负责分析和编排。
-- **继续向自动化实现延伸**：基于自动化测试方案Spec串联AW/Codebase、脚本生成、自动执行和调测经验，形成更完整的测试E2E闭环。
+- **统一入口**：既支持在TestAgent中手工执行命令，也支持Portal卡片从TR/TS节点直接触发Explore/Design；两种入口最终进入同一套流程。
+- **主流程与专项能力解耦**：Init/Explore/Design/Archive负责阶段编排，复杂动作下沉到Agent、Skill和确定性脚本，降低主流程复杂度。
+- **统一过程数据**：各阶段共享 `.design_output/<design_task_id>/TR_<tr_id>/`，通过文件契约传递上下文、设计产物、执行计划和状态，不依赖Agent记忆串联阶段。
+- **AI分析与确定性操作分离**：测试规格、TP/TC设计和知识选择由Agent完成；平台对象创建、状态持久化、在线文档写入等确定性操作由脚本、CLI/MCP完成。
+- **现有平台优先复用**：已有TR和平台DFX TS直接复用，不重复创建；Archive对成功对象幂等复用，保证重跑安全。
+
+### 3.2 当前E2E流程设计
+
+当前正式流程围绕**平台已有设计任务和TR**执行。Init负责准备统一上下文；Explore完成需求解析、普通/DFX测试规格及统一TS目录；Design按TS并行生成TP/TC和因子计划；Archive按用户指定范围完成对象、文档和Portal闭环。
+
+```plantuml
+@startuml
+top to bottom direction
+
+start
+
+:coretest-init;
+:获取设计任务、已有TR、直接关联需求;
+:保存 design_task_info.json / tr_info.json / cida_info.json;
+
+:coretest-explore <tr_id>;
+:读取TR直接关联需求;
+:下载并解析全部有效 IDP / DBOX 文档;
+:生成 系统需求.md / 功能设计.md / SR Specs;
+:查询平台已有TS;
+
+if (TS来源?) then (平台DFX TS)
+  :生成DFX测试规格;
+  :保存 platform_ts_id;
+  :Archive阶段复用平台对象;
+else (Explore普通TS)
+  :生成普通测试规格;
+  :生成 tr_ts.json;
+endif
+
+:普通TS + DFX TS统一生成 ts_catalog.json;
+
+if (用户选择归档Explore普通TS?) then (是)
+  :仅生成普通TS归档计划;
+  :创建普通TS并保存真实平台ID;
+else (否)
+  :跳过Explore阶段TS归档;
+endif
+
+:coretest-design <tr_id> [TS选择器];
+:从 ts_catalog 解析稳定TS编号 / 平台TS ID;
+:目标TS按每批最多3个并行处理;
+
+repeat
+  :初始化当前TS working卡片;
+  :test-design-agent 单TS设计;
+  :生成 TP / TC Markdown;
+  :提取 TP / TC JSON;
+  :图谱检索测试因子 / 场景因子;
+  :生成并校验 factor_plan;
+  :更新当前TS completed卡片;
+repeat while (仍有目标TS?) is (是)
+
+:coretest-archive <tr_id> <目标>;
+:解析 TR / TS / TP / TC 精确归档范围;
+:锁定对象计划和文档范围;
+
+:coretest-object-archive;
+:创建或复用 TS / TP / TC;
+:归档阶段写入TS因子;
+:新TP创建时原子关联TP因子;
+:即时保存 archive_state.json;
+
+:coretest-document-sync-agent;
+:同步设计任务 / TR / 相关TS在线文档;
+
+:test-portal-card;
+:刷新Portal并汇总对象 / 文档 / Portal结果;
+
+stop
+@enduml
+```
+
+### 3.3 当前流程的核心约束
+
+| 设计点 | 当前规则 |
+|---|---|
+| TR范围 | 正式流程以Init获取的已有TR为入口，后续阶段统一使用同一TR上下文 |
+| 需求范围 | `tr_info.json.requirements[]` 是当前TR直接关联需求的权威范围 |
+| TS统一编号 | 普通TS与平台DFX TS统一进入 `ts_catalog.json`，后续Design/Archive使用稳定 `TS_<NN>` |
+| DFX TS | 平台已有DFX TS只查询和复用，不在Explore或正式Archive中重复创建 |
+| Explore普通TS归档 | 用户可选择跳过，或仅归档本轮Explore生成的全部普通TS |
+| Design并发 | 每批最多并行3个TS；一个 `test-design-agent` 只负责一个TS |
+| 因子处理 | Design只生成本地因子计划；Archive执行平台真实关联 |
+| 因子规则 | Scene TS/TP可使用场景因子+测试因子；其他TS/TP仅使用测试因子 |
+| Archive | 指定对象只向上补齐父级依赖，不向下展开；成功对象重跑时复用 |
+| 在线文档 | 对象归档与文档同步状态隔离；文档失败不回滚已成功对象 |
+| 状态管理 | `archive_state.json` 持久化对象、因子和执行状态，支持幂等和断点续跑 |
+
 
 ---
 
