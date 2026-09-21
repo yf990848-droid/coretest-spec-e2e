@@ -83,7 +83,7 @@ def cli_list(cli, kind, ts_id):
     total = pagination.get("total", len(result["items"]))
     page_size = pagination.get("page_size", len(result["items"]))
     page = pagination.get("page", 1)
-    require(isinstance(total, int) and isinstance(page_size, int) and page_size > 0,
+    require(isinstance(total, int) and isinstance(page_size, int) and\n            (page_size > 0 or (total == 0 and page_size == 0)),
             f"{group} list 分页信息无效")
     while len(result["items"]) < total:
         page += 1
@@ -187,7 +187,7 @@ def list_all_tps(cli, ts_id):
     total = pagination.get("total", len(items))
     page_size = pagination.get("page_size", len(items))
     page = pagination.get("page", 1)
-    require(isinstance(total, int) and isinstance(page_size, int) and page_size > 0,
+    require(isinstance(total, int) and isinstance(page_size, int) and\n            (page_size > 0 or (total == 0 and page_size == 0)),
             "TP list 分页信息无效")
     while len(items) < total:
         page += 1
