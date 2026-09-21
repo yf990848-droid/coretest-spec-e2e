@@ -182,8 +182,6 @@ DocSync --> OnlineDoc
 
 ```plantuml
 @startuml
-top to bottom direction
-
 start
 
 :coretest-init;
@@ -196,37 +194,37 @@ start
 :生成 系统需求.md / 功能设计.md / SR Specs;
 :查询平台已有TS;
 
-if (TS来源?) then (平台DFX TS)
+if (TS来源是平台DFX?) then (是)
   :生成DFX测试规格;
   :保存 platform_ts_id;
-  :Archive阶段复用平台对象;
-else (Explore普通TS)
+  :后续Archive复用平台DFX TS;
+else (否)
   :生成普通测试规格;
   :生成 tr_ts.json;
 endif
 
 :普通TS + DFX TS统一生成 ts_catalog.json;
 
-if (用户选择归档Explore普通TS?) then (是)
-  :仅生成普通TS归档计划;
+if (归档Explore普通TS?) then (是)
+  :生成普通TS-only归档计划;
   :创建普通TS并保存真实平台ID;
 else (否)
   :跳过Explore阶段TS归档;
 endif
 
 :coretest-design <tr_id> [TS选择器];
-:从 ts_catalog 解析稳定TS编号 / 平台TS ID;
-:目标TS按每批最多3个并行处理;
+:解析稳定TS编号或真实平台TS ID;
+:目标TS按每批最多3个处理;
 
-repeat
+while (仍有目标TS?) is (是)
   :初始化当前TS working卡片;
   :test-design-agent 单TS设计;
   :生成 TP / TC Markdown;
   :提取 TP / TC JSON;
-  :图谱检索测试因子 / 场景因子;
+  :检索测试因子 / 场景因子;
   :生成并校验 factor_plan;
   :更新当前TS completed卡片;
-repeat while (仍有目标TS?) is (是)
+endwhile (否)
 
 :coretest-archive <tr_id> <目标>;
 :解析 TR / TS / TP / TC 精确归档范围;
@@ -234,16 +232,17 @@ repeat while (仍有目标TS?) is (是)
 
 :coretest-object-archive;
 :创建或复用 TS / TP / TC;
-:归档阶段写入TS因子;
+:写入TS因子关联;
 :新TP创建时原子关联TP因子;
-:即时保存 archive_state.json;
+:保存 archive_state.json;
 
 :coretest-document-sync-agent;
 :同步设计任务 / TR / 相关TS在线文档;
 
 :test-portal-card;
-:刷新Portal并汇总对象 / 文档 / Portal结果;
+:刷新Portal;
 
+:汇总对象 / 文档 / Portal结果;
 stop
 @enduml
 ```
