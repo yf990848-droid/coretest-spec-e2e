@@ -66,6 +66,12 @@ name: coretest-design
 -   用户指定的每个 TS 选择器必须按 Phase 1 唯一解析为 `ts_catalog.json.items[].ts_key`。
 -   使用真实平台 ID 选择普通 TS 时，必须存在 `archive/archive_state.json`，且对应 TS 已成功归档并具有非空 `platform_id`。
 
+在初始化 working 卡片或启动 `test-design-agent` 前，检查图谱查询的 Python 依赖：
+
+1. 用后续设计脚本所用的 `python` 执行 `python -c "import sys; print(sys.executable)"`，记录其绝对路径为 `<design_python>`；后续调用 `factor_candidates.py` 必须使用该解释器（它会通过 `sys.executable` 调用 `test-graph/scripts/query.py`）。
+2. 用 `<design_python>` 执行 `-c "import yaml"`。若失败，只在该解释器中执行 `-m pip install PyYAML -i http://cmc-cd-mirror.rnd.huawei.com/pypi/simple/ --trusted-host cmc-cd-mirror.rnd.huawei.com`，然后再次执行 `-c "import yaml"`。
+3. 安装失败或复查仍失败时停止本次 Design 并报告错误，不得继续生成卡片或把图谱查询失败当作无匹配因子。
+
 其中：
 
 -   从 TR 目录父级获取 `design_task_id`；
@@ -186,6 +192,7 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 11. 完整 `cida_info.json` 上下文；
 12. 完整 `ts_catalog.json`，并明确当前 TS 只能按 `tp-tc-design-logic.md` 中对应来源/类型的维度生成设计。
 13. 当前版本的产品名（如 `UPCF`），用于图谱检索的产品过滤；无法确定时停止该 TS 的因子检索，不能填空计划。
+14. `<design_python>` 的绝对路径；Agent 的 Python 脚本调用均使用此解释器，确保图谱查询与前置检查使用同一环境。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
 
