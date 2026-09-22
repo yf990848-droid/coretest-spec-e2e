@@ -139,6 +139,8 @@ def sync_ts(args, plan):
                 else:
                     payload = {field: value for field, value in factor.items()
                                if field != "factorType"}
+                    if kind == "test":
+                        payload["type"] = int(payload["type"])
                     payload_file = args.state_file.parent / "responses" / f"factor_{safe_name(key)}_payload.json"
                     atomic_write_json(payload_file, [payload])
                     command = ["coretest", "testdesign", "asset",
@@ -216,9 +218,12 @@ def create_tp(args, plan, tp_json):
     selections = plan["tp_factors"][args.tp_id_temp]
     tests = {factor["testFactorId"]: factor for factor in plan["test_factors"]}
     scenes = {factor["factorCode"]: factor for factor in plan["scene_factors"]}
+    test_relations = [{k: v for k, v in tests[identifier].items() if k != "factorType"}
+                      for identifier in selections["test_factor_ids"]]
+    for factor in test_relations:
+        factor["type"] = int(factor["type"])
     relations = {
-        "testFactorIdList": [{k: v for k, v in tests[identifier].items() if k != "factorType"}
-                             for identifier in selections["test_factor_ids"]],
+        "testFactorIdList": test_relations,
         "sceneFactorIdList": [scenes[code] for code in selections["scene_factor_codes"]],
         "tpAssociationRequirementAlmIdList": requirement_alm_ids(tp, read_json(args.tr_info_file)),
     }

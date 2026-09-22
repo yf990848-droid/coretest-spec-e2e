@@ -30,7 +30,7 @@ class FactorArchiveTests(unittest.TestCase):
         self.tr_info.write_text(json.dumps({"requirements": [{
             "requirement_number": "SR001", "requirement_id": "2096516380"}]}), encoding="utf-8")
         self.factor = {"testFactorId": "9f609356af2247605f7b2d6f7acfaf1e",
-                       "name": "IP 类型", "number": "CLI_TF_DATA_002", "type": 1,
+                       "name": "IP 类型", "number": "CLI_TF_DATA_002", "type": "0",
                        "assoActType": "SceneAnalysis", "sourceType": "TestFactorLibrary",
                        "factorType": "BusinessInterImplAnalysis", "pbi": "266926538"}
         self.plan = {"ts_key": "TS_17", "ts_type": "scene", "test_factors": [self.factor],
@@ -84,6 +84,8 @@ class FactorArchiveTests(unittest.TestCase):
         relations = json.loads(created[created.index("--relations") + 1])
         self.assertEqual(relations["testFactorIdList"][0]["testFactorId"],
                          self.factor["testFactorId"])
+        self.assertEqual(relations["testFactorIdList"][0]["type"], 0)
+        self.assertEqual(self.factor["type"], "0")
         self.assertEqual(relations["tpAssociationRequirementAlmIdList"], ["2096516380"])
         self.assertEqual(self.tp_json["tps"][0]["tpSourceType"],
                          "基于业务场景设计—场景因子")
@@ -115,8 +117,10 @@ class FactorArchiveTests(unittest.TestCase):
             calls.append(args)
             if args[4] == "create":
                 payload = Path(args[args.index("--factor-file") + 1])
-                self.assertEqual(json.loads(payload.read_text(encoding="utf-8"))[0]
-                                 ["testFactorId"], self.factor["testFactorId"])
+                payload_item = json.loads(payload.read_text(encoding="utf-8"))[0]
+                self.assertEqual(payload_item["testFactorId"], self.factor["testFactorId"])
+                self.assertEqual(payload_item["type"], 0)
+                self.assertEqual(self.factor["type"], "0")
                 return {"created": 1}
             if len(calls) == 1:
                 return {"items": [], "pagination": {"total": 0, "page_size": 10}}
