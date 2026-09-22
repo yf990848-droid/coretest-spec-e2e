@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
-  "version": "0.2.4",
-  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：全量测试设计Portal卡片支持与TestAgent双向通信，可从TR节点直接触发Explore、从TS节点直接触发Design，并自动传递节点、文档、版本及用户上下文。"
+  "version": "0.2.5",
+  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：新增测试因子/场景因子检索与因子计划，Archive 支持 TS 因子同步及新 TP 创建时原子关联因子，并保留对象、因子、文档和 Portal 的完整归档状态。"
 }

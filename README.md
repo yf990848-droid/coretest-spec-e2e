@@ -2,7 +2,7 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.4`
+当前扩展版本：`0.2.5`
 当前开发分支：`develop`
 
 ## 流程概览
@@ -157,8 +157,12 @@ test_design/ts_<NN>_test_design.md
 test_design/ts_<NN>_test_cases.md
 test_design/ts_<NN>_tp.json
 test_design/ts_<NN>_tc.json
+test_design/ts_<NN>_factor_candidates.json
+test_design/ts_<NN>_factor_plan.json
 ts_<NN>_test_case.json
 ```
+
+0.2.5 起，Design 会基于 TS 和 TP 内容检索 TestFactor；场景类 TS 同时检索 SceneFactor，并生成可审计的候选结果和最终因子计划。图谱无匹配因子时允许使用空计划继续。
 
 ### 4. Archive
 
@@ -194,6 +198,8 @@ ts_<NN>_test_case.json
 - Explore TS-only 阶段不处理 DFX；
 - 正式 Archive 遇到 DFX 时复用 catalog 的 `platform_ts_id`，不调用 `create_ts`；
 - 普通 TS 创建成功后将真实 ID保存到 `archive_state.json`；
+- 正式 Archive 会按因子计划同步 TS 因子；新 TP 创建时通过 CoreTool CLI 的 `--relations` 原子关联 TestFactor/SceneFactor；
+- 已成功旧 TP 只复用，不补录因子；因子关系会先查询再创建，避免重复关联；
 - 指定对象只向上补齐父级，不向下展开；
 - 已成功对象重跑时直接复用；
 - 对象失败不回滚成功对象；
@@ -271,13 +277,15 @@ coretest-archive-agent
 
 ## 当前验证状态
 
-截至 2026-09-01，`develop` 已验证：
+截至 2026-09-22，`develop` 已验证：
 
 - 普通/DFX 测试规格和统一 TS catalog 可生成；
 - Explore 可确定性生成普通 TS-only 计划，DFX 不进入计划；
 - 普通 TS 可创建并保存真实平台 ID；
 - Design 可处理稳定编号和真实平台 TS ID；
 - Archive 对象、在线文档和 Portal 闭环验证成功；
+- Design 已验证 TS/TP 因子检索、候选证据和因子计划校验；
+- Archive 已验证 TS 因子同步成功，新 TP 可在创建时携带因子关系并成功归档；
 - 新版 CoreTool `source-data write` 返回格式与现有脚本兼容；
 - 任务级 7 个叶子章节按独立 topic 写入；
 - 全量测试设计卡片可从 TR、TS 节点分别触发 Explore、Design。
