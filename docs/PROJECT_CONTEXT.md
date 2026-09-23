@@ -1,10 +1,10 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-09-18  
-> 仓库扩展版本元数据：`0.2.4`  
+> 最后更新：2026-09-23  
+> 仓库扩展版本元数据：`0.2.5`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新状态：`main` 包含 0.2.4 功能基线；`develop` 已接入 0.2.5 因子计划与归档代码，等待内网现场回归后更新扩展版本
+> 最新状态：`develop` 已完成 0.2.5 因子关联闭环现场验证及发布前回归，版本元数据与 README 已更新为 0.2.5，准备发布
 
 ## 1. 项目目标
 
@@ -36,7 +36,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 
 ## 2. 当前开发基线
 
-0.2.4 功能基线已于 2026-09-01 合入 `main`（提交 `bec90e8`）。此后 `develop` 继续更新文档和依赖；阅读时以 `develop` 当前文件为准。0.2.5 因子关联仍处于现场验证与实现规划阶段，不能把本地新版 CLI 的验证结果当作扩展包功能已交付。
+0.2.4 功能基线已于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 在 `develop` 完成 TS/TP 因子检索、因子计划、Archive 关联和现场闭环验证，当前已进入发布准备阶段；阅读时以 `develop` 当前文件为准。
 
 当前已完成：
 
@@ -50,19 +50,24 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 8. Archive 拆分对象、在线文档和 Portal 编排；
 9. 设计任务的 7 个叶子章节分别写入对应 topic；
 10. Archive 最新现场回归成功；
-11. `webapps/default/index.html` 支持 Portal 卡片与 TestAgent 双向通信，从 TR 节点触发 Explore、从 TS 节点触发 Design。
+11. `webapps/default/index.html` 支持 Portal 卡片与 TestAgent 双向通信，从 TR 节点触发 Explore、从 TS 节点触发 Design；
+12. Design 已实现 TS/TP TestFactor 检索，scene TS 同时检索 SceneFactor，并生成候选证据与因子计划；
+13. Archive 已实现 TS 因子同步和新 TP 创建时原子关联因子，现场闭环验证成功。
 
 关键提交：
 
 - `cbd942d`：Explore TS 归档入口、真实 ID Design、叶子 topic 写入；
 - `d9f4574`：确定性普通 TS-only 计划、DFX 排除、`ts-split.md` 修复；
 - `f9a12c0`：新增全量测试设计 Portal 卡片入口与 `aiAnalyse` 消息转发；
-- `bec90e8`：更新 0.2.4 版本元数据和 README，并同步至 `main`。
+- `bec90e8`：更新 0.2.4 版本元数据和 README，并同步至 `main`；
+- `472e97b`：兼容 CoreTool CLI 空列表返回 `total=0,page_size=0`；
+- `c0eac20`：在 Archive CLI 边界将 TestFactor `type` 从字符串转换为 int，并补回归测试；
+- `a6bb74c`：更新 0.2.5 版本元数据和 README，进入发布准备。
 
-根目录版本仍为：
+根目录版本当前为：
 
 ```text
-coretest-spec-e2e 0.2.4
+coretest-spec-e2e 0.2.5
 ```
 
 ## 3. 快速命令
@@ -197,7 +202,10 @@ ts_catalog.json
 - 主流程从 catalog 精确提取单 TS 规格；
 - DFX 使用 `platform_ts_id` 定位 DFX 规格；
 - 普通 TS 使用 `tr_ts_index` 定位 `tr_ts.json.test_specs[]`；
-- 每个 TS 独立生成 Markdown、TP/TC JSON 和 completed 卡片；
+- 每个 TS 独立生成 Markdown、TP/TC JSON、因子候选、因子计划和 completed 卡片；
+- TestFactor 对所有 TS 查询；scene TS 同时查询 SceneFactor；
+- 候选证据保存为 `ts_<NN>_factor_candidates.json`，最终计划保存为 `ts_<NN>_factor_plan.json`；
+- 图谱无匹配因子时允许空因子计划继续；
 - 卡片 key 仍为 `<requirement_id>_<ts_key>`。
 
 ### 4.5 Archive
@@ -219,6 +227,10 @@ TC        → 全部 TS + TP + TC
 - DFX 在正式 Archive 中复用 `platform_ts_id`；
 - 普通 TS 通过 `create_ts` 创建或从状态复用；
 - TP/TC 只按锁定计划执行；
+- 正式 Archive 在 TS 创建/复用后按因子计划执行 TS 因子同步；
+- 新 TP 通过 CoreTool CLI `tp create --relations` 原子关联 TestFactor/SceneFactor；旧成功 TP 只复用、不补录因子；
+- TestFactor 使用 `test_factor_id` UUID，SceneFactor 使用因子编码；
+- CLI 边界将 TestFactor `type` 规范化为 int，不修改原始因子计划；
 - 成功对象即时保存；
 - TS/TP 需要有效平台 ID；
 - TC 以 `success=true` 为成功，不强制平台 ID；
@@ -350,7 +362,19 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 - 对象失败/文档失败隔离和状态持久化逻辑已验证；
 - 0.2.4 卡片的 TR/TS 指令映射、上下文透传和 iframe 通信实现已完成代码核对。
 
-2026-09 的本地 CLI 现场验证（扩展包集成仍待现场回归）：
+0.2.5 截至 2026-09-23 的发布前验证：
+
+- `/coretest-design 4029 TS_18` 成功闭环：1 个 scene TS，6 TP、6 TC，TP→TC 覆盖率 100%；
+- `ts_18_factor_candidates.json` 完成 TS + 6 TP 的 TestFactor/SceneFactor 查询，共 14 次查询，全部 `ok=true`；
+- `ts_18_factor_plan.json` 校验成功：4 个 TestFactor、0 个 SceneFactor、6 个 TP 全覆盖；
+- `/coretest-archive 4029 TS_18/TP.18.01` 最终成功：TS_18 平台 ID=`40152`，TP.18.01 平台 ID=`26313`；
+- TS_18 的 4 个 TestFactor 关系全部 `succeeded`；
+- 在线文档同步全部成功：任务 7 个叶子章节、TR 5 个分析章节、TS_18 2 个设计章节；
+- Portal 卡片成功跳转 TP.18.01（analyseId=`26313`）；
+- `test_factor_archive.py -v` 与 `py_compile` 发布前检查通过；
+- 现场暴露并修复两项 CLI 兼容性：空列表 `page_size=0`、TestFactor `type="0"` 到 int 的边界转换。
+
+2026-09 的本地 CLI 现场验证：
 
 | 对象 | 因子 | 现场结果 |
 |---|---|---|
@@ -373,9 +397,9 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
 5. 0.2.4 卡片触发仍需在实际 TestAgent + Portal 环境完成现场回归，确认 TR、TS 节点分别启动正确流程且上下文完整。
 6. 0.2.4 安装包的扩展目录、`codeagent-extension.json.version` 和 WebApp 应保持同版；准备 0.2.5 时再统一更新版本，不能从本地 CLI 版本推断扩展包版本。
-7. 因子选择规则和归档适配已改为显式 ID 计划；scene TS/TP 可同时选两类因子，其他 TS 类型只选 TestFactor。需要完整扩展包现场回归。
+7. 因子选择规则和归档适配已改为显式 ID 计划；scene TS/TP 可同时选两类因子，其他 TS 类型只选 TestFactor。scene TS 的完整扩展包闭环已现场验证。
 8. 旧 TP 不做因子补录；只有新 TP 在创建时原子关联。平台已有但本地无成功状态的同名 TP 需人工核对。
-9. CLI 单点验证已通过；扩展包 Design/Archive 的选择、写入、重跑和状态回写仍需内网现场回归。
+9. 0.2.5 的 Design/Archive 主链路已完成内网现场回归；非 scene TS 的完整扩展包端到端类型覆盖可作为后续增强验证，不阻塞本次发布。
 
 ## 9. 新窗口继续工作的读取顺序
 
@@ -394,20 +418,15 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
    - `.testagent/skills/coretest-document-sync/scripts/document_sync.py`
 7. 涉及因子接口时读取 `.testagent/skills/coretool-cli/references/coretest.md`、`.testagent/skills/coretool-cli/SKILL.md`，并在本地核对实际 `coretool-cli --help`；文档与 CLI 版本可能不同。
 
-以 `develop` 实际源码为最终依据。`main` 包含 0.2.4 功能基线；后续交接文档或开发增量以 `develop` 为准。
+以 `develop` 实际源码为最终依据。`main` 当前仍是 0.2.4 稳定基线；`develop` 已准备 0.2.5 发布。
 
 ## 10. 接手后的下一步
 
-0.2.5 只做因子关联闭环，具体范围和后续版本拆分以[开发计划](0.2.5_AND_FOLLOWUP_DEVELOPMENT_PLAN.md)为准：
+0.2.5 因子关联闭环已完成现场验证和发布前检查，当前下一步是完成发布流程，并在发布后继续观察实际用户使用。
 
-1. 使用已确认的 `test_factor_id` UUID 契约进行扩展包现场回归，核对新 TP 页面名称和编码。
-2. 验证 Design 对完整 TS 规格选择因子并产出本地计划；无匹配因子为空数组。
-3. 验证 Archive 在 TS 创建或复用后关联因子、在 TP 新建时原子关联；检查请求、响应和独立状态，重复执行不新增关系。
-4. 回归 scene/function/constraint/DFX、无匹配、重复归档。Feature 缺现场对象时做契约测试。完成后才调整扩展版本并准备发布。
+0.2.6 以后按开发计划依次处理新版测试用例卡片与在线文档、Init 全量功能/特性关系与 DFX 准则、Explore 的 TR 分组和策略配置。非 scene TS 的完整扩展包端到端类型覆盖可作为后续补充回归。
 
-0.2.6 以后按开发计划依次处理新版测试用例卡片与在线文档、Init 全量功能/特性关系与 DFX 准则、Explore 的 TR 分组和策略配置。
-
-## 11. 0.2.5 develop 实施增量（待现场回归）
+## 11. 0.2.5 develop 实施增量（已验证）
 
 - Design 每 TS 先通过 `factor_candidates.py` 调用图谱查询并保存
   `test_design/ts_<NN>_factor_candidates.json`；查询成功后生成
@@ -421,5 +440,8 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
   TestFactor 使用 `test_factor_id` UUID，SceneFactor 使用编码。旧 TP 复用，
   本版不补录。CLI 原始响应和请求保存在 `archive/responses/`。
 - scene 双因子、function、constraint、DFX 的手工 CLI 页面验证已通过；
-  **扩展包 Design/Archive 端到端、空因子、断点重跑仍需内网现场回归**。
-  回归完成后再更新 `codeagent-extension.json` 与 README 至 0.2.5。
+  scene TS 的扩展包 Design/Archive 端到端已完成现场回归：TS_18=`40152`、
+  TP.18.01=`26313`、4 个 TestFactor 全部关联成功，文档与 Portal 均成功。
+- 现场修复 `factor_archive.py` 对 CLI 空列表 `page_size=0` 的兼容，以及
+  TestFactor `type` 字段从字符串到 int 的 CLI 边界转换；对应回归测试与语法检查均通过。
+- `codeagent-extension.json` 与 README 已更新至 0.2.5，当前状态为发布准备完成。
