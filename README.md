@@ -2,8 +2,15 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.5`
+当前扩展版本：`0.2.6`
 当前开发分支：`develop`
+
+## 0.2.6 更新
+
+- 适配公司新版测试用例卡片；
+- 仅替换 `webapps`，不修改 Init、Explore、Design、Archive 主流程；
+- 不改变 TS/TP/TC Markdown、JSON 产物结构和标准目录；
+- 新版卡片加载、现有测试用例展示及 Design 卡片链路已验证通过。
 
 ## 流程概览
 
@@ -277,7 +284,7 @@ coretest-archive-agent
 
 ## 当前验证状态
 
-截至 2026-09-22，`develop` 已验证：
+截至 2026-09-23，`develop` 已验证：
 
 - 普通/DFX 测试规格和统一 TS catalog 可生成；
 - Explore 可确定性生成普通 TS-only 计划，DFX 不进入计划；
@@ -288,7 +295,8 @@ coretest-archive-agent
 - Archive 已验证 TS 因子同步成功，新 TP 可在创建时携带因子关系并成功归档；
 - 新版 CoreTool `source-data write` 返回格式与现有脚本兼容；
 - 任务级 7 个叶子章节按独立 topic 写入；
-- 全量测试设计卡片可从 TR、TS 节点分别触发 Explore、Design。
+- 全量测试设计卡片可从 TR、TS 节点分别触发 Explore、Design；
+- 0.2.6 新版测试用例卡片 `webapps` 替换后验证通过，现有 Design 卡片链路无回归。
 
 ## 关键约束
 

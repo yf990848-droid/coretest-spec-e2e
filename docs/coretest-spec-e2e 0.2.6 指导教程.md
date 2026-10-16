@@ -1,28 +1,27 @@
-# coretest-spec-e2e 0.2.5 指导教程
+# coretest-spec-e2e 0.2.6 指导教程
 
-> 适用版本：`coretest-spec-e2e 0.2.5`  
+> 适用版本：`coretest-spec-e2e 0.2.6`  
 > 推荐流程：Init → Explore → Design → Archive
 
-## 1. 0.2.5 更新说明
+## 1. 0.2.6 更新说明
 
-0.2.5 在 0.2.4 全量测试设计卡片交互能力基础上，补齐测试因子关联闭环：
+0.2.6 在 0.2.5 因子关联闭环基础上适配公司新版测试用例卡片，采用最小改动方案：
 
-- Design 阶段自动检索 TestFactor；场景类 TS 同时检索 SceneFactor；
-- 为 TS 和 TP 生成因子候选证据与最终因子计划；
-- Archive 阶段按因子计划同步 TS 因子；
-- 新 TP 创建时通过 CoreTool CLI 原子关联 TestFactor/SceneFactor；
-- 图谱未找到匹配因子时允许空因子继续，不阻断 TP/TC 设计；
-- 已成功旧 TP 直接复用，本版本不对旧 TP 补录因子；
-- 保留 0.2.4 的卡片触发能力：
+- 仅替换新版测试用例卡片对应的 `webapps`；
+- 不修改 Init、Explore、Design、Archive 主流程；
+- 不改变 TS/TP/TC Markdown、JSON 产物结构和标准目录；
+- 保留 0.2.5 已实现的 TestFactor/SceneFactor 检索、因子计划和 Archive 关联能力；
+- 保留全量测试设计卡片触发能力：
   - TR 节点【AI分析】→ `/coretest-explore`
   - TS 节点【AI分析】→ `/coretest-design`
-  - TR → 关联对象 → 关联的 TS，可多选 TS 后点击【AI分析】批量触发 Design。
+  - TR → 关联对象 → 关联的 TS，可多选 TS 后点击【AI分析】批量触发 Design；
+- 新版测试用例卡片加载、现有测试用例展示和 Design 卡片链路已验证通过。
 
 ## 2. 使用前准备
 
 使用扩展包前请确认：
 
-1. TestAgent 已加载 `coretest-spec-e2e 0.2.5`；
+1. TestAgent 已加载 `coretest-spec-e2e 0.2.6`；
 2. 当前账号有对应产品版本、测试设计任务和 Portal 权限；
 3. CoreTool CLI 已完成登录；
 4. 当前 TR 已在全量测试设计平台创建，并正确关联 IR/SR/US，以及需要的特性或功能。
@@ -213,7 +212,7 @@ Design 有三种入口。
 
 每批最多并行处理 3 个 TS。
 
-### 6.5 0.2.5 因子规则
+### 6.5 因子规则（0.2.5 起）
 
 | TS 类型 | TS/TP 可使用的因子 |
 |---|---|
@@ -274,7 +273,7 @@ test_design/
 
 指定对象时只自动补齐父级依赖，不会向下扩展无关对象。
 
-### 7.3 0.2.5 Archive 因子处理
+### 7.3 Archive 因子处理（0.2.5 起）
 
 正式 Archive 中：
 
@@ -351,11 +350,11 @@ Portal 卡片刷新
 
 不是。
 
-只要因子查询正常执行且没有匹配结果，0.2.5 允许生成空因子计划，并继续 TP/TC 设计。
+只要因子查询正常执行且没有匹配结果，0.2.5 起允许生成空因子计划，并继续 TP/TC 设计。
 
 ### 9.3 为什么已有 TP 没有补上新因子？
 
-0.2.5 的规则是：
+0.2.5 起的规则是：
 
 - 新 TP：创建时原子关联因子；
 - 已成功旧 TP：直接复用，不做补录。
@@ -387,4 +386,4 @@ DFX TS 已存在于平台。Explore 只查询并纳入统一 catalog，正式 Ar
 8. 在 Portal 检查对象、因子和在线文档
 ```
 
-0.2.5 已完成 scene TS 的 Design → 因子计划 → TS 因子同步 → 新 TP 因子关联 → 在线文档 → Portal 的完整闭环验证。
+0.2.6 已在 0.2.5 scene TS 完整闭环验证基础上完成新版测试用例卡片适配验证；Design → 因子计划 → TS 因子同步 → 新 TP 因子关联 → 在线文档 → Portal 的既有主链路保持不变。
