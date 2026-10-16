@@ -1,7 +1,7 @@
 # 代码仓归档流程
 
 > 适用于将已验证的 `coretest-spec-e2e` 扩展包变更，从本地模板目录归档到代码仓并合入目标分支。
-> 本流程以 Windows PowerShell 为例，并以“脚本类 MR 的新增行数 + 删除行数不得超过 1000”为约束。
+> 本流程以 Windows PowerShell 为例，并以“单个 MR 中 `.py` 文件的新增行数必须小于 1000，其他文件不计入限制”为约束。
 
 ## 1. 目标与原则
 
@@ -11,10 +11,10 @@
 
 - 先同步远端目标分支，再复制本次确认过的文件；
 - 只暂存明确属于本次版本的文件，不使用 `git add -A`；
-- 先按已确认的版本范围归档；只有整体变更超过限制或存在独立能力边界时才拆分 MR；
+- 先按已确认的版本范围归档；只有 Python 新增行数达到限制或存在独立能力边界时才拆分 MR；
 - 多个 MR 串联时，后续分支必须基于前置 MR 合入后的最新目标分支创建；
 - `.idea/`、`.opencode/`、本地 MCP 配置、运行日志和生成数据不归档；
-- 提交前必须检查文件范围、变更行数和空白问题；生成后的压缩资源是否阻断，以仓库门禁为准；
+- 提交前必须核对暂存文件清单和 Python 新增行数；`webapps` 可按目录整体归档，无须逐文件核对；生成资源的空白告警是否阻断，以仓库门禁为准；
 - 未确认的文件不恢复、不覆盖、不提交。
 
 ## 2. 示例目录与变量
@@ -22,7 +22,7 @@
 以下路径仅为示例，归档新版本时替换版本号即可：
 
 ```powershell
-$Version = "0.2.2"
+$Version = "0.2.6"
 $SourceRoot = "D:\TestAgent\templates\coretest-spec-e2e@$Version\coretest-spec-e2e"
 $RepoRoot = "D:\CoreTestClaw_new"
 $TargetBranch = "coretest-spec-e2e"
@@ -168,6 +168,9 @@ git add -- $WebAppPath
 .testagent/mcp/mcp_settings.json
 .testagent/AGENTS.md
 .testagent/testagent.md
+.testagent/skills/ProjectSkillStatus.txt
+**/__pycache__/
+*.pyc
 .design_output/
 data/
 logs/
@@ -228,30 +231,25 @@ git diff --cached --name-status -- ".testagent/mcp/core_test_design_mcp/mcp_serv
 
 ### 7.1 行数计算口径
 
-脚本 MR 按“新增行数 + 删除行数”计算：
+**只统计单个 MR 中 `.py` 文件的新增行数**；删除行数和 `.md`、`.js`、`webapps` 等非 Python 文件均不计入 1000 行限制。
 
 ```powershell
-$TotalChangedLines = 0
-
-git diff --cached --numstat | ForEach-Object {
+$PyAdded = 0
+git diff --cached --numstat -- '*.py' | ForEach-Object {
     $Columns = $_ -split "`t"
-    if ($Columns[0] -match '^\d+$' -and $Columns[1] -match '^\d+$') {
-        $TotalChangedLines += [int]$Columns[0] + [int]$Columns[1]
-    }
+    if ($Columns[0] -match '^\d+$') { $PyAdded += [int]$Columns[0] }
 }
-
-$TotalChangedLines
+"Python added lines: $PyAdded"
 ```
 
-脚本 MR 的结果必须小于 `1000`。拆成多个 commit 不能降低 MR 的总行数；超过限制时必须拆成多个分支和 MR。
-
+单个 MR 必须满足 `$PyAdded -lt 1000`。拆成多个 commit 不能降低 MR 相对目标分支的整体新增行数，超过限制时才需要拆成多个 MR。
 ### 7.2 拆分原则
 
-同一版本、同一能力边界且总变更行数小于 1000 时，可以使用一个 MR，不必固定拆成“脚本 MR”和“文档 MR”。
+同一版本的 Python 新增行数小于 1000 时，可以将 Python、文档、`webapps` 合在一个 MR。非 Python 文件不受 1000 行限制。
 
 仅在以下情况拆分：
 
-- 脚本类 MR 的新增行数 + 删除行数达到或超过 1000；
+- 单个 MR 的 `.py` 新增行数达到或超过 1000；
 - Init、Explore、Design、Archive 等能力可以独立审查和合入；
 - 团队门禁明确要求代码与文档分开。
 
@@ -265,7 +263,7 @@ $TotalChangedLines
 git switch -c personal/<工号>/coretest-spec-e2e-<版本>
 ```
 
-分支名中的版本可去掉点号，例如 `0.2.2` 写为 `022`。按已确认清单精确暂存，不使用 `git add .` 或 `git add -A`：
+分支名中的版本可去掉点号，例如 `0.2.6` 写为 `026`。按已确认清单精确暂存，不使用 `git add .` 或 `git add -A`：
 
 ```powershell
 git add -- "<文件或目录1>" "<文件或目录2>"
@@ -281,7 +279,7 @@ git diff --cached --check
 git status --short
 ```
 
-确认暂存区仅包含计划内文件，并按 7.1 节计算变更行数。压缩后的 WebApp 资源可能因行尾空格触发 `git diff --cached --check`；这不影响运行，但若仓库门禁强制检查则必须清理，否则记录后可继续提交。
+确认暂存区仅包含计划内文件，且按 7.1 节计算 Python 新增行数；尤其要排除 `.testagent/AGENTS.md`、`.testagent/testagent.md`、`ProjectSkillStatus.txt`、`__pycache__`、`*.pyc`。压缩 WebApp 资源可能触发行尾空格提示；若门禁不强制，可记录并忽略，不要为消除告警修改构建后的 JS。
 
 ```powershell
 git commit -m "<提交说明>"
@@ -309,6 +307,32 @@ git diff --name-status
 
 再次精确复制、暂存和核验后提交，所有 MR 的目标分支保持为 `$TargetBranch`。
 
+### 9.1 从旧归档分支提取剩余文件（0.2.6 实践）
+
+若旧分支误混入 `.md`、`.js`、`.pyc` 等文件，应重新从目标分支创建干净的 MR 分支，按扩展名和范围提取需要的差异；不可将全部 `.md` 或 `.js` 一概视为无关文件。
+
+`stash` 仅保存尚未提交的工作区变更，**不会恢复旧分支已提交的正式版本内容**。MR1（Python）合入后，MR2 可从旧归档分支提取非 Python 变更：
+
+```powershell
+git fetch origin
+git switch -c personal/<工号>/coretest-spec-e2e-<版本>-mr2 origin/$TargetBranch
+git diff --binary --output="$env:TEMP\coretest-mr2.patch" `
+    origin/$TargetBranch origin/<旧归档分支> -- . `
+    ':(exclude)**/*.py' ':(exclude)**/*.pyc' `
+    ':(exclude).testagent/AGENTS.md' ':(exclude).testagent/testagent.md' `
+    ':(exclude).testagent/mcp/mcp_settings.json' `
+    ':(exclude).testagent/skills/ProjectSkillStatus.txt'
+git apply --index "$env:TEMP\coretest-mr2.patch"
+```
+
+若补丁冲突，不强行应用；应核对基线和差异。提交前检查 `webapps` 之外的完整清单（新增、删除、重命名）和是否残留 Python：
+
+```powershell
+git --no-pager diff --cached --name-status -- . ':(exclude)webapps/**'
+git diff --cached --name-only -- '*.py' '*.pyc'
+```
+
+MR2 的第二条命令应无输出。第一条命令里的删除项，应与源模板核对确认确实需要删除；`webapps` 可整体纳入，不必逐文件核对。
 ## 10. 合入后的最终检查
 
 所有 MR 合入后：
@@ -341,7 +365,7 @@ Get-Content -LiteralPath ".\docs\PROJECT_CONTEXT.md" -TotalCount 30 -Encoding UT
 
 ### 11.1 为什么不能只拆多个 commit？
 
-MR 行数按源分支与目标分支的整体差异计算。一个 MR 中即使包含多个 commit，总差异仍会累计，因此超过限制时必须拆分支和 MR。
+`.py` 新增行数按源分支与目标分支的整体差异计算。一个 MR 即使包含多个 commit，Python 新增行数仍会累计；达到 1000 时必须拆分 MR。
 
 ### 11.2 为什么后续 MR 要等待前置 MR 合入？
 
@@ -349,7 +373,7 @@ MR 行数按源分支与目标分支的整体差异计算。一个 MR 中即使�
 
 ### 11.3 LF/CRLF 或生成资源的行尾空格需要处理吗？
 
-仅出现 `LF will be replaced by CRLF` 时通常无需处理，不要为消除提示批量重写文件。生成后的压缩 JS 若仅有行尾空格，不影响运行；仓库门禁不强制时可记录后提交，门禁强制时再对具体文件做最小清理。
+仅出现 `LF will be replaced by CRLF` 时通常无需处理，不要为消除提示批量重写文件。生成后的压缩 JS 若仅有行尾空格，仓库门禁不强制时可记录后提交，**不要为了清理告警修改原始构建产物**；门禁强制时按门禁要求处理。
 
 ### 11.4 能否直接使用 `git add .`？
 
