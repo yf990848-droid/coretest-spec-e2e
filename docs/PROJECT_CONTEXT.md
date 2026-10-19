@@ -1,10 +1,10 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后更新：2026-09-23  
-> 仓库扩展版本元数据：`0.2.5`  
+> 最后核对：2026-10-19  
+> 仓库扩展版本元数据：`0.2.6`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新状态：`develop` 已完成 0.2.5 因子关联闭环现场验证及发布前回归，版本元数据与 README 已更新为 0.2.5，准备发布
+> 最新状态：0.2.5 因子关联闭环已验证；0.2.6 新版测试用例卡片适配已由用户在本地验证成功，`develop` 版本元数据、README 和指导教程均已更新为 0.2.6。本版仅替换 `webapps`，不改变业务主流程。
 
 ## 1. 项目目标
 
@@ -36,7 +36,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 
 ## 2. 当前开发基线
 
-0.2.4 功能基线已于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 在 `develop` 完成 TS/TP 因子检索、因子计划、Archive 关联和现场闭环验证，当前已进入发布准备阶段；阅读时以 `develop` 当前文件为准。
+0.2.4 功能基线于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 完成 TS/TP 因子检索、因子计划与 Archive 关联的现场闭环。0.2.6 只进行新版测试用例卡片 `webapps` 适配，卡片加载与 Design 卡片链路已经用户验证。当前以 `develop` 实际文件为准；`main` 和 `develop` 分支已有分叉，未在此操作中合并。
 
 当前已完成：
 
@@ -52,7 +52,8 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 10. Archive 最新现场回归成功；
 11. `webapps/default/index.html` 支持 Portal 卡片与 TestAgent 双向通信，从 TR 节点触发 Explore、从 TS 节点触发 Design；
 12. Design 已实现 TS/TP TestFactor 检索，scene TS 同时检索 SceneFactor，并生成候选证据与因子计划；
-13. Archive 已实现 TS 因子同步和新 TP 创建时原子关联因子，现场闭环验证成功。
+13. Archive 已实现 TS 因子同步和新 TP 创建时原子关联因子，现场闭环验证成功；
+14. 0.2.6 采用仅替换 `webapps` 的新版测试用例卡片适配方案，保留原有 Init / Explore / Design / Archive 和 Markdown/JSON 数据契约；用户已确认验证成功。
 
 关键提交：
 
@@ -62,12 +63,15 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 - `bec90e8`：更新 0.2.4 版本元数据和 README，并同步至 `main`；
 - `472e97b`：兼容 CoreTool CLI 空列表返回 `total=0,page_size=0`；
 - `c0eac20`：在 Archive CLI 边界将 TestFactor `type` 从字符串转换为 int，并补回归测试；
-- `a6bb74c`：更新 0.2.5 版本元数据和 README，进入发布准备。
+- `a6bb74c`：更新 0.2.5 版本元数据和 README；
+- `a89464a`：将 0.2.6 范围收敛为仅替换新版测试用例卡片 `webapps`；
+- `9b6f203`：更新 0.2.6 版本元数据与 README；
+- `9ad7df1`：指导教程更新并重命名为 `coretest-spec-e2e 0.2.6 指导教程.md`。
 
 根目录版本当前为：
 
 ```text
-coretest-spec-e2e 0.2.5
+coretest-spec-e2e 0.2.6
 ```
 
 ## 3. 快速命令
@@ -304,6 +308,14 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 - Portal URL 固定携带 `isAgentMode=true`；
 - 卡片触发与手工输入使用相同命令，不新增独立业务流程。
 
+### 4.8 0.2.6 新版测试用例卡片
+
+- 仅替换新版测试用例卡片 `webapps`，不改 Skill、Agent、Rule 或归档脚本；
+- 保留现有卡片初始化、Design 完成卡片与 Portal 通信入口；
+- 保持现有 TS/TP/TC Markdown、JSON 产物及目录不变；
+- 0.2.6 不包含在线文档新版适配，已有文档同步逻辑不变；
+- 用户已确认新版卡片替换后验证成功，README 与 `codeagent-extension.json` 同步为 0.2.6。
+
 ## 5. 组件版本
 
 | 组件 | 版本/状态 |
@@ -315,7 +327,8 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 | `coretest-archive-agent` | 1.12.0 |
 | `coretest-document-sync-agent` | 1.0.0 |
 | `build_ts_archive_request.py` | develop 新增 |
-| `webapps/default/index.html` | 0.2.4 卡片入口 |
+| `webapps/default/index.html` | 0.2.4 Portal 卡片入口，0.2.6 保持通信契约 |
+| 新版测试用例卡片 `webapps` | 0.2.6 适配，用户已验证 |
 
 ## 6. 标准目录
 
@@ -389,14 +402,20 @@ Portal iframe → event=aiAnalyse → webapps/default/index.html → type=chat �
 constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未现场验证，
 按现有约定不阻断 0.2.5，但须做契约测试。
 
+0.2.6 新版测试用例卡片验证（用户反馈）：
+
+- 已完成新版测试用例卡片 `webapps` 替换并确认验证成功；
+- 版本元数据和 README 已提升至 0.2.6，指导教程已更新为 0.2.6；
+- 该版本不修改 Init、Explore、Design、Archive 主业务实现，也不纳入在线文档适配。
+
 ## 8. 已知事项
 
 1. `build_tp_tc_json.py --ts` 仍可能在过滤目标前扫描其他 TS，产生无关缺失配对警告；不代表目标 TS 失败。
 2. 部分环境中卡片缓存成功但 Portal 页面展示仍可能延迟，需要结合实际页面继续观察。
 3. 需要继续补充多需求 TR、多 TR 同需求、指定对象和断点续跑回归。
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
-5. 0.2.4 卡片触发仍需在实际 TestAgent + Portal 环境完成现场回归，确认 TR、TS 节点分别启动正确流程且上下文完整。
-6. 0.2.4 安装包的扩展目录、`codeagent-extension.json.version` 和 WebApp 应保持同版；准备 0.2.5 时再统一更新版本，不能从本地 CLI 版本推断扩展包版本。
+5. Portal TR/TS 节点【AI分析】触发 Explore/Design 的独立实机回归仍建议保留；不要将新版测试用例卡片的验证直接等同于所有 Portal 交互路径的回归。
+6. 发布 0.2.6 安装包时，扩展目录、`codeagent-extension.json.version` 和实际加载的新版 `webapps` 应保持同版；不能从本地 CoreTool CLI 版本推断扩展包版本。
 7. 因子选择规则和归档适配已改为显式 ID 计划；scene TS/TP 可同时选两类因子，其他 TS 类型只选 TestFactor。scene TS 的完整扩展包闭环已现场验证。
 8. 旧 TP 不做因子补录；只有新 TP 在创建时原子关联。平台已有但本地无成功状态的同名 TP 需人工核对。
 9. 0.2.5 的 Design/Archive 主链路已完成内网现场回归；非 scene TS 的完整扩展包端到端类型覆盖可作为后续增强验证，不阻塞本次发布。
@@ -418,13 +437,15 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
    - `.testagent/skills/coretest-document-sync/scripts/document_sync.py`
 7. 涉及因子接口时读取 `.testagent/skills/coretool-cli/references/coretest.md`、`.testagent/skills/coretool-cli/SKILL.md`，并在本地核对实际 `coretool-cli --help`；文档与 CLI 版本可能不同。
 
-以 `develop` 实际源码为最终依据。`main` 当前仍是 0.2.4 稳定基线；`develop` 已准备 0.2.5 发布。
+以 `develop` 实际源码为最终依据。2026-10-19 核对时 `main` 与 `develop` 已分叉（`develop` 相对 `main` ahead 1、behind 1），不要将任一分支状态推定为另一个分支的版本；后续若需要合并须先核对实际差异。
+
+当前用户指导教程：[`coretest-spec-e2e 0.2.6 指导教程.md`](coretest-spec-e2e%200.2.6%20指导教程.md)。
 
 ## 10. 接手后的下一步
 
-0.2.5 因子关联闭环已完成现场验证和发布前检查，当前下一步是完成发布流程，并在发布后继续观察实际用户使用。
+0.2.6 新版测试用例卡片已完成用户侧验证及文档/版本元数据更新。后续发布或分支合并前，先核对新版 `webapps` 是否完整纳入目标版本及 `main/develop` 差异，勿将本地验证当作 GitHub 文件已同步的证明。
 
-0.2.6 以后按开发计划依次处理新版测试用例卡片与在线文档、Init 全量功能/特性关系与 DFX 准则、Explore 的 TR 分组和策略配置。非 scene TS 的完整扩展包端到端类型覆盖可作为后续补充回归。
+下一阶段按开发计划推进 0.2.7：Init 获取设计任务全量需求的功能/特性关联关系，以及 DFX 测试设计准则匹配。后续是 0.3.0 Explore 三种 TR 分组与 0.3.1 流程策略配置。在线文档新版适配已从 0.2.6 移出，待单独排期；非 scene TS 的端到端类型覆盖仍可补充回归。
 
 ## 11. 0.2.5 develop 实施增量（已验证）
 
@@ -444,4 +465,12 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
   TP.18.01=`26313`、4 个 TestFactor 全部关联成功，文档与 Portal 均成功。
 - 现场修复 `factor_archive.py` 对 CLI 空列表 `page_size=0` 的兼容，以及
   TestFactor `type` 字段从字符串到 int 的 CLI 边界转换；对应回归测试与语法检查均通过。
-- `codeagent-extension.json` 与 README 已更新至 0.2.5，当前状态为发布准备完成。
+- 0.2.5 因子闭环现场验证完成；后续 0.2.6 仅调整新版测试用例卡片 WebApp，因子相关实现保持不变。
+
+## 12. 0.2.6 状态更新（2026-10-19 核对）
+
+- 范围：仅替换新版测试用例卡片 `webapps`，不更改其他业务链路；本版不包含新版在线文档适配。
+- 验证：用户已反馈替换成功并完成验证；保留 0.2.5 因子与归档闭环验证结果。
+- 元数据：`codeagent-extension.json` 与 README 已更新为 `0.2.6`。
+- 教程：`docs/coretest-spec-e2e 0.2.6 指导教程.md` 已提交至 `develop`。
+- 交接重点：以仓库实际代码和分支差异为准；继续 0.2.7 前先确认是否需要发布/合并 0.2.6。
