@@ -7,12 +7,12 @@ REM core_test_design_mcp
 REM ==========================================
 
 
-REM 当前脚本目录
+REM Script directory
 
 set MCP_DIR=%~dp0
 
 
-REM 获取扩展根目录
+REM Extension root directory
 
 for %%I in ("%MCP_DIR%..\..\..") do set ROOT_DIR=%%~fI
 
@@ -21,7 +21,7 @@ echo [MCP] Root: %ROOT_DIR%
 
 
 REM ==========================================
-REM 1. 已存在虚拟环境，直接启动
+REM 1. Validate and reuse the existing virtual environment
 REM ==========================================
 
 if exist "%ROOT_DIR%\.venv\Scripts\python.exe" (
@@ -63,7 +63,7 @@ if exist "%ROOT_DIR%\.venv\Scripts\python.exe" (
 
 
 REM ==========================================
-REM 2. 查找 Python 3.11+
+REM 2. Find Python 3.11+
 REM ==========================================
 
 set PYTHON_EXE=
@@ -100,7 +100,7 @@ if %errorlevel%==0 (
 
 
 REM ------------------------------------------
-REM 2.2 当前 PATH Python
+REM 2.2 Python on PATH
 REM ------------------------------------------
 
 if "!PYTHON_EXE!"=="" (
@@ -137,7 +137,7 @@ if "!PYTHON_EXE!"=="" (
 
 
 REM ==========================================
-REM 3. 未找到 Python 3.11+
+REM 3. No supported Python found
 REM ==========================================
 
 if "!PYTHON_EXE!"=="" (
@@ -154,7 +154,7 @@ echo [MCP] Using Python:
 
 
 REM ==========================================
-REM 4. 创建虚拟环境
+REM 4. Create virtual environment
 REM ==========================================
 
 echo [MCP] Creating venv
@@ -172,7 +172,7 @@ if %errorlevel% neq 0 (
 
 
 REM ==========================================
-REM 5. 升级 pip
+REM 5. Upgrade pip
 REM ==========================================
 
 echo [MCP] Upgrade pip
@@ -193,7 +193,7 @@ if %errorlevel% neq 0 (
 
 
 REM ==========================================
-REM 6. 安装依赖
+REM 6. Install dependencies
 REM ==========================================
 
 echo [MCP] Installing dependencies
@@ -215,7 +215,7 @@ if %errorlevel% neq 0 (
 
 
 REM ==========================================
-REM 7. 启动 MCP Server
+REM 7. Start MCP server
 REM ==========================================
 
 "%ROOT_DIR%\.venv\Scripts\python.exe" -c "import requests, cryptography; from fastmcp import FastMCP"
