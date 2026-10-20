@@ -2,8 +2,16 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.6`
+当前扩展版本：`0.2.7`
 当前开发分支：`develop`
+
+## 0.2.7 更新
+
+- 本次仅修复本地 MCP 启动问题；
+- 启动脚本优先使用 Python 3.12，最低要求 Python 3.11；复用已有虚拟环境前检查版本，不兼容时提示备份并重建；
+- 启动前实际验证 `from fastmcp import FastMCP`，依赖导入失败时停止并显示错误；
+- 批处理脚本统一使用 CRLF 换行和 ASCII 注释，修复 Windows 下的脚本解析兼容性问题；
+- 本地启动已由用户验证通过。
 
 ## 0.2.6 更新
 
@@ -50,10 +58,36 @@
 - TestAgent 已加载当前扩展包；
 - `core_test_design_mcp` 可用，地址通常为 `127.0.0.1:8765`（SSE）；
 - 当前账号可访问对应产品版本、测试设计任务和 Portal；
-- Python 可用；
+- **请提前安装 Python 3.11 或以上版本，推荐 Python 3.12（本次已验证）**；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH；
 - Pandoc 可通过 `pandoc --version` 检查；
 - CoreTool 优先使用扩展包内置绝对路径，且已完成认证；
 - 当前 TR 至少直接关联一个有效 IR/SR/US。
+
+### Python 与 MCP 启动检查
+
+在 PowerShell 中检查已安装版本：
+
+```powershell
+py -0p
+py -3.12 --version
+```
+
+推荐安装 Python 3.12 后，在扩展包根目录执行：
+
+```powershell
+.\.testagent\mcp\core_test_design_mcp\start_mcp.bat
+```
+
+脚本会创建或复用根目录下的 `.venv`，并检查依赖。首次安装依赖需要能访问公司内网 PyPI 镜像。
+
+如果提示已有虚拟环境版本过低，**仅安装新版 Python 不会升级已有 `.venv`**。先停止使用该环境的进程，再在扩展包根目录备份旧环境并重新启动：
+
+```powershell
+Rename-Item .venv ".venv-backup-$(Get-Date -Format yyyyMMddHHmmss)"
+.\.testagent\mcp\core_test_design_mcp\start_mcp.bat
+```
+
+看到 `Application startup complete` 和 `Uvicorn running on http://127.0.0.1:8765` 表示服务已启动，使用 MCP 时需保持该窗口运行。
 
 ## 快速开始
 
