@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
-  "version": "0.2.6",
-  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：0.2.6 适配公司新版测试用例卡片，仅替换 webapps，保持现有 Init、Explore、Design、Archive 主流程及产物契约不变。"
+  "version": "0.2.7",
+  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：0.2.7 仅修复本地 MCP 启动问题：优先使用 Python 3.12，最低要求 Python 3.11，增加已有虚拟环境版本及 FastMCP 导入检查，并修复 Windows 批处理换行与编码兼容性。"
 }
