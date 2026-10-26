@@ -233,7 +233,7 @@ cd "<root>"; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_t
 .testagent/skills/test-case-card/scripts/card_generate.py
 ```
 
-必须读取并遵循 `.testagent/skills/test-case-card/SKILL.md` 的“E2E 入口：已有单 TS JSON 更新”和“卡片更新执行约束”。直接复用第二步产物，不执行底层旧入口的 JSON 重建、修复或 Excel 导出。
+必须读取并遵循 `.testagent/skills/test-case-card/SKILL.md` 的“E2E 入口：已有单 TS JSON 更新”和“卡片更新执行约束”。直接复用第二步产物，不重新生成或修复 JSON，不导出 Excel。
 
 每个 TS 使用一次独立的卡片更新工具调用，先切换目录，再直接执行 Python，保留原始输出；禁止循环、批量包装、嵌套 Shell、输出捕获或重定向。
 
