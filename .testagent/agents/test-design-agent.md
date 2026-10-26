@@ -219,6 +219,10 @@ test-case-card-adapter
 
 该文件不存在时，判定卡片适配失败。
 
+必须遵循 adapter 第三步引用的底层“卡片更新执行约束”，每个 TS 独立执行先切换目录、再直接 Python 的更新调用，保留原始输出。
+文件存在只证明数据准备完成；还必须检查脚本退出码为 0、原始 JSON 中 `success=true` 且 `data.card_cache_id` 非空。任何一项不满足均属于卡片适配失败，不得返回当前 TS 成功。
+缓存成功不等于页面已显示；没有展示证据时只报告更新调用成功和 card_cache_id。
+
 ---
 
 ## test-case-card-adapter 重试机制
@@ -230,9 +234,9 @@ test-case-card-adapter
 ```text
 调用 test-case-card-adapter
 ↓
-检查 ts_<NN>_test_case.json
+检查 ts_<NN>_test_case.json 及卡片更新原始返回
 ↓
-文件不存在
+文件不存在或卡片更新结果校验失败
 ```
 
 允许重试一次：
@@ -243,8 +247,8 @@ test-case-card-adapter
 
 第二次执行后：
 
-- 文件存在：继续检查卡片完成状态；
-- 文件不存在：当前 TS 失败。
+- 文件存在且卡片更新结果校验通过：卡片阶段成功；
+- 文件不存在或卡片更新结果校验仍失败：当前 TS 失败，不再重试。
 
 ---
 
@@ -271,7 +275,7 @@ test-case-card-adapter
 - ts_<NN>_tc.json 存在；
 - ts_<NN>_factor_candidates.json 的所有查询成功，ts_<NN>_factor_plan.json 已通过校验；
 - ts_<NN>_test_case.json 存在；
-- working 卡片已更新为 completed。
+- 使用原 working 卡片 key 提交 completed 更新，退出码为 0，原始返回 success=true 且 data.card_cache_id 非空；此条件不代表页面已实际显示。
 
 ---
 

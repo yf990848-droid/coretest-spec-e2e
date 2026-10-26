@@ -186,7 +186,7 @@ D:\TestAgent\templates\coretest-spec-e2e@0.1.2\coretest-spec-e2e\.testagent\skil
 <root>/.testagent/skills/card-initializer/scripts/test_case/<requirement_id>_<ts-id>_card_id.txt
 ```
 
-如果任一文件不存在，必须停止当前 TS 的卡片生成，并返回明确错误原因。
+如果任一文件不存在，必须停止当前 TS 的卡片生成，并返回明确错误原因。card_id 文件内容去除空白后必须非空，否则同样停止；不得依赖底层脚本的新 UUID 兜底来更新 working 卡片。
 
 ---
 
@@ -208,7 +208,7 @@ D:\TestAgent\templates\coretest-spec-e2e@0.1.2\coretest-spec-e2e\.testagent\skil
 推荐执行方式：
 
 ```powershell
-cd <root>; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.py `
+cd "<root>"; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.py `
   --root "<root>" `
   --ir-id "<requirement_id>" `
   --ts-id "<ts-id>" `
@@ -233,49 +233,30 @@ cd <root>; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_tes
 .testagent/skills/test-case-card/scripts/card_generate.py
 ```
 
-必须按照 test-case-card 原有成功路径执行，进入脚本目录后再执行脚本，并通过第 4 个参数传入当前 TS 级 key。
+必须读取并遵循 `.testagent/skills/test-case-card/SKILL.md` 的“E2E 入口：已有单 TS JSON 更新”和“卡片更新执行约束”。直接复用第二步产物，不执行底层旧入口的 JSON 重建、修复或 Excel 导出。
 
-执行方式要求：
+每个 TS 使用一次独立的卡片更新工具调用，先切换目录，再直接执行 Python，保留原始输出；禁止循环、批量包装、嵌套 Shell、输出捕获或重定向。
 
-```powershell
-cd <root>\.testagent\skills\test-case-card\scripts; python -u card_generate.py `
-  "<root>\.design_output\<design_task_id>\TR_<tr_id>\ts_<NN>_test_case.json" `
-  "<spec-file>" `
-  "<cida-info>" `
-  "<requirement_id>_<ts-id>"
-```
-
-示例：
+PowerShell 示例（同一次工具调用中的两条命令；其他 Shell 按底层约束调整目录切换语法）：
 
 ```powershell
-cd D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.testagent\skills\test-case-card\scripts; python -u card_generate.py `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\ts_01_test_case.json" `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\test_specs\NsmfNupf链路容灾功能补齐测试规格.md" `
-  "D:\TestAgent\templates\coretest-spec-e2e@0.1.6\coretest-spec-e2e\.design_output\2470\TR_3863\cida_info.json" `
-  "IR20251206000098_ts_01"
+Set-Location -LiteralPath "<root>/.testagent/skills/test-case-card/scripts" -ErrorAction Stop
+python -u card_generate.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
 ```
 
-要求：
-
-- 不直接在任意目录用绝对路径调用 `card_generate.py`；
-- 必须先 `cd` 到 `test-case-card/scripts` 目录；
-- 命令间隔必须使用 `;`；
-- 不得使用 `&&`；
-- 当前 TS 的初始化 key 必须是 `<requirement_id>_<ts-id>`；
-- 第 4 个参数必须传入 `<requirement_id>_<ts-id>`；
-- 第 3 个参数必须使用 `<cida-info>`，不得使用 Skill 配置目录中的旧 CIDA；
-- 只更新当前 TS 的卡片。
+第 3 个参数必须是当前 TR 的 `<cida-info>`，第 4 个参数必须与当前 TS 初始化 key 完全一致。
+退出码为 0、原始 JSON 中 `success=true` 且 `data.card_cache_id` 非空，才能判定更新调用成功；仅输入文件存在或退出码为 0 均不足以判成功。输出缺失、无法解析或返回失败时，向上层报告卡片阶段失败并遵循其重试策略。
 
 ---
 
 ## 输出
 
-成功后，当前 TS 的卡片状态应从 working 更新为 completed。
+成功后，当前 TS 的 completed 卡片数据已提交缓存。页面是否实际展示需另外确认，不得仅凭缓存成功宣称已显示。
 
 示例：
 
 ```
-TS01 -> completed 测试用例卡片
+TS01 -> completed 卡片更新调用成功，card_cache_id: <返回值>
 ```
 
 失败时，返回当前 TS 的失败原因，不影响其他 TS 的设计和卡片生成。

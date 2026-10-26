@@ -282,6 +282,8 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 
 ## Guardrails
 
+-   卡片初始化及 completed 更新均须逐 TS 独立调用，主流程不得合并为循环或批量 Shell 命令；completed 更新由各 TS Agent 按 `test-case-card-adapter` 引用的底层“卡片更新执行约束”执行，保留原始输出；现有最多 3 个 TS Agent 并发机制不变。
+
 -   Phase 1.5 必须按每批最多 3 个 TS 初始化 working 卡片；
 -   每个 TS 必须通过独立的 bash 工具调用初始化，禁止在一次调用中串联多个 `card_generate.py`；
 -   当前批次 working 卡片初始化完成后，必须立即运行当前批次，不得预先初始化后续批次；
