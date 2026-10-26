@@ -205,16 +205,11 @@ D:\TestAgent\templates\coretest-spec-e2e@0.1.2\coretest-spec-e2e\.testagent\skil
 - 只生成当前 `ts_<NN>_test_case.json`；
 - 不合并多个 TS。
 
-推荐执行方式：
+执行方式（Agent 终端工具的 CMD 会话，先切换目录再执行 Python）：
 
-```powershell
-cd "<root>"; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.py `
-  --root "<root>" `
-  --ir-id "<requirement_id>" `
-  --ts-id "<ts-id>" `
-  --tc-json "<tc-json>" `
-  --spec-file "<spec-file>" `
-  --output "<output>"
+```cmd
+cd /d "<root>"
+python .testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.py --root "<root>" --ir-id "<requirement_id>" --ts-id "<ts-id>" --tc-json "<tc-json>" --spec-file "<spec-file>" --output "<output>"
 ```
 
 输出：
@@ -237,11 +232,11 @@ cd "<root>"; python .\.testagent\skills\test-case-card-adapter\scripts\prepare_t
 
 每个 TS 使用一次独立的卡片更新工具调用，先切换目录，再直接执行 Python，保留原始输出；禁止循环、批量包装、嵌套 Shell、输出捕获或重定向。
 
-PowerShell 示例（同一次工具调用中的两条命令；其他 Shell 按底层约束调整目录切换语法）：
+CMD 示例（同一次工具调用中的两条命令）：
 
-```powershell
-Set-Location -LiteralPath "<root>/.testagent/skills/test-case-card/scripts" -ErrorAction Stop
-python -u card_generate.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
+```cmd
+cd /d "<root>\.testagent\skills\test-case-card\scripts"
+python -u card_generate.py "<root>\.design_output\<design_task_id>\TR_<tr_id>\ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
 ```
 
 第 3 个参数必须是当前 TR 的 `<cida-info>`，第 4 个参数必须与当前 TS 初始化 key 完全一致。

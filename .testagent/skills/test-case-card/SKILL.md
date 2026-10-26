@@ -25,7 +25,7 @@ metadata:
 
 - 必须通过 Agent 终端工具执行，每个 TS 使用一次独立的卡片更新工具调用。
 - 同一次调用中先切换到本 Skill 的 scripts 目录，切换失败立即停止，再直接执行 `python -u card_generate.py`；不得从任意目录用脚本绝对路径替代。
-- 命令按实际 Shell 编写：Bash 使用带引号的路径和正斜杠，PowerShell 使用 `Set-Location -LiteralPath "脚本目录" -ErrorAction Stop`，CMD 使用 `cd /d "脚本目录"`。两条命令在同一会话执行，不得假定上一次工具调用保留目录。
+- Windows 下必须选择 Agent 终端工具的 CMD 会话，先执行 `cd /d "脚本目录"`，再直接运行 Python；不使用 PowerShell、Set-Location 或 powershell.exe -Command。两条命令在同一会话执行，不得假定上一次工具调用保留目录；工具无法提供 CMD 时报告执行环境不匹配，不自行换成 PowerShell。
 - 文件参数必须是带引号的绝对路径，展开为明确值；TS 更新的第四个参数必须与初始化 key 完全一致。
 - 禁止使用 for/foreach、批量包装脚本、嵌套 Shell（如 powershell.exe -Command）执行卡片更新；禁止用 Shell 变量拼接参数。
 - 禁止变量捕获、管道处理或重定向脚本输出；保留原始 JSON 返回，不添加 Shell 汇总输出。
@@ -44,14 +44,14 @@ metadata:
 3. `cida_info`：CIDA 文件绝对路径；E2E 必须使用当前 TR 目录中的 cida_info.json，只读，不回退到旧配置。
 4. `requirement_number_override`：E2E 必传 `<requirement_id>_<ts-id>`，与初始化 key 完全一致。
 
-E2E 示例（PowerShell，同一次工具调用中的两条命令）：
+E2E 示例（CMD，同一次工具调用中的两条命令）：
 
-```powershell
-Set-Location -LiteralPath "<root>/.testagent/skills/test-case-card/scripts" -ErrorAction Stop
-python -u card_generate.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
+```cmd
+cd /d "<root>\.testagent\skills\test-case-card\scripts"
+python -u card_generate.py "<root>\.design_output\<design_task_id>\TR_<tr_id>\ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
 ```
 
-其他 Shell 按“卡片更新执行约束”调整切换目录语法，不嵌套启动 PowerShell。
+示例必须在 CMD 会话执行，不得复制到 PowerShell 或 Bash 中执行，也不得使用分号拼接两条 CMD 命令。
 失败时可查看本 Skill 的 `scripts/card_generate.log`，重试仍遵守相同调用方式及上层次数限制。
 
 ## 注意事项
