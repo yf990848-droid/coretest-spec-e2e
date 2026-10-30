@@ -205,12 +205,15 @@ D:\TestAgent\templates\coretest-spec-e2e@0.1.2\coretest-spec-e2e\.testagent\skil
 - 只生成当前 `ts_<NN>_test_case.json`；
 - 不合并多个 TS。
 
-执行方式（Agent 终端工具的 CMD 会话，先切换目录再执行 Python）：
+执行方式（使用工具原生 Shell，不嵌套启动其他 Shell）：
 
-```cmd
-cd /d "<root>"
-python .testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.py --root "<root>" --ir-id "<requirement_id>" --ts-id "<ts-id>" --tc-json "<tc-json>" --spec-file "<spec-file>" --output "<output>"
+优先将工具的 `workdir` 参数设为 `<root>`，直接执行：
+
+```text
+python .testagent/skills/test-case-card-adapter/scripts/prepare_test_case_card.py --root "<root>" --ir-id "<requirement_id>" --ts-id "<ts-id>" --tc-json "<tc-json>" --spec-file "<spec-file>" --output "<output>"
 ```
+
+不支持 workdir 时，按 test-case-card 的“卡片更新执行约束”中对应 Shell 的语法切换到根目录；失败即停止。解释器使用上层已确认的 Python，调用语法适配实际 Shell。
 
 输出：
 
@@ -230,14 +233,15 @@ python .testagent\skills\test-case-card-adapter\scripts\prepare_test_case_card.p
 
 必须读取并遵循 `.testagent/skills/test-case-card/SKILL.md` 的“E2E 入口：已有单 TS JSON 更新”和“卡片更新执行约束”。直接复用第二步产物，不重新生成或修复 JSON，不导出 Excel。
 
-每个 TS 使用一次独立的卡片更新工具调用，先切换目录，再直接执行 Python，保留原始输出；禁止循环、批量包装、嵌套 Shell、输出捕获或重定向。
+每个 TS 使用一次独立的卡片更新工具调用，优先通过 workdir 设置脚本目录，再直接执行 Python；不支持 workdir 时才按原生 Shell 语法切换目录，切换失败即停止。保留原始输出；禁止循环、批量包装、嵌套 Shell、输出捕获或重定向。
 
-CMD 示例（同一次工具调用中的两条命令）：
+示例：将工具的 `workdir` 参数设为 `<root>/.testagent/skills/test-case-card/scripts`，直接执行：
 
-```cmd
-cd /d "<root>\.testagent\skills\test-case-card\scripts"
-python -u card_generate.py "<root>\.design_output\<design_task_id>\TR_<tr_id>\ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
+```text
+python -u card_generate.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/ts_<NN>_test_case.json" "<spec-file>" "<cida-info>" "<requirement_id>_<ts-id>"
 ```
+
+PowerShell 中使用带引号的解释器绝对路径时允许使用 `& "<python绝对路径>" -u card_generate.py ...`，不再强制 CMD，也不额外执行 cmd /c。
 
 第 3 个参数必须是当前 TR 的 `<cida-info>`，第 4 个参数必须与当前 TS 初始化 key 完全一致。
 退出码为 0、原始 JSON 中 `success=true` 且 `data.card_cache_id` 非空，才能判定更新调用成功；仅输入文件存在或退出码为 0 均不足以判成功。输出缺失、无法解析或返回失败时，向上层报告卡片阶段失败并遵循其重试策略。

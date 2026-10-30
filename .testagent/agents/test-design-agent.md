@@ -219,7 +219,7 @@ test-case-card-adapter
 
 该文件不存在时，判定卡片适配失败。
 
-必须遵循 adapter 第三步引用的底层“卡片更新执行约束”，每个 TS 独立执行先切换目录、再直接 Python 的更新调用，保留原始输出。
+必须遵循 adapter 第三步引用的底层“卡片更新执行约束”，每个 TS 独立调用，优先通过工具 workdir 设置脚本目录后直接执行 Python；不支持 workdir 时按原生 Shell 语法切换目录，失败即停止。不得强制 CMD 或额外嵌套 Shell，保留原始输出。
 文件存在只证明数据准备完成；还必须检查脚本退出码为 0、原始 JSON 中 `success=true` 且 `data.card_cache_id` 非空。任何一项不满足均属于卡片适配失败，不得返回当前 TS 成功。
 缓存成功不等于页面已显示；没有展示证据时只报告更新调用成功和 card_cache_id。
 
