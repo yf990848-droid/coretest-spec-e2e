@@ -41,7 +41,7 @@ CoreTool CLI 登录：
 .testagent\skills\coretool-cli\tools\coretool-cli.exe auth status
 ```
 
-详细说明见：[`CORETOOL_CLI_LOGIN.md`](./CORETOOL_CLI_LOGIN.md)。
+详细说明见：`CORETOOL_CLI_LOGIN.md`。
 
 ### 2.2 Python 检查与 MCP 启动
 
