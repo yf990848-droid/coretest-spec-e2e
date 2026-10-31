@@ -1,29 +1,30 @@
-# coretest-spec-e2e 0.2.7 指导教程
+# coretest-spec-e2e 0.2.8 指导教程
 
-> 适用版本：`coretest-spec-e2e 0.2.7`  
+> 适用版本：`coretest-spec-e2e 0.2.8`  
 > 推荐流程：Init → Explore → Design → Archive
 
-## 1. 0.2.7 更新说明
+## 1. 0.2.8 更新说明
 
-0.2.7 在 0.2.6 基础上仅修复本地 MCP 启动问题：
+0.2.8 在 0.2.7 基础上修正测试用例卡片调用约束和相关流程说明：
 
-- 启动脚本优先使用 Python 3.12，最低要求 Python 3.11，避免选择 Python 3.10 导致 `StrEnum` 导入失败；
-- 复用已有 `.venv` 前检查 Python 版本；版本不兼容时停止并提示备份、重建环境，不自动删除旧环境；
-- 启动前实际验证 `from fastmcp import FastMCP`，安装依赖后再次检查，导入失败时停止并显示错误；
-- Windows 批处理脚本统一使用 CRLF 换行和 ASCII 注释，修复脚本解析兼容性问题；
-- 本地 MCP 启动已由用户验证通过。
+- 使用 Agent 终端工具原生 Shell，优先通过 `workdir` 指定脚本目录，不再强制 CMD，也不嵌套启动其他 Shell；
+- 工具不支持 workdir 时，按实际 Shell 语法切换目录，失败即停止；PowerShell 调用带引号的 Python 解释器绝对路径时允许使用 `&`；
+- 每个 TS 独立调用卡片脚本，保留原始 JSON 返回，禁止循环、批量包装和输出捕获；
+- 直接复用 adapter 生成的单 TS 卡片 JSON，删除旧的需求级 JSON 重建、修复及 Excel 导出流程说明；
+- 检查初始化 card_id 文件存在且非空，第四个位置参数与初始化 TS key 一致；检查退出码、`success=true` 和非空 `data.card_cache_id`，并遵循上层最多一次重试规则；
+- 用户已于 2026-10-31 确认验证成功。
 
-保留 0.2.6 新版测试用例卡片及既有 Init、Explore、Design、Archive 流程，TS/TP/TC 产物结构、因子计划和归档规则不变。
+本次未修改 Python 脚本、前端及每批最多 3 个 TS 的并发机制，TS/TP/TC 产物结构、因子计划和归档规则不变。继续保留 0.2.7 的 MCP 启动修复及 Python 环境检查能力。
 
 ## 2. 使用前准备
 
 使用扩展包前请确认：
 
-1. TestAgent 已加载 `coretest-spec-e2e 0.2.7`；
+1. TestAgent 已加载 `coretest-spec-e2e 0.2.8`；
 2. 当前账号有对应产品版本、测试设计任务和 Portal 权限；
 3. CoreTool CLI 已完成登录；
 4. 当前 TR 已在全量测试设计平台创建，并正确关联 IR/SR/US，以及需要的特性或功能；
-5. **提前安装 Python 3.11 或以上版本，推荐 Python 3.12（本次已验证）**；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH；
+5. **提前安装 Python 3.11 或以上版本，推荐 Python 3.12（MCP 启动已验证）**；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH；
 6. 本地 MCP 服务已启动，首次安装依赖时可访问公司内网 PyPI 镜像。
 
 ### 2.1 CoreTool CLI 登录
@@ -53,7 +54,7 @@ py -3.12 --version
 
 如果未安装 Python 3.12，请先安装推荐版本。安装新版 Python 不会自动升级已有虚拟环境。
 
-在扩展包根目录（例如 `D:\TestAgent\templates\coretest-spec-e2e@0.2.7\coretest-spec-e2e`）执行：
+在扩展包根目录（例如 `D:\TestAgent\templates\coretest-spec-e2e@0.2.8\coretest-spec-e2e`）执行：
 
 ```powershell
 .\.testagent\mcp\core_test_design_mcp\start_mcp.bat
@@ -278,6 +279,18 @@ test_design/
 - `factor_candidates.json`：记录实际因子查询及候选结果；
 - `factor_plan.json`：记录最终 TS/TP 因子关联计划。
 
+### 6.7 用例卡片更新与检查（0.2.8）
+
+卡片更新由 Agent 在终端工具中执行，用户无需手动批量运行脚本：
+
+1. 复用当前 TR 下的 `ts_<NN>_test_case.json`，确认对应初始化 card_id 文件存在且非空；
+2. 优先通过工具的 `workdir` 参数设置 `<root>/.testagent/skills/test-case-card/scripts`，直接执行 Python 和相对文件名 `card_generate.py`；
+3. 不支持 workdir 时，使用工具实际 Shell 的切目录语法，切换失败停止；不要根据工具名称推断 Shell，也不要额外包装 `cmd /c` 或 `powershell.exe -Command`；
+4. 每张卡片单独调用，按顺序传入卡片 JSON、测试规格、当前 TR 的 CIDA 文件和 `<requirement_id>_<ts-id>`，保留原始返回；
+5. 检查退出码为 0、`success=true` 且 `data.card_cache_id` 非空，再确认对应 working 卡片已更新为 completed、TS 编号与用例内容正确。
+
+缓存调用成功与页面实际显示需分别确认。仅验证本次卡片修复时，可选两个 TS 执行 Design 并检查卡片，不必为此继续 Archive；这不替代其他变更所需的归档回归。
+
 ---
 
 ## 7. coretest-archive：归档对象、因子和文档
@@ -425,4 +438,4 @@ DFX TS 已存在于平台。Explore 只查询并纳入统一 catalog，正式 Ar
 8. 在 Portal 检查对象、因子和在线文档
 ```
 
-0.2.7 的本地 MCP 启动修复已验证通过；0.2.6 已验证的新版测试用例卡片，以及 Design → 因子计划 → TS 因子同步 → 新 TP 因子关联 → 在线文档 → Portal 的既有主链路保持不变。
+0.2.8 的卡片调用约束修复已由用户验证通过；保留 0.2.7 的 MCP 启动修复与既有 Design、因子计划和 Archive 主链路。本次卡片验证不代表重新执行了归档全链路回归。
