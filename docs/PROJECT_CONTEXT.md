@@ -1,10 +1,11 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后核对：2026-10-31  
+> 最后核对：2026-11-02  
 > 仓库扩展版本元数据：`0.2.8`  
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
-> 最新现场结论：用例卡片调用约束修复已于 2026-10-31 由用户确认验证成功。最终采用 Agent 原生 Shell、优先 workdir 设置脚本目录，不强制 CMD；见第 15 节。第 14 节的 Portal 切换模型恢复属于另一轮历史排查。  
+> 最新 MCP 现场结论：2026-11-02 用户确认 Python 3.10 旧虚拟环境导致的 StrEnum 导入问题已解决；通过 Python 3.12 重建环境并从项目根目录 requirements.txt 安装依赖，见第 16 节。  
+> 用例卡片现场结论：用例卡片调用约束修复已于 2026-10-31 由用户确认验证成功。最终采用 Agent 原生 Shell、优先 workdir 设置脚本目录，不强制 CMD；见第 15 节。第 14 节的 Portal 切换模型恢复属于另一轮历史排查。  
 > 版本与发布状态：develop 的版本元数据、README 和用户指导教程已更新为 0.2.8，发布准备文档已完成；本轮未执行 main 合并、创建 Release 或安装包发布，不应将准备完成记为正式发布。
 
 ## 1. 项目目标
@@ -619,3 +620,39 @@ Python 脚本、前端、每批最多 3 个 TS 的并发数量、因子规则和
 - 用户明确 MCP 由工具自动启动，无需手动执行启动脚本或保持独立终端。Python 安装要求仍保留：至少 3.11，推荐 3.12。
 - 最新一次精简只修改教程；README 仍保留此前的手动 MCP 启动检查段落，尚未按“自动启动”的用户文档口径同步，后续若更新 README 应一并统一。
 - 本轮已完成版本和文档准备，但没有 main 合并、GitHub Release 创建或安装包正式发布的执行记录；发布状态需后续按实际操作更新。
+
+## 16. 用户现场 MCP Python 3.10 兼容问题恢复（2026-11-02）
+
+### 现场与根因
+
+- 用户本地扩展目录为 `D:\AI test\testagent\templates\coretest-spec-e2e-jjfa@0.2.0\coretest-spec-e2e-jjfa`。这是现场包目录名称，不据此修改仓库 `0.2.8` 版本元数据。
+- 启动输出 `[MCP] Using existing venv`，随后 griffe 在 `from enum import StrEnum` 处失败；标准库路径指向 `Python310\lib\enum.py`，说明复用的虚拟环境仍使用 Python 3.10。
+- StrEnum 从 Python 3.11 起提供，当前安装的 griffe 代码与 Python 3.10 不兼容。后续 `FastMCP server support is not installed` 是导入异常包装提示，不能据此判断只是缺少 server 包。
+- 用户已安装 Python 3.12，但安装新版不会自动切换原有 `.venv`。无需先修改 PATH，可以使用解释器完整路径重建环境。
+- 用户最后提供的解释器位置为 `D:\Python312\Scripts\python.exe`（早先只提供 Scripts 目录）。实际操作先用 `--version` 验证，不能仅凭目录名判断版本。
+
+### 解决步骤与路径纠正
+
+以下为本次提供的 CMD 排障步骤；已经完成的备份与重建不重复执行。若备份目录已存在，应保留它并另选备份名称。
+
+```bat
+"D:\Python312\Scripts\python.exe" --version
+cd /d "D:\AI test\testagent\templates\coretest-spec-e2e-jjfa@0.2.0\coretest-spec-e2e-jjfa"
+ren .venv .venv_py310_backup
+"D:\Python312\Scripts\python.exe" -m venv .venv
+".venv\Scripts\python.exe" --version
+".venv\Scripts\python.exe" -m pip install -r "requirements.txt" -i http://cmc-cd-mirror.rnd.huawei.com/pypi/simple/ --trusted-host cmc-cd-mirror.rnd.huawei.com
+.\.testagent\mcp\core_test_design_mcp\start_mcp.bat
+```
+
+- 两次版本检查均应确认 Python 3.12.x，依赖安装成功后再启动；任一步失败先处理该错误。
+- 对话早期曾误给 `.testagent/mcp/core_test_design_mcp/requirements.txt`。经读取 develop 源码确认，正确位置是**项目根目录 `requirements.txt`**；启动脚本也使用 `%ROOT_DIR%\requirements.txt`，不要沿用错误路径。
+- 本次核对根目录依赖为 `fastmcp==3.4.3`、`fastmcp-slim==3.4.3`、`requests==2.34.2`、`cryptography==49.0.0`，未修改版本。
+- develop 当前启动脚本已具备 Python ≥3.11 校验、优先选择 3.12、实际 FastMCP 导入检查和缺失依赖安装逻辑。现场旧包不能直接视为已包含该脚本。
+- 上述手动启动仅用于本次故障定位与验证；正常使用仍由工具自动启动 MCP，不改变用户教程口径。
+
+### 验证结果与边界
+
+- 用户在纠正依赖路径并给出安装、启动命令后明确反馈“解决了”，本次现场故障已关闭。
+- 未提供修复后的完整启动日志或业务工具调用记录；按用户反馈记录恢复，不将其扩展为 Init / Explore / Design / Archive 全链路回归通过。
+- 本轮仅更新项目上下文文档，未修改启动脚本、业务代码、依赖、版本元数据，也未执行 main 合并或发布。
