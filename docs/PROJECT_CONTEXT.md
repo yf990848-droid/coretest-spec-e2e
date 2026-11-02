@@ -6,6 +6,7 @@
 > 稳定分支：`main`  
 > 最新 MCP 现场结论：2026-11-02 用户确认 Python 3.10 旧虚拟环境导致的 StrEnum 导入问题已解决；通过 Python 3.12 重建环境并从项目根目录 requirements.txt 安装依赖，见第 16 节。  
 > 用例卡片现场结论：用例卡片调用约束修复已于 2026-10-31 由用户确认验证成功。最终采用 Agent 原生 Shell、优先 workdir 设置脚本目录，不强制 CMD；见第 15 节。第 14 节的 Portal 切换模型恢复属于另一轮历史排查。  
+> 代码仓归档状态：2026-11-02 用户确认 0.2.8 已合入 CodeHub `CoreTestClaw_G/CoreTestClaw` 的 `coretest-spec-e2e` 分支；本次归档 7 个文件，详见第 17 节。该结果不代表 GitHub main 合并或正式发布。  
 > 版本与发布状态：develop 的版本元数据、README 和用户指导教程已更新为 0.2.8，发布准备文档已完成；本轮未执行 main 合并、创建 Release 或安装包发布，不应将准备完成记为正式发布。
 
 ## 1. 项目目标
@@ -38,7 +39,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 
 ## 2. 当前开发基线
 
-0.2.4 功能基线于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 完成 TS/TP 因子检索、因子计划与 Archive 关联的现场闭环。0.2.6 只进行新版测试用例卡片 `webapps` 适配，卡片加载与 Design 卡片链路已经用户验证。0.2.7 仅修复 MCP 启动时的 Python 选择、依赖导入检查及 Windows 批处理文件格式。0.2.8 修正用例卡片执行约束、清理旧 Skill 流程并更新用户教程，用户已确认验证成功。当前以 `develop` 实际文件为准；本次对话未执行分支合并，历史分叉状态须在合并前重新核对。
+0.2.4 功能基线于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 完成 TS/TP 因子检索、因子计划与 Archive 关联的现场闭环。0.2.6 只进行新版测试用例卡片 `webapps` 适配，卡片加载与 Design 卡片链路已经用户验证。0.2.7 仅修复 MCP 启动时的 Python 选择、依赖导入检查及 Windows 批处理文件格式。0.2.8 修正用例卡片执行约束、清理旧 Skill 流程并更新用户教程，用户已确认验证成功。当前以 GitHub `develop` 实际文件为准；2026-11-02 用户确认 CodeHub 归档分支已合入 `coretest-spec-e2e`（第 17 节）。GitHub main 与 develop 的历史分叉状态仍须在合并前重新核对。
 
 当前已完成：
 
@@ -470,7 +471,7 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 
 第 14 节的 Portal 现场问题已通过切换模型恢复。第 15 节的用例卡片调用修复也已验证成功，不再作为待恢复故障。用例卡片已增加提示词层面的结果校验，但底层脚本失败退出码、UUID 兜底和 Portal 空参数处理等运行代码未在本轮修改，不得混记为已交付。
 
-0.2.8 版本元数据、README 和精简后的用户教程已提交 develop。用户明确表示准备发布；本轮未执行正式发布或 main 合并，后续按用户指令推进。
+0.2.8 版本元数据、README 和精简后的用户教程已提交 develop。2026-11-02 用户确认 CodeHub 0.2.8 代码仓归档已合并（第 17 节），不再作为待执行归档任务。GitHub main 合并、正式发布仍未有完成记录，后续按用户指令推进。
 
 1. 发布前清理 `.testagent/mcp/mcp_settings.json` 中的个人认证配置，或确保该本地配置不进入发布包。2026-10-22 核对时 `X-USER-TOKEN`、`X-AUTH-TOKEN` 仍为非空值；本次仅记录待办，未修改配置，也不在文档中保存凭据值。若为有效凭据，应撤销或轮换。
 2. 若从 main 发布，先核对最新分支差异，再按用户指令合并；不能直接套用 2026-10-19 的 ahead/behind 数值。
@@ -656,3 +657,44 @@ ren .venv .venv_py310_backup
 - 用户在纠正依赖路径并给出安装、启动命令后明确反馈“解决了”，本次现场故障已关闭。
 - 未提供修复后的完整启动日志或业务工具调用记录；按用户反馈记录恢复，不将其扩展为 Init / Explore / Design / Archive 全链路回归通过。
 - 本轮仅更新项目上下文文档，未修改启动脚本、业务代码、依赖、版本元数据，也未执行 main 合并或发布。
+
+
+## 17. 0.2.8 代码仓归档完成（2026-11-02）
+
+### 归档来源与目标
+
+- 源模板：`D:\TestAgent\templates\coretest-spec-e2e@0.2.8\coretest-spec-e2e`；现场读取扩展清单确认 name 为 coretest-spec-e2e、version 为 0.2.8。
+- 本地归档仓：`D:\CoreTestClaw_new`。
+- origin：`https://szv-open.codehub.huawei.com/innersource/CoreTestClaw_G/CoreTestClaw.git`。
+- 目标分支：`coretest-spec-e2e`；本次源分支：`personal/c00959281/coretest-spec-e2e-028`。
+- 从旧的 026-mr2 分支切换到目标分支时，本地落后远端 4 个提交；同步后已成功创建本次 028 分支。拉取输出中的 WebApp 资源重命名属于目标分支已有更新，不是本次 0.2.8 新归档内容。
+
+### 本次归档范围
+
+现场暂存清单仅包含以下 7 个修改文件：
+
+| 文件 | 归档内容 |
+|---|---|
+| `.testagent/mcp/core_test_design_mcp/start_mcp.bat` | 纳入 0.2.7 MCP 启动修复 |
+| `.testagent/agents/test-design-agent.md` | 用例卡片调用约束 |
+| `.testagent/skills/coretest-design/SKILL.md` | Design 卡片执行约束 |
+| `.testagent/skills/test-case-card-adapter/SKILL.md` | 单 TS 数据复用及卡片调用约束 |
+| `.testagent/skills/test-case-card/SKILL.md` | 原生 Shell / workdir、四参数、返回检查及旧流程清理 |
+| `README.md` | 0.2.7 / 0.2.8 更新与使用说明 |
+| `codeagent-extension.json` | 版本从 0.2.6 更新到 0.2.8 |
+
+- 复制清单还包含根目录 requirements.txt，但其内容无差异，未进入暂存清单。
+- 现场差异统计为 7 files changed、192 insertions、172 deletions；没有 .py 文件变更，Python 新增行数为 0，满足单个 MR 小于 1000 行的规则，无需拆分 MR。
+- 源模板 docs 目录列举命令没有输出，本次未复制或暂存教程及项目上下文文档；不能据此声称 CodeHub 已同步 0.2.8 教程。
+- README 仍包含手动启动 MCP、保持窗口运行的历史说明。本次按已验证包归档，未顺带修正文档；后续应与正常使用由工具自动启动 MCP 的口径统一。
+- 本次未归档 WebApp 或 Python 业务代码，不改变因子与平台对象归档规则。
+
+### 检查、合并结果与边界
+
+- git diff --check 仅出现 LF 转 CRLF 提示，没有空白错误；未为换行提示批量重写文件。
+- 使用明确的 $Files 清单暂存，未使用 git add -A；现场暂存清单已核对。
+- 原有 mcp_settings.json、ProjectSkillStatus.txt 修改，以及 .gitignore、.idea、.opencode 下个人文件、.testagent/AGENTS.md、.testagent/testagent.md 和 __pycache__ 等均未进入本次暂存清单，未执行清理或恢复。
+- 用户要求一步步指导、只执行必要命令，并在确认暂存清单后明确“不用检查文件内容”；后续不再要求逐文件审查。
+- 提供的提交命令使用说明 `chore: archive coretest-spec-e2e 0.2.8`，推送源分支为 personal/c00959281/coretest-spec-e2e-028。用户随后明确反馈“已合并”，据此记录 CodeHub 本次归档已完成。
+- 对话未提供提交 SHA、MR 编号或合并后本地拉取输出，不虚构这些标识，也不宣称本地目标分支已再次同步。
+- 该合并是 CodeHub 目标分支归档，不代表 GitHub develop → main 合并、GitHub Release 创建、安装包正式发布或新一轮业务全链路回归。
