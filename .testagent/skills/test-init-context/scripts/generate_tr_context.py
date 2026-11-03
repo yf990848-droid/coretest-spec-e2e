@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate idempotent TR and CIDA context files from init MCP output."""
+"""Generate idempotent TR and CIDA context files from init CLI output."""
 
 from __future__ import annotations
 

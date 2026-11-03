@@ -1,5 +1,5 @@
 ---
-description: 保存初始化 MCP 返回，并按真实 TR ID 生成包含当前 TR 元数据、直接关联需求及 CIDA 兼容信息的上下文。
+description: 校验初始化 CLI 兼容快照，并按真实 TR ID 生成包含当前 TR 元数据、直接关联需求及 CIDA 兼容信息的上下文。
 metadata:
   author: corespec
   version: 1.3.3
@@ -8,11 +8,11 @@ name: test-init-context
 
 # test-init-context
 
-保存 `core_test_design_mcp.get_design_task_info_init` 的完整返回，并生成 TR 级初始化上下文。
+读取 `fetch_design_task_info.py` 生成的兼容快照，并生成 TR 级初始化上下文。
 
 ## 输入
 
-- `init_result`：必填，初始化 MCP 的完整原始返回。
+- `design_task_info_file`：必填，本轮脚本生成的 `.design_output/design_task_info.json` 绝对路径。
 
 ## 输出
 
@@ -26,12 +26,8 @@ name: test-init-context
 
 ## 执行步骤
 
-1. 校验 `init_result` 调用成功，且包含 `pbi`、`project_id` 和 `data`。
-2. 创建 `.design_output`，将 `init_result` 完整保存到 `.design_output/design_task_info.json`：
-   - UTF-8 编码；
-   - 保留中文；
-   - JSON 格式化；
-   - 不修改原始数据结构。
+1. 确认本轮 `fetch_design_task_info.py` 成功，读取 `design_task_info_file`，校验 `success=true`、`pbi`、`project_id` 和 `data`。
+2. 保留脚本生成的兼容快照和 `design_task_info.cli_response.json` 原始响应；不得用 CLI 原始 `tasks` 结构覆盖兼容快照，不得手工重建 JSON。
 3. 执行：
 
 ```bash
@@ -112,7 +108,7 @@ python -u .testagent/skills/test-init-context/scripts/generate_tr_context.py \
 
 ## 成功准则
 
-1. `design_task_info.json` 与 MCP 原始返回一致。
+1. `design_task_info.json` 保持原有 `success/pbi/project_id/data` 契约；原始 CLI 输出可追溯。
 2. 每个有效 TR 均生成 `TR_<tr_id>/tr_info.json`，且其中的 TR 元数据直接来自当前 TR。
 3. 每个第一条直接关联需求信息完整的 TR 均生成旧结构的 `TR_<tr_id>/cida_info.json`。
 4. 脚本可重复执行，且不覆盖其他阶段产物。

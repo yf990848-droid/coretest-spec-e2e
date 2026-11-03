@@ -22,7 +22,7 @@ coretest-archive-agent
 → 汇总
 ```
 
-本 Skill 只负责入口解析、上下文定位、输入校验和 Agent 调度，不直接调用创建 MCP、CoreTool 文档命令或 Portal。
+本 Skill 只负责入口解析、上下文定位、输入校验和 Agent 调度，不直接调用创建 CLI、CoreTool 文档命令或 Portal。
 
 ## 使用方式
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """coretest-archive 归档状态管理。
 
-本脚本只管理本地状态和 MCP 原始响应，不调用 MCP，不修改 tr_ts.json、
+本脚本只管理本地状态和 CLI 原始响应，不调用 CLI，不修改 tr_ts.json、
 ts_<NN>_tp.json 或 ts_<NN>_tc.json。
 
 状态文件：
@@ -18,7 +18,7 @@ ts_<NN>_tp.json 或 ts_<NN>_tc.json。
 
     python archive_state.py record-success --state-file <path> \
       --entity ts --key TS_01 --platform-id 12345 --parent-key TR \
-      --parent-id 67890 --response-file <mcp-response.json>
+      --parent-id 67890 --response-file <cli-response.json>
 """
 
 import argparse

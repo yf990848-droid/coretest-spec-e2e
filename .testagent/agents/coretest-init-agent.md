@@ -33,24 +33,19 @@ name: coretest-init-agent
 python -c "import getpass; print(getpass.getuser())"
 ```
 
-3. 调用 MCP：
+3. 使用 `coretool-cli` Skill 校验 CLI 绝对路径、版本和认证，然后执行一次：
 
-```text
-core_test_design_mcp.get_design_task_info_init
+```bash
+python "<root>/.testagent/skills/test-init-context/scripts/fetch_design_task_info.py" \
+  --cli "<coretool_cmd>" --product-name "<产品版本名称>" \
+  --owner-id "<当前用户工号>" --output-root "<root>/.design_output"
 ```
 
-参数：
+脚本只调用一次 `coretest testdesign task tree`，将原始输出保存至
+`design_task_info.cli_response.json`，并生成兼容原有结构的 `design_task_info.json`。
+单轮不得再次查询补充字段，后续步骤复用该快照。
 
-```json
-{
-  "product_name": "<产品版本名称>",
-  "owner_id": "<当前用户工号>"
-}
-```
-
-单轮执行最多调用一次该 MCP。首次调用成功后，卡片创建和全部上下文文件必须复用该次原始返回；不得为补充字段或重新规划而再次调用 MCP。
-
-4. 校验 MCP 返回成功，且包含 `pbi`、`project_id` 和 `data`。校验失败时停止流程。
+4. 检查脚本退出码为 0、`success=true`，并读取生成的快照，确认包含 `success=true`、`pbi`、`project_id` 和 `data`。失败时停止，不使用旧快照继续。
 
 5. 取得真实 `pbi` 后，立即创建 working 卡片：
 
@@ -61,7 +56,7 @@ python -u card_generate.py "completed" "coretest-explore" "{pbi}" "" "fullTestDe
 
 卡片调用失败时报告失败，但继续保存初始化结果。
 
-6. 调用 `test-init-context` skill，传入本轮 MCP 原始返回，由该 Skill 保存：
+6. 调用 `test-init-context` skill，传入本轮生成的 `design_task_info_file` 路径：
 
 ```text
 .design_output/design_task_info.json
@@ -112,11 +107,11 @@ python -u card_generate.py "completed" "coretest-explore" "{pbi}" "" "fullTestDe
 
 暂停流程，等待用户完成右侧卡片操作或确认无需新增。
 
-9. 只有收到用户后续消息 `TR已创建` 后，才启动新一轮初始化并重新从步骤 3 开始执行。新一轮同样只允许调用一次 MCP；不得删除本次 MCP 未返回的历史 TR 目录。
+9. 只有收到用户后续消息 `TR已创建` 后，才启动新一轮初始化并重新从步骤 3 开始执行。新一轮同样只允许执行一次 task tree 查询；不得删除本次查询未返回的历史 TR 目录。
 
 ## 失败处理
 
-- MCP 初始化失败：停止流程。
+- CLI 初始化失败：停止流程。
 - TR 上下文生成或校验失败：停止流程。
 - TR 未直接关联需求，或第一条直接关联需求缺少 `requirement_id`：报告对应 TR，禁止其进入后续流程，并提示用户在平台补齐直接关联后重新执行 init。
 - 卡片调用失败：保留初始化结果并报告失败。

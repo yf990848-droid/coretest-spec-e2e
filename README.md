@@ -2,8 +2,15 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.8`
+当前扩展版本：`0.2.9`
 当前开发分支：`develop`
+
+## 0.2.9 更新
+
+- Init、TS、TC 平台调用统一使用 CoreTool CLI；移除本扩展的 MCP 服务注册、启动器和依赖。
+- 保持 TS 因子、TP 因子关联、DFX、卡片、文档同步及归档计划逻辑。
+- TC 完整编号原值传递，创建后查询确认；不确定的写入结果保留证据，禁止自动重复创建。
+- 基于用户已验证的 CLI 1.0.6 接口；CLI 可执行文件需随扩展包发布，本仓库不包含二进制。完整 Windows 端到端回归仍需在平台环境执行。
 
 ## 0.2.8 更新
 
@@ -13,7 +20,7 @@
 - 补齐初始化 card_id 非空检查、四个位置参数说明和更新返回校验，统一卡片阶段重试规则；
 - 用户已于 2026-10-31 确认验证成功；本次未修改 Python、前端、TS 并发数量、因子及归档规则。
 
-使用指导见：`coretest-spec-e2e 0.2.8 指导教程.md`。
+使用指导见：`coretest-spec-e2e 0.2.9 指导教程.md`。
 
 ## 0.2.7 更新
 
@@ -66,38 +73,29 @@
 ## 使用前准备
 
 - TestAgent 已加载当前扩展包；
-- `core_test_design_mcp` 可用，地址通常为 `127.0.0.1:8765`（SSE）；
+- 扩展包内置 CoreTool CLI 1.0.6 接口兼容版本可用，且已完成认证；
 - 当前账号可访问对应产品版本、测试设计任务和 Portal；
 - **请提前安装 Python 3.11 或以上版本，推荐 Python 3.12（本次已验证）**；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH；
 - Pandoc 可通过 `pandoc --version` 检查；
 - CoreTool 优先使用扩展包内置绝对路径，且已完成认证；
 - 当前 TR 至少直接关联一个有效 IR/SR/US。
 
-### Python 与 MCP 启动检查
+### Python 与 CLI 检查
 
-在 PowerShell 中检查已安装版本：
+在扩展包根目录执行（Python 3.11+，推荐 3.12）：
 
 ```powershell
 py -0p
-py -3.12 --version
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$CoreTool = Join-Path (Get-Location) '.testagent\skills\coretool-cli\tools\coretool-cli.exe'
+& $CoreTool version
+& $CoreTool auth status
 ```
 
-推荐安装 Python 3.12 后，在扩展包根目录执行：
-
-```powershell
-.\.testagent\mcp\core_test_design_mcp\start_mcp.bat
-```
-
-脚本会创建或复用根目录下的 `.venv`，并检查依赖。首次安装依赖需要能访问公司内网 PyPI 镜像。
-
-如果提示已有虚拟环境版本过低，**仅安装新版 Python 不会升级已有 `.venv`**。先停止使用该环境的进程，再在扩展包根目录备份旧环境并重新启动：
-
-```powershell
-Rename-Item .venv ".venv-backup-$(Get-Date -Format yyyyMMddHHmmss)"
-.\.testagent\mcp\core_test_design_mcp\start_mcp.bat
-```
-
-看到 `Application startup complete` 和 `Uvicorn running on http://127.0.0.1:8765` 表示服务已启动，使用 MCP 时需保持该窗口运行。
+让 TestAgent 使用安装了依赖的 Python 环境。已有虚拟环境版本过低时需另建兼容环境。
+CLI 不存在时先补齐扩展包内的可执行文件；未登录或认证过期时执行 `& $CoreTool auth login`。
+0.2.9 无需启动本地 MCP 服务。
 
 ## 快速开始
 

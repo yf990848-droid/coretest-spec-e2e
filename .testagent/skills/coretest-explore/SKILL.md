@@ -243,7 +243,7 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
   --tr-info "<tr_dir>/tr_info.json"
 ```
 
-脚本只生成已有 TR 模式 JSON，不调用任何 MCP。验证：
+脚本只生成已有 TR 模式 JSON，不调用任何平台写入命令。验证：
 
 - `_meta.tr_mode == "existing"`；
 - `tr.tr_id` 与输入 TR 一致；

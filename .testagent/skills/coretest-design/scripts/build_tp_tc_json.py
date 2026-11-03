@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_tp_tc_json.py —— 从测试设计 md 后段提取，组装 TP/TC 的 MCP 入参 JSON
+build_tp_tc_json.py —— 从测试设计 md 后段提取，组装 TP/TC 的 CLI 入参 JSON
 
 职责：只读 ts_<NN>_test_design.md / ts_<NN>_test_cases.md 的
 「## 平台写入数据 - TP」/「## 平台写入数据 - TC」固定章节，提取表格，
 补 designTaskId（命令参数）与 creator（环境变量 USERNAME），套死 JSON 形状落盘。
-不读 rules、不做内容校验、不调用 MCP——内容由 md 决定（其格式规则来自
+不读 rules、不做内容校验、不调用 CLI——内容由 md 决定（其格式规则来自
 ../../rules/tp-tc-output.md），脚本只保证 JSON 形状合规。
 
 <PENDING> 占位字段（tsId/parentTrId/tp_id/tr_id 等）原样写入 json，不报错、
@@ -304,7 +304,7 @@ def process_pair(nn: str, design_path: Path, cases_path: Path,
 
 
 def main():
-    ap = argparse.ArgumentParser(description="从测试设计 md 提取组装 TP/TC 的 MCP 入参 JSON")
+    ap = argparse.ArgumentParser(description="从测试设计 md 提取组装 TP/TC 的 CLI 入参 JSON")
     ap.add_argument("test_design_dir", help="test_design目录路径（如 .design_output/<IR>/test_design/）")
     ap.add_argument("--design-task-id", required=True,
                     help="必填，设计任务ID（沙盒用281），来自 CloudSpider 页面 dtId")

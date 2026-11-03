@@ -48,8 +48,8 @@ product_name = 用户输入的产品版本
 ## 调用要求
 
 - 必须使用 `task` 工具调用 `coretest-init-agent` 执行初始化流程。
-- 单轮初始化只允许调用一次 `core_test_design_mcp.get_design_task_info_init`，后续步骤必须复用该次返回。
-- 只有用户在后续消息中回复“TR已创建”时，才允许启动新一轮初始化并再次调用一次 MCP。
+- 单轮初始化只允许调用一次 `fetch_design_task_info.py`（内部只查询一次 task tree），后续步骤必须复用该次返回。
+- 只有用户在后续消息中回复“TR已创建”时，才允许启动新一轮初始化并再次查询一次 task tree。
 
 ## 输出
 

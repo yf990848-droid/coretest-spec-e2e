@@ -5,6 +5,8 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 # CoreTool CLI Skill
 
+本扩展 0.2.9 使用 CLI 1.0.6 已验证接口；先验证版本及各命令 help。接口不兼容时停止，不猜测参数。
+
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
 每次会话首次使用时从扩展包内确定 CoreTool CLI 的绝对路径并记为 `<coretool_cmd>`。后续命令及 references 中的 `coretool-cli` 仅表示命令名占位符，实际执行时必须替换为 `<coretool_cmd>`。
@@ -117,7 +119,7 @@ coretool-cli auth logout
 
 4. **缺少必要参数时追问**：不缺可选参数时不追问，使用默认值。
 
-5. **JSON 参数**：Windows PowerShell 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免内联 JSON 被原生命令行重新转义。
+5. **JSON 参数**：Windows PowerShell 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免内联 JSON 被原生命令行重新转义。仅在当前子命令 help 明确支持时使用文件参数；TS/TC 归档必须使用 object_cli.py 的参数数组调用。
 
 6. **结果格式化**：命令输出直接展示给用户，必要时用自然语言解释表格内容。所有 CoreTest 查询命令支持 `--output json` 获取 JSON 格式输出。
 

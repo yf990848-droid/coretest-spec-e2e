@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
-  "version": "0.2.8",
-  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：0.2.8 修正用例卡片调用约束，使用原生 Shell 并优先通过 workdir 设置目录，逐 TS 独立更新并校验原始返回；清理旧卡片生成流程说明。"
+  "version": "0.2.9",
+  "description": "E2E测试设计能力扩展。0.2.9 将初始化、TS/TC 归档统一切换为 CoreTool CLI，保留现有因子、卡片、上下文和归档流程。"
 }

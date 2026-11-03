@@ -698,3 +698,20 @@ ren .venv .venv_py310_backup
 - 提供的提交命令使用说明 `chore: archive coretest-spec-e2e 0.2.8`，推送源分支为 personal/c00959281/coretest-spec-e2e-028。用户随后明确反馈“已合并”，据此记录 CodeHub 本次归档已完成。
 - 对话未提供提交 SHA、MR 编号或合并后本地拉取输出，不虚构这些标识，也不宣称本地目标分支已再次同步。
 - 该合并是 CodeHub 目标分支归档，不代表 GitHub develop → main 合并、GitHub Release 创建、安装包正式发布或新一轮业务全链路回归。
+
+
+## 18. 0.2.9：平台访问统一切换 CoreTool CLI
+
+本节覆盖历史章节中的本地 MCP 启动及对象调用说明。基线 develop：b25bb3c11f7624215d08cecbf75a71d3f767a453。
+
+- Init 使用 fetch_design_task_info.py，仅查询一次 task tree；原始响应与兼容 success/pbi/project_id/data 快照分开保存。generate_tr_context.py、直接需求选择和历史目录保留规则不变。
+- 普通 TS 使用 object_cli.py 调用 ts create-by-name；DFX 仍按现有规则复用。
+- TC 使用 tc create，完整 case_id 原值传递；卡片字段与归档字段不混用。CLI 空 message 不作为失败依据，使用 list 查询确认后保存 TC ID；历史无 ID 的 succeeded TC 继续复用。
+- 写入前持久化独占请求标记，保留原始调用证据；不确定结果禁止自动重复创建，人工核查后恢复状态。
+- factor_archive.py、TS 因子同步、TP --relations 因子 UUID/编码映射、Design JSON、卡片、在线文档同步和归档状态结构保持不变。
+- 标准 TC 当前没有关联因子字段。自定义非空 TC 因子字段不得静默丢弃；需要 CLI 支持完整 case_id 与因子一起提交并验证后扩展。本次不宣称覆盖 MCP 所有可选接口。
+- 删除本扩展 MCP 配置、服务器及启动器；移除 fastmcp/fastmcp-slim/cryptography 依赖，保留 requests 和 Python 3.11+ 要求。
+
+验证证据：用户在 Windows CLI 1.0.6 实测 task tree、TS 42026、TP 28241，TC 151519（_001）与 155667（_01_02），并确认平台字段一致。新适配代码另做本地离线回归；尚未在内网平台运行完整 Init → Explore → Design → Archive，不将已有手动命令验证视为新脚本端到端通过。
+
+本地回归：新增 CLI 适配测试 13 项、既有因子归档测试 9 项、既有因子候选测试 4 项全部通过（共 26 项）；测试使用离线 mock，不代表平台联调通过。
