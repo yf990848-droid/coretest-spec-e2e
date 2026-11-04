@@ -49,7 +49,7 @@ output_dir: <tr_dir>/test_specs/
 4. `_index.md` 的“当前 TR 直接关联需求”必须覆盖相同集合；
 5. `sr_specs/` 至少包含一个有效 SR 文件；
 6. 存在未处理的高优先级解析冲突时停止并提示确认；
-7. `platform_ts.json` 必须是合法 JSON；过滤 `scene/function/feature/constraint` 后的 DFX 条目必须具有唯一、非空的 `platform_ts_id`。
+7. `platform_ts.json` 必须是合法 JSON；过滤 `scene/function/feature/constraint` 后的 DFX 平台 ID 取自 `items[].id`（字段不存在时使用 `ts_id`），且必须唯一、非空。
 
 不得使用 `cida_info.json` 的首条需求代替完整需求集合。
 
@@ -81,6 +81,8 @@ output_dir: <tr_dir>/test_specs/
 每条 TS 必须能够回溯到当前 TR 的一个或多个直接关联需求；`requirement_ids` 必须是 TR 需求全集的非空子集。不得引用其他 TR 的需求。
 
 ## 4. DFX TS 测试规格
+
+`platform_ts.json` 保留 CLI 原始响应。将原始 `id`（字段不存在时使用 `ts_id`）填写到以下规格的 `platform_ts_id`；目录脚本使用相同映射生成 `ts_catalog.json.items[].platform_ts_id`。
 
 对 `platform_ts.json` 中过滤 `scene/function/feature/constraint` 后的每条平台 DFX，按原顺序生成一条规格：
 
