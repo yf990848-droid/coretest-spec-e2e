@@ -231,6 +231,8 @@ output_dir: <tr_dir>/test_specs/
 - 对平台结果过滤 `scene/function/feature/constraint` 后，按 `platform_ts_id` 为每条 DFX 生成独立测试规格；
 - DFX 规格写在 `## 平台写入数据` 之外，不能进入 `tr_ts.json.test_specs[]`。
 
+必须按 test-spec-analysis 第 3 节生成完整前段：TASK 的 7 个固定叶子章节和 TR 的 5 个固定章节均有正文，不得只输出平台表格或逐 TS 测试点。DFX 使用 `## DFX TS 测试规格` 和 `### DFX TS：<platform_ts_id>`，`## 平台写入数据` 必须位于末尾；不同 TS 下的“测试范围”“测试点”允许重名。不得为编排稳定编号而覆盖或删减前段分析。
+
 输出一份 `<tr_dir>/test_specs/<TR名称>测试规格.md`。默认展示并等待确认；`--skip-clarify` 可跳过。
 
 ### 阶段 6.5：生成 tr_ts.json
