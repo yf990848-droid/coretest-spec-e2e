@@ -175,6 +175,10 @@ python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" cre
 
 通过 `TS_<NN>/<tc_id_temp>` 唯一定位 TC，并在同一 TS 下使用 `TS_<NN>/<tp_id_temp>` 查找真实 TP ID。
 
+TC 标识必须分开使用：入口允许唯一匹配的 `case_id`，但匹配后立即转换为 JSON 的 `tc_id_temp`。例如 `case_id=PCF_CLI_MIG_01_01` 对应 `tc_id_temp=TC.11.01` 时，执行计划和状态 key 均为 `TS_11/TC.11.01`，父 TP key 为 `TS_11/TP.11.01.01`。禁止把 case_id 或三级路径 `TS_11/TP.11.01.01/PCF_CLI_MIG_01_01` 写入 execution_plan.tc 或 TC 状态 key；case_id 只用于平台用例编号，不改写其值。
+
+每条 TC 按同一标准 key 查询状态；已成功则复用，否则先 mark-in-progress，再调用 object_cli.py，最后用同一 key record-success/record-failure。`--tc-id-temp` 必须传 JSON 的 `TC.11.01`，不能传平台 case_id。发现锁定计划使用错误标识时返回计划错误，不得为迁就错误计划继续创建或保存非标准 key。
+
 - `status=succeeded`：直接复用，即使没有 `platform_id`；
 - 所属 TP 失败、blocked 或没有有效 ID：记录 TC 为 `blocked`；
 - 其他状态：使用下述脚本调用 CLI `tc create`，保持完整 `case_id`。
