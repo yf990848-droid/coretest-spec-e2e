@@ -32,8 +32,12 @@ metadata:
 - 测试规格文件路径（只用于来源审计）；
 - `design_task_id`；
 - `.design_output/<design_task_id>/TR_<tr_id>/cida_info.json` 文件路径及完整 CIDA 内容；
-- `.design_output/<design_task_id>/TR_<tr_id>/test_design/` 输出目录。
+- 已创建的 `.design_output/<design_task_id>/TR_<tr_id>/test_design/` 输出目录绝对路径 `<test-design-dir>`。
 - 当前版本的产品名，用于图谱检索时过滤产品。
+- `<design_python>` 解释器绝对路径；
+- `build_tp_tc_script`、`factor_candidates_script`、`factor_plan_script` 和 `graph_script` 四个脚本绝对路径，使用调用方按 `coretest-design` Phase 0 解析的值。
+
+JSON 提取和因子计划命令直接使用传入的解释器及脚本绝对路径，路径统一使用 `/` 并加双引号。
 
 必须使用当前 `TR_<tr_id>` 目录中的 `cida_info.json`，只读，不得重新生成或覆盖，也不得改用 `.testagent/skills/test-case-card/config/cida_info.json`。
 
@@ -94,7 +98,7 @@ test-design
 执行：
 
 ```bash
-cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.py "<root>/.design_output/<design_task_id>/TR_<tr_id>/test_design" --design-task-id <design_task_id> --ts <NN>
+"<design_python>" "<build_tp_tc_script>" "<test-design-dir>" --design-task-id <design_task_id> --ts <NN>
 ```
 
 必须传入：
@@ -129,10 +133,10 @@ cd "<root>/.testagent/skills/coretest-design"; python scripts/build_tp_tc_json.p
 把每次查询、原始 JSON 响应和去重候选写入 `ts_<NN>_factor_candidates.json`：
 
 ```bash
-python "<root>/.testagent/skills/coretest-design/scripts/factor_candidates.py" \
+"<design_python>" "<factor_candidates_script>" \
   --catalog-file "<tr_dir>/test_specs/ts_catalog.json" \
   --tp-file "<test-design-dir>/ts_<NN>_tp.json" \
-  --graph-script "<root>/.testagent/skills/test-graph/scripts/query.py" \
+  --graph-script "<graph_script>" \
   --ts-key "TS_<NN>" --ts-type "<catalog.ts_type>" \
   --product "<产品名>" --output "<test-design-dir>/ts_<NN>_factor_candidates.json"
 ```
@@ -179,7 +183,7 @@ python "<root>/.testagent/skills/coretest-design/scripts/factor_candidates.py" \
 执行确定性校验：
 
 ```bash
-python "<root>/.testagent/skills/coretest-design/scripts/factor_plan.py" \
+"<design_python>" "<factor_plan_script>" \
   --plan-file "<test-design-dir>/ts_<NN>_factor_plan.json" \
   --tp-file "<test-design-dir>/ts_<NN>_tp.json" \
   --candidates-file "<test-design-dir>/ts_<NN>_factor_candidates.json" \
