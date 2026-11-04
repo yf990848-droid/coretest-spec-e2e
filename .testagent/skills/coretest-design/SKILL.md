@@ -84,6 +84,21 @@ name: coretest-design
 -   启动 Agent 前由主流程提取当前 TS 的完整规格内容；不得把目录或整份背景材料交给 Agent 自行搜索；
 -   所有设计产物写入当前 `TR_<tr_id>` 目录。
 
+以扩展包仓库根目录 `<root>` 解析以下脚本绝对路径，统一使用 `/`，传给每个 `test-design-agent`：
+
+| 输入名 | 绝对路径 |
+|---|---|
+| `build_tp_tc_script` | `<root>/.testagent/skills/coretest-design/scripts/build_tp_tc_json.py` |
+| `factor_candidates_script` | `<root>/.testagent/skills/coretest-design/scripts/factor_candidates.py` |
+| `factor_plan_script` | `<root>/.testagent/skills/coretest-design/scripts/factor_plan.py` |
+| `graph_script` | `<root>/.testagent/skills/test-graph/scripts/query.py` |
+
+启动 Agent 前创建输出目录，并将其绝对路径作为 `<test-design-dir>` 传入：
+
+```bash
+mkdir -p "<root>/.design_output/<design_task_id>/TR_<tr_id>/test_design"
+```
+
 ### Phase 1: TS Filtering
 
 根据位置参数中的 TS 选择器筛选目标 TS。未指定时处理全部 TS。
@@ -186,13 +201,14 @@ cd "<root>/.testagent/skills/card-initializer/scripts/test_case"; python -u card
 5.  当前 TR 信息；
 6.  按来源精确提取的当前 TS 完整规格内容：普通 TS 使用 `tr_ts_index`，DFX 使用 `platform_ts_id`；
 7.  当前 TR 下完整 TS 清单（仅用于边界判断）；
-8.  输出目录；
+8.  已创建的输出目录绝对路径 `<test-design-dir>`；
 9.  测试规格文件路径（仅用于来源审计，不允许 Agent 扫描其目录）；
 10. `design-task-id`；
 11. 完整 `cida_info.json` 上下文；
 12. 完整 `ts_catalog.json`，并明确当前 TS 只能按 `tp-tc-design-logic.md` 中对应来源/类型的维度生成设计。
 13. 当前版本的产品名（如 `UPCF`），用于图谱检索的产品过滤；无法确定时停止该 TS 的因子检索，不能填空计划。
 14. `<design_python>` 的绝对路径；Agent 的 Python 脚本调用均使用此解释器，确保图谱查询与前置检查使用同一环境。
+15. Phase 0 解析的 `build_tp_tc_script`、`factor_candidates_script`、`factor_plan_script` 和 `graph_script` 四个绝对路径。
 
 `coretest-design` 不再在主流程中统一调用 `build_tp_tc_json.py`，也不再统一调用 `test-case-card-agent`。JSON 提取和卡片更新已经下沉到每个 `test-design-agent` 内部。
 
