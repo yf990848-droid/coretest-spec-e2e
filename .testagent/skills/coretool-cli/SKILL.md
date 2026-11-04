@@ -5,7 +5,7 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 # CoreTool CLI Skill
 
-本扩展 0.2.9 使用 CLI 1.0.6 已验证接口；已验证接口按 references 执行；先检查版本和认证，接口不兼容时停止并核查对应 help，不猜测参数。
+本扩展 0.2.9 使用 CLI 1.0.6 已验证接口。先检查版本和认证，再按 references 执行；接口不兼容时停止，并以对应 help 确认参数。
 
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
@@ -19,7 +19,7 @@ CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、�
 
 ## 环境准备
 
-所有终端命令使用 Bash，不能因操作系统是 Windows 就使用 PowerShell 语法。路径统一使用 `/`，绝对路径必须加双引号；直接调用 exe，不嵌套 powershell 或 cmd。
+所有终端命令使用 Bash。路径统一使用 `/`，绝对路径加双引号，直接调用 exe。
 
 `<extension-root>` 是包含当前 `.testagent` 目录的扩展包根目录。每次会话首次使用时只检查内置 CLI：
 
@@ -30,7 +30,7 @@ test -f "$CoreTool" || { echo "CoreTool CLI 不存在：$CoreTool" >&2; exit 1; 
 "$CoreTool" auth status || exit 1
 ```
 
-把通过校验的绝对路径记为 `<coretool_cmd>`。跨工具调用时直接使用该绝对路径，不假定 Bash 变量仍存在；找不到或校验失败时停止业务操作并报告。
+把通过校验的绝对路径记为 `<coretool_cmd>`。每次跨工具调用均显式传入该绝对路径；找不到或校验失败时停止业务操作并报告。
 
 本文及 references 中的 `coretool-cli` 均为命令占位符，执行时替换为带双引号的绝对路径。
 
@@ -116,7 +116,7 @@ coretool-cli auth logout
 
 3. **从自然语言提取参数**：参见各领域参考文档中的映射表。
 
-4. **缺少必要参数时追问**：不缺可选参数时不追问，使用默认值。
+4. **参数补全**：缺少必要参数时追问；可选参数使用默认值。
 
 5. **JSON 参数**：Bash 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免复杂内联 JSON 的引号和转义问题。仅在当前子命令 help 明确支持时使用文件参数；TS/TC 归档必须使用 object_cli.py 的参数数组调用。
 
