@@ -1,29 +1,31 @@
 # coretest-spec-e2e 0.2.9 指导教程
 
-适用版本：coretest-spec-e2e 0.2.9。本版本统一使用 CoreTool CLI 访问平台，沿用原有业务流程。
+适用版本：coretest-spec-e2e 0.2.9。本版本统一使用 CoreTool CLI 访问平台，沿用原有业务流程，并修复 TC 标识、文档章节提取、DFX 字段说明及设计脚本路径问题。
 
 ## 1. 使用前准备
 
 1. 在 TestAgent 中加载 coretest-spec-e2e 0.2.9 扩展包。
 2. 安装 Python 3.11 或以上版本，推荐 Python 3.12；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH。
 3. 确认当前账号具有对应产品版本、测试设计任务和全量测试设计平台的访问权限。
-4. 完成 CoreTool CLI 登录。
+4. 安装 Pandoc，并确认 `pandoc --version` 可运行。
+5. 完成 CoreTool CLI 登录。
 
-使用与 CLI 1.0.6 接口兼容的扩展包内置可执行文件；先检查 `version` 和 `auth status`。Python 环境及依赖安装参见 README。0.2.9 无需启动 MCP 服务。
+使用与 CLI 1.0.6 接口兼容的扩展包内置可执行文件；先检查 `version` 和 `auth status`。Python 环境及依赖安装参见 [README](../README.md)。
 
-在扩展包根目录打开 PowerShell，执行登录命令：
+在扩展包根目录打开 Bash（Windows 可使用 Git Bash），执行：
 
-```powershell
-.\.testagent\skills\coretool-cli\tools\coretool-cli.exe auth login
+```bash
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" version
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" auth login
 ```
 
 按提示完成登录后，可检查登录状态：
 
-```powershell
-.\.testagent\skills\coretool-cli\tools\coretool-cli.exe auth status
+```bash
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" auth status
 ```
 
-详细登录说明见 CORETOOL_CLI_LOGIN.md。
+后续终端命令使用 Bash，路径使用 `/`，包含空格的路径加双引号。
 
 ## 2. 操作流程
 
@@ -135,7 +137,7 @@ Design 会同时准备相关测试因子信息；平台上的实际关联在归�
 | 归档指定 TP 及所属 TS | `/coretest-archive 4029 TS_18/TP.18.01` |
 | 归档全部 TC 及所属 TS、TP | `/coretest-archive 4029 TC` |
 
-指定 TP 时，请使用本次实际生成的编号。归档指定 TS 或 TP 不会自动包含其下全部用例；需要归档用例时应选择相应的 TC 范围。
+指定 TP 时，请使用本次实际生成的编号；指定 TC 使用生成结果中的 `tc_id_temp`（例如 `TC.18.01`），用例业务编号 `case_id` 会原值保留。归档指定 TS 或 TP 不会自动包含其下全部用例；需要归档用例时应选择相应的 TC 范围。
 
 归档结束后：
 
