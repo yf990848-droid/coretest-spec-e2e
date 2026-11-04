@@ -122,6 +122,8 @@ TC              → 全部 TS + 全部 TP + 全部 TC
 
 依赖只向上补齐。保持用户输入或源文件的稳定顺序。计划包含 TP/TC 时，目标 TP 的 `tpSourceType` 必须非空且合法；否则在调用 Agent 前停止。
 
+TC 标识必须分开使用：入口允许唯一匹配的 `case_id`，但匹配后立即转换为 JSON 的 `tc_id_temp`。例如 `case_id=PCF_CLI_MIG_01_01` 对应 `tc_id_temp=TC.11.01` 时，执行计划和状态 key 均为 `TS_11/TC.11.01`，父 TP key 为 `TS_11/TP.11.01.01`。禁止把 case_id 或三级路径 `TS_11/TP.11.01.01/PCF_CLI_MIG_01_01` 写入 execution_plan.tc 或 TC 状态 key；case_id 只用于平台用例编号，不改写其值。
+
 ## Phase 3：生成文档范围
 
 文档范围独立于对象计划：
