@@ -6,9 +6,9 @@
 > 稳定分支：`main`  
 > 最新 MCP 现场结论：2026-11-02 用户确认 Python 3.10 旧虚拟环境导致的 StrEnum 导入问题已解决；通过 Python 3.12 重建环境并从项目根目录 requirements.txt 安装依赖，见第 16 节。  
 > 用例卡片现场结论：用例卡片调用约束修复已于 2026-10-31 由用户确认验证成功。最终采用 Agent 原生 Shell、优先 workdir 设置脚本目录，不强制 CMD；见第 15 节。第 14 节的 Portal 切换模型恢复属于另一轮历史排查。  
-> 代码仓归档状态：2026-11-02 用户确认 0.2.8 已合入 CodeHub `CoreTestClaw_G/CoreTestClaw` 的 `coretest-spec-e2e` 分支；本次归档 7 个文件，详见第 17 节。该结果不代表 GitHub main 合并或正式发布。  
+> 代码仓归档状态：2026-11-06 用户确认 0.2.9 已合入 CodeHub `CoreTestClaw_G/CoreTestClaw` 的 `coretest-spec-e2e` 分支；Python 新增 458 行，未拆分 MR，详见第 20 节。该结果不代表 GitHub main 合并或正式发布。  
 > 版本与发布状态：0.2.9 CLI 主流程已由用户确认验证通过，版本配置、README 和指导教程已更新至 develop；本次对话未执行 main 合并、Release 创建或安装包发布。最新结论及证据见第 19 节。
-> 阅读提示：第 13～17 节为历史记录；当前 CLI、Bash、TC 标识及发布状态以第 18～19 节和当前源码为准。
+> 阅读提示：第 13～17 节为历史记录；当前 CLI、Bash、TC 标识及发布状态以第 18～20 节和当前源码为准。
 
 ## 1. 项目目标
 
@@ -40,7 +40,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 
 ## 2. 当前开发基线
 
-0.2.4 功能基线于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 完成 TS/TP 因子检索、因子计划与 Archive 关联的现场闭环。0.2.6 只进行新版测试用例卡片 `webapps` 适配，卡片加载与 Design 卡片链路已经用户验证。0.2.7 仅修复 MCP 启动时的 Python 选择、依赖导入检查及 Windows 批处理文件格式。0.2.8 修正用例卡片执行约束、清理旧 Skill 流程并更新用户教程，用户已确认验证成功。当前以 GitHub `develop` 实际文件为准；2026-11-02 用户确认 CodeHub 归档分支已合入 `coretest-spec-e2e`（第 17 节）。GitHub main 与 develop 的历史分叉状态仍须在合并前重新核对。
+0.2.4 功能基线于 2026-09-01 合入 `main`（提交 `bec90e8`）。0.2.5 完成 TS/TP 因子检索、因子计划与 Archive 关联的现场闭环。0.2.6 只进行新版测试用例卡片 `webapps` 适配，卡片加载与 Design 卡片链路已经用户验证。0.2.7 仅修复 MCP 启动时的 Python 选择、依赖导入检查及 Windows 批处理文件格式。0.2.8 修正用例卡片执行约束、清理旧 Skill 流程并更新用户教程，用户已确认验证成功。当前以 GitHub `develop` 实际文件为准；2026-11-06 用户确认 0.2.9 CodeHub 归档分支已合入 `coretest-spec-e2e`（第 20 节）。GitHub main 与 develop 的历史分叉状态仍须在合并前重新核对。
 
 当前已完成：
 
@@ -472,7 +472,7 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 
 ## 10. 接手后的下一步
 
-0.2.9 已完成本轮“打通流程”的验收，版本配置、README 和指导教程已提交 develop。无需仅为发布准备重复执行已通过的 Archive；业务设计质量与其他扩展验证按后续目标单独安排。
+0.2.9 已完成本轮“打通流程”的验收，版本配置、README 和指导教程已提交 develop。2026-11-06 用户确认 0.2.9 CodeHub 代码仓归档已合并（第 20 节），不再作为待执行归档任务。无需仅为发布准备重复执行已通过的 Archive；业务设计质量与其他扩展验证按后续目标单独安排。
 
 1. 若用户要求合并到 main，先核对最新分支差异，再执行合并；本次对话没有 main 合并、Release 或安装包发布记录，不沿用历史 ahead/behind 数值。
 2. 发布包保持版本 0.2.9，包含与 CLI 1.0.6 接口兼容的内置可执行文件；用户完成 CLI 登录并准备 Python、Pandoc 环境。旧 MCP 启动及依赖排障仅作为历史参考。
@@ -784,3 +784,35 @@ TR 5192 首轮 TS_11 是 feature“CLI迁移验证”，平台 ID 42119；重新
 | 85ba623 | docs/coretest-spec-e2e 0.2.9 指导教程.md 更新 Bash 登录、准备事项及 TC 标识说明 |
 
 发布文档仅修改 codeagent-extension.json、README.md、docs/coretest-spec-e2e 0.2.9 指导教程.md 三个文件；JSON 与 Bash 示例检查通过，提交后已回读 develop 确认一致。教程保持用户操作指南，未变更业务代码。此次对话没有执行 develop → main 合并、GitHub Release 创建或安装包发布。
+
+## 20. 0.2.9 代码仓归档完成（2026-11-06）
+
+### 来源、目标与基线
+
+- 源模板：`D:\TestAgent\templates\coretest-spec-e2e@0.2.9\coretest-spec-e2e`；现场读取 codeagent-extension.json 确认 name=coretest-spec-e2e、version=0.2.9。
+- 本地归档仓：`D:\CoreTestClaw_new`；origin 为 `https://szv-open.codehub.huawei.com/innersource/CoreTestClaw_G/CoreTestClaw.git`。
+- 目标分支：`coretest-spec-e2e`；本次源分支：`personal/c00959281/coretest-spec-e2e-029`。
+- 从 028 分支切换到目标分支后，执行 pull --ff-only，从 `6318286` 快进至 `8e8faf8`，再成功创建 029 分支。拉取显示的 7 文件、192 新增、172 删除属于前次 0.2.8 已合入内容，不是本次 0.2.9 的变更统计。
+
+### 归档范围与本地文件处理
+
+按 GitHub develop 的 0.2.9 基线差异整理明确清单，从已验证的本地模板复制 24 个文件，现场 status 已显示对应修改及新增文件：
+
+- 4 个 Agent：coretest-archive-agent、coretest-document-sync-agent、coretest-init-agent、test-design-agent。
+- 规则：.testagent/rules/analysis-guide.md。
+- 8 个 Skill 的 SKILL.md：coretest-archive、coretest-design、coretest-explore、coretest-init、coretest-object-archive、coretool-cli、test-init-context、test-spec-analysis；另含 coretool-cli/references/coretest.md。
+- 7 个 Python 文件：archive_state.py、build_tp_tc_json.py、document_sync.py、object_cli.py、test_cli_migration.py、fetch_design_task_info.py、generate_tr_context.py；其中 object_cli.py、test_cli_migration.py、fetch_design_task_info.py 为新增。
+- 根目录 README.md、codeagent-extension.json、requirements.txt。
+
+旧 MCP 移除按明确路径执行：mcp_server.py、start_mcp.bat、mcp.yaml 使用 git rm；已有本地修改的 .testagent/mcp/mcp_settings.json 使用 git rm --cached，仅移除仓库跟踪、保留磁盘文件，不提交其中的个人配置。
+
+源模板 docs 列举命令无输出，本轮未复制或暂存教程、PROJECT_CONTEXT.md；不据此声称 CodeHub 已同步 0.2.9 教程。本次没有复制 WebApp 或 CLI 可执行文件。ProjectSkillStatus.txt、.gitignore、.idea/、.opencode/、.testagent/AGENTS.md、.testagent/testagent.md、__pycache__/ 等本地修改或未跟踪文件未纳入明确暂存清单，未要求清理或恢复。
+
+### 检查与合并结果
+
+- 使用 git add -- $Files 精确暂存；现场统计 Python 新增行数为 **458**，满足单个 MR 的 .py 新增行数小于 1000 的规则，无需拆分 MR；删除行及非 Python 文件不计入该限制。
+- 要求核对暂存文件清单和 git diff --cached --check 后，用户回复“确认”。对话未贴出这两项完整输出，因此记录为用户确认，不声称已独立逐项复核。
+- 提供提交说明 `chore: archive coretest-spec-e2e 0.2.9` 及推送 029 分支的命令后，用户明确反馈“已合并”，据此记录本次 CodeHub 归档完成。
+- 未提供本次提交 SHA、MR 编号、最终总文件数和增删行统计，也未提供合并后本地拉取结果；`8e8faf8` 仅为归档前同步基线，不是本次合并提交。
+- 本轮未重新执行业务测试；此前 CLI 流程验收见第 19 节。本次 CodeHub 合并不等同于 GitHub develop → main 合并、Release 创建或安装包正式发布。
+- 用户要求逐步指导、只进行必要步骤；后续同类归档沿用明确文件清单、必要检查和单 MR 优先的方式。
