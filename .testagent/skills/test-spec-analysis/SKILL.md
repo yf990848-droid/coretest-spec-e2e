@@ -49,7 +49,7 @@ output_dir: <tr_dir>/test_specs/
 4. `_index.md` 的“当前 TR 直接关联需求”必须覆盖相同集合；
 5. `sr_specs/` 至少包含一个有效 SR 文件；
 6. 存在未处理的高优先级解析冲突时停止并提示确认；
-7. `platform_ts.json` 必须是合法 JSON；过滤 `scene/function/feature/constraint` 后的 DFX 条目必须具有唯一、非空的 `platform_ts_id`。
+7. `platform_ts.json` 必须是合法 JSON；过滤 `scene/function/feature/constraint` 后的 DFX 平台 ID 取自 `items[].id`（字段不存在时使用 `ts_id`），且必须唯一、非空。
 
 不得使用 `cida_info.json` 的首条需求代替完整需求集合。
 
@@ -76,11 +76,13 @@ output_dir: <tr_dir>/test_specs/
 ## 设计约束分析
 ```
 
-“概述”和“测试设计策略”的子标题内容分别合并写入对应任务节点；其余五个二级标题分别写入同名 TR 节点。直接关联需求、SR 覆盖、测试场景拆分依据和文档冲突影响必须归入上述最相关章节，不再创建同义标题。
+“概述”和“测试设计策略”下的 7 个子标题分别写入任务的同名叶子章节，不向两个父章节写入聚合正文；其余五个二级标题分别写入同名 TR 节点。直接关联需求、SR 覆盖、测试场景拆分依据和文档冲突影响必须归入上述最相关章节，不再创建同义标题。
 
 每条 TS 必须能够回溯到当前 TR 的一个或多个直接关联需求；`requirement_ids` 必须是 TR 需求全集的非空子集。不得引用其他 TR 的需求。
 
 ## 4. DFX TS 测试规格
+
+`platform_ts.json` 保留 CLI 原始响应。将原始 `id`（字段不存在时使用 `ts_id`）填写到以下规格的 `platform_ts_id`；目录脚本使用相同映射生成 `ts_catalog.json.items[].platform_ts_id`。
 
 对 `platform_ts.json` 中过滤 `scene/function/feature/constraint` 后的每条平台 DFX，按原顺序生成一条规格：
 
@@ -147,6 +149,8 @@ TS 规则：
 ```
 
 文件名中的 TR 名称须进行路径安全处理；若名称不适合作为文件名，使用 `tr_no`，仍不得改写 Markdown 中的真实 `tr_name`。
+
+交付完整 Markdown，保留前段 12 个在线文档目标章节及非空正文、DFX 规格和末尾平台写入数据。不能用逐 TS 的“测试范围/测试点”替代前段分析，也不能在后续整理 TS 编号时删掉前段。
 
 完成后汇总 TR ID、直接需求数、SR 数、普通 TS 数、DFX TS 数、各 TS 类型数及尚待确认的审计项。
 

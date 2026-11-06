@@ -5,6 +5,8 @@ description: CoreTool CLI — 华为 CoreTool 平台开发者工具。当用户�
 
 # CoreTool CLI Skill
 
+本扩展 0.2.9 使用 CLI 1.0.6 已验证接口。先检查版本和认证，再按 references 执行；接口不兼容时停止，并以对应 help 确认参数。
+
 CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、需求查询、文档下载、测试平台操作等功能。
 
 每次会话首次使用时从扩展包内确定 CoreTool CLI 的绝对路径并记为 `<coretool_cmd>`。后续命令及 references 中的 `coretool-cli` 仅表示命令名占位符，实际执行时必须替换为 `<coretool_cmd>`。
@@ -17,21 +19,20 @@ CoreTool CLI 是华为 CoreTool 平台的命令行工具，支持 W3 认证、�
 
 ## 环境准备
 
-`<extension-root>` 是包含当前 `.testagent` 目录的扩展包根目录。Windows PowerShell 下只检查扩展包内置 CLI 的这一条路径：
+所有终端命令使用 Bash。路径统一使用 `/`，绝对路径加双引号，直接调用 exe。
 
-```powershell
-$CoreTool = Join-Path '<extension-root>' '.testagent\skills\coretool-cli\tools\coretool-cli.exe'
-if (-not (Test-Path -LiteralPath $CoreTool -PathType Leaf)) {
-    throw "CoreTool CLI 不存在：$CoreTool"
-}
-& $CoreTool version
-if ($LASTEXITCODE -ne 0) { throw "CoreTool CLI version 校验失败：$CoreTool" }
-& $CoreTool auth status
+`<extension-root>` 是包含当前 `.testagent` 目录的扩展包根目录。每次会话首次使用时只检查内置 CLI：
+
+```bash
+CoreTool="<extension-root>/.testagent/skills/coretool-cli/tools/coretool-cli.exe"
+test -f "$CoreTool" || { echo "CoreTool CLI 不存在：$CoreTool" >&2; exit 1; }
+"$CoreTool" version || exit 1
+"$CoreTool" auth status || exit 1
 ```
 
-把通过校验的绝对路径记为 `<coretool_cmd>`。跨 shell 或跨工具调用时重新使用该绝对路径；找不到或校验失败时停止业务操作并报告。
+把通过校验的绝对路径记为 `<coretool_cmd>`。每次跨工具调用均显式传入该绝对路径；找不到或校验失败时停止业务操作并报告。
 
-本文及 references 中的 `coretool-cli` 命令均指此路径；PowerShell 中执行原生命令时使用 `& $CoreTool ...`。
+本文及 references 中的 `coretool-cli` 均为命令占位符，执行时替换为带双引号的绝对路径。
 
 ## 认证
 
@@ -115,9 +116,9 @@ coretool-cli auth logout
 
 3. **从自然语言提取参数**：参见各领域参考文档中的映射表。
 
-4. **缺少必要参数时追问**：不缺可选参数时不追问，使用默认值。
+4. **参数补全**：缺少必要参数时追问；可选参数使用默认值。
 
-5. **JSON 参数**：Windows PowerShell 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免内联 JSON 被原生命令行重新转义。
+5. **JSON 参数**：Bash 下优先使用 `--factor-file`、`--scene-factor-file`、`--data-file` 等文件参数，避免复杂内联 JSON 的引号和转义问题。仅在当前子命令 help 明确支持时使用文件参数；TS/TC 归档必须使用 object_cli.py 的参数数组调用。
 
 6. **结果格式化**：命令输出直接展示给用户，必要时用自然语言解释表格内容。所有 CoreTest 查询命令支持 `--output json` 获取 JSON 格式输出。
 

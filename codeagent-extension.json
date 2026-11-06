@@ -1,5 +1,5 @@
 {
   "name": "coretest-spec-e2e",
-  "version": "0.2.6",
-  "description": "E2E测试设计能力扩展，支持从需求探索、普通/DFX测试规格、测试用例设计到TS、TP、TC归档、在线文档同步和Portal刷新的端到端流程。更新：0.2.6 适配公司新版测试用例卡片，仅替换 webapps，保持现有 Init、Explore、Design、Archive 主流程及产物契约不变。"
+  "version": "0.2.9",
+  "description": "E2E测试设计能力扩展，支持从产品版本初始化、TR需求探索、普通与DFX测试规格分析、TS级TP/TC设计，到平台归档、在线文档同步和Portal卡片刷新的端到端流程。0.2.9 更新：1. 初始化任务查询、普通TS创建和TC归档切换为CoreTool CLI，移除本扩展的MCP服务及相关依赖，使用前完成内置CLI登录；2. 统一Bash命令及绝对路径传递，明确设计脚本位置与Python解释器；3. 修正DFX平台原始ID与规格、目录字段的映射说明；4. 统一TC临时标识与归档状态键，保留完整用例编号及前导零；5. 补齐测试规格在线文档章节，修复不同TS同名章节导致的文档提取失败；6. 保持因子关联、DFX复用和卡片流程，CLI 1.0.6下Init、Explore、Design、Archive流程及接口调用已验证通过。"
 }

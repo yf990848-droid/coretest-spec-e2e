@@ -1204,12 +1204,10 @@ coretool-cli coretest testdesign combination result-with-constraints --parameter
 #### 查询 TP 下的 TC 列表
 
 ```bash
-coretool-cli coretest testdesign tc list --version-pbi <版本PBI> --tp-id <TP ID>
-# 示例
-coretool-cli coretest testdesign tc list --version-pbi 266926538 --tp-id 18288
+coretool-cli coretest testdesign tc list --tp-id <TP ID> -o json
 ```
 
-`--tp-id` 为 int 类型（必填），`--version-pbi` 为 string 类型（必填）。
+CLI 1.0.6 只接受 `--tp-id`，不接受 `--version-pbi`。返回 `items[]` 与 `pagination`。
 
 #### 创建测试用例 TC
 
@@ -1509,3 +1507,12 @@ coretool-cli coretest common cida-config --group-name "UPCF测试组"
 输出字段：`ID`、`PRODUCT_NAME`、`TICC_SERVICE_ADDRESS`、`TMSS_SERVICE_ADDRESS`、`LCM_SERVICE_ADDRESS`、`GROUP_ID`。
 
 服务端点：`https://coretestresult.cloudspider.rnd.huawei.com`，接口路径 `/api/v1/cidaConfig/getCidaConfigsByGroupName/<groupName>`，标准 WebReturn 信封。
+
+## coretest-spec-e2e 0.2.9 迁移接口（CLI 1.0.6 实测）
+
+- 初始化：`coretest testdesign task tree --product-name <产品版本> --owner-id <工号> -o json`，返回 pbi/project_id/tasks。
+- TS：`coretest testdesign ts create-by-name --design-task-id <ID> --tr-id <ID> --name <名称> --type <类型> -o json`；可选 creator、description、resolve-description、scene-names、function-names、feature-names、requirement-ids，返回 ts_id/ts_name。
+- TC：使用 `tc create --case-id` 原值传递完整编号；不支持创建用的 --data-file，且此命令没有因子 flag。
+- `tc create` 返回空 message 时通过 `tc list --tp-id` 确认；不得据此直接重试创建。
+- `tc create-by-name` 支持 --action-factor-names / --data-factor-names，但使用编号拼装参数；不作为本迁移的完整编号归档入口。
+- TS get 的 tr_id/feature_name 等概要字段可能为空；不能用这些空值判定创建关联失败。

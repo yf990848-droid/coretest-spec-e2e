@@ -208,7 +208,7 @@ author: <tr_info.creator>(via spec-extractor)
   "<tr_dir>/test_specs/platform_ts.json"
 ```
 
-必须校验 `platform_ts.json` 是合法 JSON，且 DFX 条目具有唯一、非空的 `platform_ts_id`。后续测试规格生成和 `ts_catalog.json` 必须复用该文件，不得再次查询平台。
+`platform_ts.json` 保留 CLI 原始响应。必须校验其为合法 JSON；过滤 `scene/function/feature/constraint` 后，DFX 平台 ID 取自 `items[].id`（字段不存在时使用 `ts_id`），且必须唯一、非空。后续测试规格生成和 `ts_catalog.json` 必须复用该文件，不得再次查询平台。
 
 ### 阶段 6：调用 test-spec-analysis
 
@@ -228,8 +228,10 @@ output_dir: <tr_dir>/test_specs/
 - 每条 TS 的 `requirement_ids` 是该集合的子集；
 - TR 元数据直接来自 `tr_info.json`；
 - 不创建 TR，不把平台已有的 DFX TS 追加到普通 TS 清单；
-- 对平台结果过滤 `scene/function/feature/constraint` 后，按 `platform_ts_id` 为每条 DFX 生成独立测试规格；
+- 对平台结果过滤 `scene/function/feature/constraint` 后，将原始 `id`（字段不存在时使用 `ts_id`）映射为规格中的 `platform_ts_id`，为每条 DFX 生成独立测试规格；
 - DFX 规格写在 `## 平台写入数据` 之外，不能进入 `tr_ts.json.test_specs[]`。
+
+必须按 test-spec-analysis 第 3 节生成完整前段：TASK 的 7 个固定叶子章节和 TR 的 5 个固定章节均有正文，不得只输出平台表格或逐 TS 测试点。DFX 使用 `## DFX TS 测试规格` 和 `### DFX TS：<platform_ts_id>`，`## 平台写入数据` 必须位于末尾；不同 TS 下的“测试范围”“测试点”允许重名。不得为编排稳定编号而覆盖或删减前段分析。
 
 输出一份 `<tr_dir>/test_specs/<TR名称>测试规格.md`。默认展示并等待确认；`--skip-clarify` 可跳过。
 
@@ -243,7 +245,7 @@ python .testagent/skills/test-spec-analysis/scripts/build_tr_json.py \
   --tr-info "<tr_dir>/tr_info.json"
 ```
 
-脚本只生成已有 TR 模式 JSON，不调用任何 MCP。验证：
+脚本只生成已有 TR 模式 JSON，不调用任何平台写入命令。验证：
 
 - `_meta.tr_mode == "existing"`；
 - `tr.tr_id` 与输入 TR 一致；

@@ -108,6 +108,8 @@ archive/request_plan.json
 }
 ```
 
+TC 标识必须分开使用：入口允许唯一匹配的 `case_id`，但匹配后立即转换为 JSON 的 `tc_id_temp`。例如 `case_id=PCF_CLI_MIG_01_01` 对应 `tc_id_temp=TC.11.01` 时，执行计划和状态 key 均为 `TS_11/TC.11.01`，父 TP key 为 `TS_11/TP.11.01.01`。禁止把 case_id 或三级路径 `TS_11/TP.11.01.01/PCF_CLI_MIG_01_01` 写入 execution_plan.tc 或 TC 状态 key；case_id 只用于平台用例编号，不改写其值。
+
 使用文件一次性记录：
 
 ```bash
@@ -134,7 +136,7 @@ python "<state-script>" record-plan \
 <root>/.testagent/skills/coretest-object-archive/SKILL.md
 ```
 
-只调用一次，传入其全部必需输入。不得在调用前后自行执行任何对象创建 MCP，不得按 TS、TP、TC 拆成多个 Skill 调用或并发执行。
+只调用一次，传入其全部必需输入。不得在调用前后自行执行任何对象创建 CLI，不得按 TS、TP、TC 拆成多个 Skill 调用或并发执行。
 
 Skill 返回后重新读取 `archive_state.json`，只针对本次计划校验：
 
@@ -247,7 +249,7 @@ python "<state-script>" summary --state-file "<state-file>"
 - 对象 Skill 只调用一次；
 - 文档 Agent 只调用一次且只能在对象 Skill 返回后调用；
 - 文档门禁通过前禁止 Portal 和最终成功；
-- 不直接执行对象创建 MCP；
+- 不直接执行对象创建 CLI；
 - 不直接执行 CoreTool 文档命令；
 - 不加载文档同步 Skill，不复制或改写下游 Skill 的领域规则；
 - 不覆盖任何设计输入 JSON。

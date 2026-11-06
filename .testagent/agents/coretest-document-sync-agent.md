@@ -54,6 +54,6 @@ python "<root>/.testagent/skills/coretest-document-sync/scripts/document_sync.py
 - 不手工提取 Markdown 章节；
 - 不手工拼装或执行 topic/write 命令；
 - 不修改 `archive_state.json`；
-- 不调用对象创建 MCP 或 Portal；
+- 不调用对象创建 CLI 或 Portal；
 - 脚本失败后不自行补写文档；
 - 不输出最终归档成功结论。

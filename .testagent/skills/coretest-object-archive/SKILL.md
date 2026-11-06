@@ -31,7 +31,7 @@ description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS
 - 仅当计划包含 TP/TC 时提供对应的 TP/TC JSON 和每个相关 TS 的
   `test_design/ts_<NN>_factor_plan.json`；TP 计划缺少因子计划时禁止创建 TP。
 
-缺少当前计划实际需要的输入时停止对象阶段，不调用创建 MCP。TS-only 不得读取 TP/TC JSON。
+缺少当前计划实际需要的输入时停止对象阶段，不调用创建 CLI。TS-only 不得读取 TP/TC JSON。
 
 ## 状态与计划
 
@@ -50,22 +50,22 @@ description: 串行执行已锁定的 CoreTest 对象计划，创建或复用 TS
 
 TS、TP、TC 只能按状态文件中的计划顺序遍历。历史状态只用于复用当前计划内对象，不得触发计划外续跑。
 
-对象开始前调用 `mark-in-progress`。MCP 返回后先将完整原始响应写入：
+对象开始前调用 `mark-in-progress`。TS/TC 的 CLI 脚本将命令、退出码、stdout/stderr 和确认结果保存为证据；每对象固定使用同一路径：
 
 ```text
-archive/responses/<entity>_<safe-key>.json
+archive/cli/<entity>_<safe-key>.json
 ```
 
-然后使用 `--response-file` 调用 `record-success` 或 `record-failure`。禁止通过 `--response-json` 传递响应。每条状态命令都必须检查 `success`；真实父级 ID 未成功落盘时不得继续子节点。
+TP 的证据路径继续使用 factor_archive.py 的返回值。然后使用 `--response-file` 调用 `record-success` 或 `record-failure`。禁止通过 `--response-json` 传递响应。每条状态命令都必须检查 `success`；真实父级 ID 未成功落盘时不得继续子节点。
 
 ## TR：只复用
 
 直接使用状态中的 `tr.platform_id` 作为：
 
 ```text
-create_ts.trId
-create_tp.parentTrId
-create_tc.tr_id
+ts --tr-id
+tp --parent-tr-id
+TC 的 TR 上下文仍由归档计划保存
 ```
 
 不得调用 `create_tr`，不得修改 TR 状态。TR-only 请求允许 TS/TP/TC 计划全部为空，本 Skill 完成 TR 校验后返回。
@@ -76,31 +76,24 @@ create_tc.tr_id
 
 - 状态已为 `succeeded` 且有有效 `platform_id`：直接复用；
 - `source=platform_dfx`：仅允许在 `archive` 调用来源中校验并复用 `platform_ts_id`；`explore_ts_only` 计划出现 DFX 时必须停止，禁止写入状态或调用 `create_ts`；
-- `source=explore`：通过 `tr_ts_index` 精确读取 `tr_ts.json.test_specs[]` 并调用 `core_test_design_mcp.create_ts`；
+- `source=explore`：通过 `tr_ts_index` 精确读取 `tr_ts.json.test_specs[]` 并通过下述脚本调用 CLI `ts create-by-name`；
 - 其他来源：记录当前 TS 失败。
 
-`create_ts` 参数映射：
+先使用 `coretool-cli` Skill 确定 CLI 绝对路径。执行：
 
-```text
-designTaskId       = design_task_id
-trId               = tr.platform_id
-tsName             = tsName/ts_name
-tsType             = tsType/ts_type
-creator            = creator
-description        = description
-resolveDescription = resolveDescription/resolve_description
-sceneSelecteds     = 源值（存在时）
-functionSelecteds  = 源值（存在时）
-featureSelecteds   = 源值（存在时）
-requirement_ids    = requirement_ids
+```bash
+python "<root>/.testagent/skills/coretest-object-archive/scripts/object_cli.py" ts \
+  --cli "<coretool_cmd>" --input-file "<tr_ts.json>" --ts-index <catalog.tr_ts_index> \
+  --design-task-id <design_task_id> --tr-id <TR平台ID> --creator "<creator>" \
+  --response-file "<archive/cli/ts_<safe-key>.json>"
 ```
 
-可选字段不存在时传空值，不得编造。成功必须同时满足：
-
-```text
-result.success == true
-result.data.tsId 为有效非零 ID
-```
+脚本保持 `tsName/ts_name`、`tsType/ts_type`、description、resolveDescription/resolve_description；
+将 sceneSelecteds/functionSelecteds/featureSelecteds 映射为 --scene-names/--function-names/--feature-names，
+requirement_ids 映射为 --requirement-ids。缺少可选字段时不编造关联。
+检查退出码为 0、`success=true` 和有效 `id`，使用该 ID 调用
+`archive_state.py record-success --state-file <archive_state.json> --entity ts --key <TS_NN> --parent-key TR --parent-id <TR平台ID> --platform-id <id> --response-file <绝对证据路径>`。
+失败时记录失败。不要使用 `ts get` 中空白的关系概要字段推断关系不存在。
 
 TS 失败时，将该 TS 下计划内 TP/TC 记录为 `blocked`，继续其他 TS 分支。
 
@@ -161,7 +154,7 @@ python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" cre
 脚本校验因子计划，保持 TP JSON 的 `tpType`、名称、描述、需求关联，
 只在 CLI 调用边界把中文 `tpSourceType` 转成 CLI 枚举；`testFactorIdList`
 使用因子 UUID（`test_factor_id`），`sceneFactorIdList` 使用场景因子编码。
-禁止使用 TS 因子关系的数字 `id`，禁止回退到旧 MCP 按名称推断因子。
+禁止使用 TS 因子关系的数字 `id`，禁止回退到按名称推断因子。
 脚本返回 `id`、`request_file`、`response_file`；先检查 `success=true` 和
 有效非零 ID，再按原流程通过 `archive_state.py record-success --entity tp`
 保存平台 ID 与原始响应。脚本返回的文件路径相对于 `archive/`，调用
@@ -182,33 +175,48 @@ python "<root>/.testagent/skills/coretest-archive/scripts/factor_archive.py" cre
 
 通过 `TS_<NN>/<tc_id_temp>` 唯一定位 TC，并在同一 TS 下使用 `TS_<NN>/<tp_id_temp>` 查找真实 TP ID。
 
+TC 标识必须分开使用：入口允许唯一匹配的 `case_id`，但匹配后立即转换为 JSON 的 `tc_id_temp`。例如 `case_id=PCF_CLI_MIG_01_01` 对应 `tc_id_temp=TC.11.01` 时，执行计划和状态 key 均为 `TS_11/TC.11.01`，父 TP key 为 `TS_11/TP.11.01.01`。禁止把 case_id 或三级路径 `TS_11/TP.11.01.01/PCF_CLI_MIG_01_01` 写入 execution_plan.tc 或 TC 状态 key；case_id 只用于平台用例编号，不改写其值。
+
+每条 TC 按同一标准 key 查询状态；已成功则复用，否则先 mark-in-progress，再调用 object_cli.py，最后用同一 key record-success/record-failure。`--tc-id-temp` 必须传 JSON 的 `TC.11.01`，不能传平台 case_id。发现锁定计划使用错误标识时返回计划错误，不得为迁就错误计划继续创建或保存非标准 key。
+
 - `status=succeeded`：直接复用，即使没有 `platform_id`；
 - 所属 TP 失败、blocked 或没有有效 ID：记录 TC 为 `blocked`；
-- 其他状态：调用 `core_test_design_mcp.create_tc`。
+- 其他状态：使用下述脚本调用 CLI `tc create`，保持完整 `case_id`。
 
-必填参数映射：
-
-```text
-tp_id               = 所属 TP 真实 tpId
-name                = TC JSON.name
-case_id_prefix      = TC JSON.case_id_prefix
-case_id_start_value = TC JSON.case_id_start_value
-case_id_number      = TC JSON.case_id_number
-auto_type           = TC JSON.auto_type
-rank                = TC JSON.rank
-creator             = TC JSON.creator；为空时使用上下文 creator
-owner               = TC JSON.owner；为空时使用上下文 creator
-preparation         = TC JSON.preparation
-test_step           = TC JSON.test_step
-expect_output       = TC JSON.expect_output
-tr_id               = tr.platform_id
-pbi                 = PBI
-case_id             = TC JSON.case_id
+```bash
+python "<root>/.testagent/skills/coretest-object-archive/scripts/object_cli.py" tc \
+  --cli "<coretool_cmd>" --input-file "<test_design/ts_<NN>_tc.json>" \
+  --tc-id-temp "<tc_id_temp>" --tp-id <所属TP真实ID> --pbi <PBI> \
+  --creator "<上下文creator>" --response-file "<archive/cli/tc_<safe-key>.json>"
 ```
 
-`case_id_number` 只传数字后缀，`case_id` 保持完整原值。其他可选字段仅在源 JSON 存在时原值传递。
+safe-key 必须含 TS 编号及对象临时 ID，替换路径分隔符，避免不同 TS 的 TC.01 共用证据。
+脚本以参数数组调用 CLI，不拼接 Shell 命令；从原 JSON 精确选择 TC，映射：
 
-`result.success == true` 即记录 TC 成功，不提取、不校验、不要求 TC 平台 ID。只有 `success=false`、调用异常或无法判断成功时记录失败。
+| JSON | CLI |
+|---|---|
+| case_id | --case-id，原值保留全部数字段及前导零 |
+| preparation | --precondition |
+| test_step / expect_output | --test-step / --expected-output |
+| creator / owner | --creator / --owner；为空时分别使用上下文 creator |
+| auto_type / rank | --auto-type / --rank，保持 0 值 |
+| test_case_type / test_case_activity | --test-type / --test-activity |
+| test_environment_id / test_environment_type | --test-env-id / --test-env-type |
+
+其余原有 snake_case 可选参数按对应 flag 传递；status 固定 notArchived，case_id_type 默认 input_begin。
+不使用旧 case_id_prefix/start_value/number 重新拼装编号，不把卡片列 TestType、AutoType、envtype、DesignNote 改写为归档字段。
+
+CLI 的空 `message` 不代表失败。脚本创建前后使用 `tc list --tp-id` 查询，按完整 case_id 唯一匹配并核对名称、PBI、owner、rank、auto_type、status。
+仅退出码为 0、`success=true` 且有有效 `id` 时，使用 `record-success --state-file <archive_state.json> --entity tc --key <TS_NN/tc_id_temp> --parent-key <TS_NN/tp_id_temp> --parent-id <TP平台ID> --platform-id <id> --response-file <绝对证据路径>` 保存本次新对象。
+历史 succeeded TC 仍允许没有平台 ID，并按原规则复用。
+
+脚本在写入平台前独占保存 `.request.json`，相同对象重试只能确认已创建结果，不能盲目重复创建。
+若结果不确定、同编号冲突或读回不一致，记录失败，保留证据并人工核查平台与状态；不得删除证据后自动重试。
+脚本输入校验失败可能没有响应文件，此时使用 `record-failure --error` 保存脚本错误，不伪造成功响应。
+
+当前标准 TC JSON 没有因子关联字段；TS 因子与 TP 因子关联保持现有流程。
+如自定义 TC 带非空 action_factor_names/data_factor_names 或结构化因子，脚本明确失败，禁止静默丢弃；
+需 CLI 支持“完整 case_id + 因子关联”并验证后再扩展，不以 create-by-name 重组编号替代。
 
 ## 返回门禁
 

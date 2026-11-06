@@ -2,8 +2,35 @@
 
 `coretest-spec-e2e` 是面向 E2E 测试设计的 TestAgent 扩展包，围绕平台已有设计任务和 TR，完成需求探索、普通/DFX 测试规格、TS 级 TP/TC 设计、测试用例卡片、平台对象归档、在线文档同步和 Portal 刷新。
 
-当前扩展版本：`0.2.6`
+当前扩展版本：`0.2.9`
 当前开发分支：`develop`
+
+## 0.2.9 更新
+
+- Init、TS、TC 平台调用统一使用 CoreTool CLI，移除本扩展的 MCP 服务及相关依赖。
+- 终端命令统一使用 Bash，设计流程明确传递 Python 解释器及脚本绝对路径，并提前创建输出目录。
+- 修正 DFX 原始平台 ID 到测试规格及编号目录的字段映射说明。
+- 统一 TC 临时标识和归档状态键，保留完整用例编号及前导零；创建后查询确认，保存调用证据。
+- 补齐测试规格的 TASK/TR 在线文档章节，修复不同 TS 下同名章节导致的提取失败。
+- CLI 1.0.6 下的 Init → Explore → Design → Archive 流程及接口调用已验证通过；保留既有因子关联、DFX 复用、卡片及归档规则。
+
+## 0.2.8 更新
+
+- 修正测试用例卡片调用约束：使用 Agent 终端工具原生 Shell，优先通过 `workdir` 设置脚本目录，不再强制 CMD 或嵌套启动 Shell；
+- 每个 TS 独立调用卡片脚本，保留原始输出，避免循环、批量包装和输出捕获；
+- 清理旧的需求级 JSON 重建、修复和 Excel 导出说明，直接复用 adapter 生成的单 TS 卡片数据；
+- 补齐初始化 card_id 非空检查、四个位置参数说明和更新返回校验，统一卡片阶段重试规则；
+- 用户已于 2026-10-31 确认验证成功；本次未修改 Python、前端、TS 并发数量、因子及归档规则。
+
+使用指导见：[0.2.9 指导教程](<docs/coretest-spec-e2e 0.2.9 指导教程.md>)。
+
+## 0.2.7 更新
+
+- 本次仅修复本地 MCP 启动问题；
+- 启动脚本优先使用 Python 3.12，最低要求 Python 3.11；复用已有虚拟环境前检查版本，不兼容时提示备份并重建；
+- 启动前实际验证 `from fastmcp import FastMCP`，依赖导入失败时停止并显示错误；
+- 批处理脚本统一使用 CRLF 换行和 ASCII 注释，修复 Windows 下的脚本解析兼容性问题；
+- 本地启动已由用户验证通过。
 
 ## 0.2.6 更新
 
@@ -48,12 +75,35 @@
 ## 使用前准备
 
 - TestAgent 已加载当前扩展包；
-- `core_test_design_mcp` 可用，地址通常为 `127.0.0.1:8765`（SSE）；
+- 扩展包内置 CoreTool CLI 1.0.6 接口兼容版本可用，且已完成认证；
 - 当前账号可访问对应产品版本、测试设计任务和 Portal；
-- Python 可用；
+- **请提前安装 Python 3.11 或以上版本，推荐 Python 3.12**；Windows 安装时建议勾选 Python Launcher 和 Add python.exe to PATH；
 - Pandoc 可通过 `pandoc --version` 检查；
 - CoreTool 优先使用扩展包内置绝对路径，且已完成认证；
 - 当前 TR 至少直接关联一个有效 IR/SR/US。
+
+### Python 与 CLI 检查
+
+在扩展包根目录打开 Bash（Windows 可使用 Git Bash），执行：
+
+```bash
+py -3.12 -m venv .venv
+"./.venv/Scripts/python.exe" -m pip install -r requirements.txt
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" version
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" auth status
+pandoc --version
+```
+
+示例使用 Python 3.12。让 TestAgent 使用安装了依赖的 Python 环境；已有兼容环境可直接复用。
+
+未登录或认证过期时，在同一扩展包根目录执行：
+
+```bash
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" auth login
+"./.testagent/skills/coretool-cli/tools/coretool-cli.exe" auth status
+```
+
+CLI 可执行文件应随扩展包提供，位置为 `.testagent/skills/coretool-cli/tools/coretool-cli.exe`。
 
 ## 快速开始
 
@@ -284,19 +334,16 @@ coretest-archive-agent
 
 ## 当前验证状态
 
-截至 2026-09-23，`develop` 已验证：
+截至 2026-11-04，用户已完成 0.2.9 流程与接口调用验证：
 
-- 普通/DFX 测试规格和统一 TS catalog 可生成；
-- Explore 可确定性生成普通 TS-only 计划，DFX 不进入计划；
-- 普通 TS 可创建并保存真实平台 ID；
-- Design 可处理稳定编号和真实平台 TS ID；
-- Archive 对象、在线文档和 Portal 闭环验证成功；
-- Design 已验证 TS/TP 因子检索、候选证据和因子计划校验；
-- Archive 已验证 TS 因子同步成功，新 TP 可在创建时携带因子关系并成功归档；
-- 新版 CoreTool `source-data write` 返回格式与现有脚本兼容；
-- 任务级 7 个叶子章节按独立 topic 写入；
-- 全量测试设计卡片可从 TR、TS 节点分别触发 Explore、Design；
-- 0.2.6 新版测试用例卡片 `webapps` 替换后验证通过，现有 Design 卡片链路无回归。
+- Init：CLI 获取产品版本、设计任务及已有 TR 上下文。
+- Explore：生成测试规格与统一 TS 目录，归档普通 TS，复用平台 DFX。
+- Design：TR 5192 与 TR 5175 的 TS_11 完成 Markdown、TP/TC JSON、因子检索及计划校验、completed 卡片更新。
+- Archive：TR 5192 的 TS_11/TP.11.03 完成 TS 复用、TP/TC 创建和 3 个 TS 因子同步。
+- 文档同步：TASK 7 个叶子章节、TR 5 个章节、当前 TS 2 个章节全部成功。
+- Portal：卡片发送成功，跳转目标为所属 TP。
+
+本轮验收范围为流程及接口调用；业务设计质量、页面实际展示和重复执行幂等性不属于本轮已验证结论。
 
 ## 关键约束
 
@@ -323,11 +370,17 @@ DFX TS 是平台已有对象，catalog 已保存其 `platform_ts_id`。Explore �
 
 ### 计划 JSON 为什么必须使用文件
 
-Windows PowerShell 调用原生 Python 时，内联 JSON 可能丢失引号。流程固定生成 `request_plan.json`，并通过 `--request-file` 锁定。
+流程通过 `request_plan.json` 和 `--request-file` 传递归档计划，减少内联 JSON 的引号与转义问题。
 
 ### Archive 中断后如何继续
 
 使用相同 TR ID 和目标重新执行。流程读取 `archive_state.json`，复用成功对象并继续未完成部分。
+
+### 用例卡片调用报 Shell 错误或返回成功但未显示
+
+卡片更新由 Agent 使用 Bash 执行，优先通过 `workdir` 指定 `test-case-card/scripts`；不支持时先切换到脚本目录。路径使用 `/`，包含空格的路径加双引号。
+
+每张 TS 卡片独立调用，检查退出码、`success=true` 和非空 `card_cache_id`，再确认页面上的对应卡片已刷新；缓存接口成功不能单独证明页面已显示。
 
 ### 卡片仍加载旧版本
 

@@ -142,7 +142,7 @@ def save_plan(path: Path, plan: Dict[str, Any]) -> None:
     atomic_write_json(path, plan)
 
 
-def parse_sections(path: Path) -> Dict[str, str]:
+def parse_sections(path: Path, titles: Sequence[str]) -> Dict[str, str]:
     text = path.read_text(encoding="utf-8-sig")
     lines = text.splitlines()
     headings: List[Tuple[int, int, str]] = []
@@ -151,7 +151,10 @@ def parse_sections(path: Path) -> Dict[str, str]:
         if match:
             headings.append((index, len(match.group(1)), match.group(2).strip()))
     result: Dict[str, str] = {}
+    targets = set(titles)
     for position, (start, level, title) in enumerate(headings):
+        if title not in targets:
+            continue
         end = len(lines)
         for next_start, next_level, _ in headings[position + 1:]:
             if next_level <= level:
@@ -382,7 +385,7 @@ def main() -> None:
         idp_doc_id = resolve_idp_doc_id(request, args.coretool_cmd, args.command_timeout, response_dir)
         context = {"coretool": args.coretool_cmd, "timeout": args.command_timeout, "responses": response_dir, "payloads": payload_dir, "idp_doc_id": idp_doc_id, "user_id": str(request["user_id"])}
         try:
-            spec_sections = parse_sections(Path(request["test_spec_file"]))
+            spec_sections = parse_sections(Path(request["test_spec_file"]), TASK_ACTIVITIES + TR_ACTIVITIES)
             spec_error: Optional[Exception] = None
         except Exception as exc:
             spec_sections = {}
@@ -437,8 +440,8 @@ def main() -> None:
                 if str(item.get("source", "")) == "platform_dfx" and str(item.get("platform_ts_id", "")) != ts_id:
                     raise ValueError(f"{ts_key} 的 platform_ts_id 与归档状态冲突")
                 design_file = Path(request["test_design_dir"]) / f"{ts_key.lower()}_test_design.md"
-                sections = parse_sections(design_file)
                 names = ts_activity_names(item)
+                sections = parse_sections(design_file, names)
                 activities = [(name, exact_content(sections, [name], False)) for name in names]
                 sync_node(plan_path, plan, node, activities, (ts_id, ts_name, "TS"), context)
             except Exception as exc:
