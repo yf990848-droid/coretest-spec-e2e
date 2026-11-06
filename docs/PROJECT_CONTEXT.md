@@ -1,13 +1,14 @@
 # coretest-spec-e2e 项目上下文
 
-> 最后核对：2026-11-04
+> 最后核对：2026-11-06
 > 仓库扩展版本元数据：`0.2.9`
 > 当前开发分支：`develop`  
 > 稳定分支：`main`  
 > 最新 MCP 现场结论：2026-11-02 用户确认 Python 3.10 旧虚拟环境导致的 StrEnum 导入问题已解决；通过 Python 3.12 重建环境并从项目根目录 requirements.txt 安装依赖，见第 16 节。  
 > 用例卡片现场结论：用例卡片调用约束修复已于 2026-10-31 由用户确认验证成功。最终采用 Agent 原生 Shell、优先 workdir 设置脚本目录，不强制 CMD；见第 15 节。第 14 节的 Portal 切换模型恢复属于另一轮历史排查。  
 > 代码仓归档状态：2026-11-02 用户确认 0.2.8 已合入 CodeHub `CoreTestClaw_G/CoreTestClaw` 的 `coretest-spec-e2e` 分支；本次归档 7 个文件，详见第 17 节。该结果不代表 GitHub main 合并或正式发布。  
-> 版本与发布状态：develop 已迁移至 0.2.9 CLI 流程；2026-11-04 修正 Bash 指令、TC 标识说明与文档规则/解析，等待用户重新执行端到端回归。本轮不合并 main，不创建 Release。
+> 版本与发布状态：0.2.9 CLI 主流程已由用户确认验证通过，版本配置、README 和指导教程已更新至 develop；本次对话未执行 main 合并、Release 创建或安装包发布。最新结论及证据见第 19 节。
+> 阅读提示：第 13～17 节为历史记录；当前 CLI、Bash、TC 标识及发布状态以第 18～19 节和当前源码为准。
 
 ## 1. 项目目标
 
@@ -74,7 +75,7 @@ Portal 卡片也可从 TR/TS 节点直接触发 Explore/Design。
 根目录版本当前为：
 
 ```text
-coretest-spec-e2e 0.2.8
+coretest-spec-e2e 0.2.9
 ```
 
 0.2.7 相关提交：
@@ -222,7 +223,9 @@ ts_catalog.json
 - 图谱无匹配因子时允许空因子计划继续；
 - 卡片 key 仍为 `<requirement_id>_<ts_key>`。
 
-### 4.4.1 用例卡片执行约束（0.2.8）
+### 4.4.1 用例卡片执行约束（0.2.8 历史基线）
+
+0.2.9 终端指令统一为 Bash，保留以下 workdir、单 TS 独立调用和返回结果判定；历史 PowerShell 示例不作为当前执行指令。
 
 - 在 Agent 终端工具内执行，使用工具原生 Shell；不得仅凭工具名判断实际 Shell，不强制 CMD，不嵌套启动其他 Shell。
 - 优先将工具 workdir 设置为 test-case-card/scripts；不支持时按实际 Shell 语法切换目录，失败立即停止。在该目录直接调用 Python 和相对文件名 card_generate.py。
@@ -257,7 +260,7 @@ TC        → 全部 TS + TP + TC
 - CLI 边界将 TestFactor `type` 规范化为 int，不修改原始因子计划；
 - 成功对象即时保存；
 - TS/TP 需要有效平台 ID；
-- TC 以 `success=true` 为成功，不强制平台 ID；
+- 0.2.9 新建 TC 创建后查询确认并保存真实平台 ID；历史已成功但未记录 ID 的 TC 兼容复用；
 - 文档失败不回滚对象。
 
 固定编排：
@@ -441,7 +444,7 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 3. 需要继续补充多需求 TR、多 TR 同需求、指定对象和断点续跑回归。
 4. 已错误写入父 topic 的历史聚合数据不会因新逻辑自动删除，需要在平台上一次性清理。
 5. Portal TR/TS 节点【AI分析】触发 Explore/Design 的独立实机回归仍建议保留；不要将新版测试用例卡片的验证直接等同于所有 Portal 交互路径的回归。
-6. 发布 0.2.8 安装包时，扩展目录和 `codeagent-extension.json.version` 应一致，并包含最新启动脚本；本版沿用既有 WebApp，不要求重新修改卡片业务实现。不能从本地 CoreTool CLI 版本推断扩展包版本。
+6. 发布 0.2.9 安装包时，扩展目录与 `codeagent-extension.json.version` 应一致，并提供内置 CoreTool CLI；本扩展已移除 MCP 服务。不能从 CLI 版本推断扩展包版本。
 7. 因子选择规则和归档适配已改为显式 ID 计划；scene TS/TP 可同时选两类因子，其他 TS 类型只选 TestFactor。scene TS 的完整扩展包闭环已现场验证。
 8. 旧 TP 不做因子补录；只有新 TP 在创建时原子关联。平台已有但本地无成功状态的同名 TP 需人工核对。
 9. 0.2.5 的 Design/Archive 主链路已完成内网现场回归；非 scene TS 的完整扩展包端到端类型覆盖可作为后续增强验证，不阻塞本次发布。
@@ -465,17 +468,17 @@ constraint、DFX TP 的名称和编码均已在页面显示。Feature TS 尚未�
 
 以 `develop` 实际源码为最终依据。2026-10-19 核对时 `main` 与 `develop` 已分叉（`develop` 相对 `main` ahead 1、behind 1），不要将任一分支状态推定为另一个分支的版本；后续若需要合并须先核对实际差异。
 
-当前用户指导教程：`coretest-spec-e2e 0.2.8 指导教程.md`。教程面向使用者，MCP 由工具自动启动，无需用户手动启动；文档引用只写文件名，不添加 GitHub 或相对文件链接。
+当前用户指导教程：`docs/coretest-spec-e2e 0.2.9 指导教程.md`。教程面向使用者，终端示例使用 Bash；平台访问使用内置 CoreTool CLI，使用前完成登录。README 和教程不引用 GitHub 网页；当前两者使用仓库内相对链接互相引用。
 
 ## 10. 接手后的下一步
 
-第 14 节的 Portal 现场问题已通过切换模型恢复。第 15 节的用例卡片调用修复也已验证成功，不再作为待恢复故障。用例卡片已增加提示词层面的结果校验，但底层脚本失败退出码、UUID 兜底和 Portal 空参数处理等运行代码未在本轮修改，不得混记为已交付。
+0.2.9 已完成本轮“打通流程”的验收，版本配置、README 和指导教程已提交 develop。无需仅为发布准备重复执行已通过的 Archive；业务设计质量与其他扩展验证按后续目标单独安排。
 
-0.2.8 版本元数据、README 和精简后的用户教程已提交 develop。2026-11-02 用户确认 CodeHub 0.2.8 代码仓归档已合并（第 17 节），不再作为待执行归档任务。GitHub main 合并、正式发布仍未有完成记录，后续按用户指令推进。
-
-1. 发布前清理 `.testagent/mcp/mcp_settings.json` 中的个人认证配置，或确保该本地配置不进入发布包。2026-10-22 核对时 `X-USER-TOKEN`、`X-AUTH-TOKEN` 仍为非空值；本次仅记录待办，未修改配置，也不在文档中保存凭据值。若为有效凭据，应撤销或轮换。
-2. 若从 main 发布，先核对最新分支差异，再按用户指令合并；不能直接套用 2026-10-19 的 ahead/behind 数值。
-3. 原开发计划中曾归入 0.2.7 的 Init 全量需求功能/特性关系、DFX 测试设计准则匹配不属于本次 0.2.7，需另行排期和确定版本号。Explore TR 分组、流程策略配置、在线文档新版适配仍为后续工作，不能记为本次已完成。
+1. 若用户要求合并到 main，先核对最新分支差异，再执行合并；本次对话没有 main 合并、Release 或安装包发布记录，不沿用历史 ahead/behind 数值。
+2. 发布包保持版本 0.2.9，包含与 CLI 1.0.6 接口兼容的内置可执行文件；用户完成 CLI 登录并准备 Python、Pandoc 环境。旧 MCP 启动及依赖排障仅作为历史参考。
+3. 本轮未以重复运行验证幂等性，未验证业务设计质量或页面实际展示；不将接口成功扩展为这些结论。用户当前只要求流程打通，不追加阻塞性验收步骤。
+4. 历史本地产物和状态不自动迁移。重新 Explore 后，同一稳定 TS 编号可能指向不同对象；旧 TP/TC/因子状态应与其原始父对象一并核对，不能只改父级 ID。
+5. Init 全量需求功能/特性关系、DFX 设计准则匹配、Explore TR 分组、流程策略配置和在线文档新版适配仍按后续计划独立推进。
 
 ## 11. 0.2.5 develop 实施增量（已验证）
 
@@ -712,12 +715,14 @@ ren .venv .venv_py310_backup
 - 标准 TC 当前没有关联因子字段。自定义非空 TC 因子字段不得静默丢弃；需要 CLI 支持完整 case_id 与因子一起提交并验证后扩展。本次不宣称覆盖 MCP 所有可选接口。
 - 删除本扩展 MCP 配置、服务器及启动器；移除 fastmcp/fastmcp-slim/cryptography 依赖，保留 requests 和 Python 3.11+ 要求。
 
-验证证据：用户在 Windows CLI 1.0.6 实测 task tree、TS 42026、TP 28241，TC 151519（_001）与 155667（_01_02），并确认平台字段一致。新适配代码另做本地离线回归；尚未在内网平台运行完整 Init → Explore → Design → Archive，不将已有手动命令验证视为新脚本端到端通过。
+验证证据：用户在 Windows CLI 1.0.6 实测 task tree、TS 42026、TP 28241，TC 151519（_001）与 155667（_01_02），并确认平台字段一致。新适配代码另做本地离线回归；这是迁移初期的手动接口验证记录；后续完整流程验证已经完成，见第 19 节。
 
 本地回归：新增 CLI 适配测试 13 项、既有因子归档测试 9 项、既有因子候选测试 4 项全部通过（共 26 项）；测试使用离线 mock，不代表平台联调通过。
 
 
-## 2026-11-04：0.2.9 实测及最小修复
+## 2026-11-04：0.2.9 首轮实测及最小修复（历史快照）
+
+以下待确认项为修复当时状态；后续验收与发布准备以第 19 节为准。
 
 - 实测：Init 上下文生成成功；TR 5192 的 TS_11 创建为 42119 并成功复用；Design 生成 11 TP、37 TC，因子计划及卡片更新调用成功。
 - 小范围归档：TP.11.01.01=28760，4 条 TC 平台 ID 为 156538、156539、156542、156545；TS 因子同步报告成功。TP 因子平台回查、TC 标准状态键及重复归档复用仍待确认。
@@ -727,3 +732,55 @@ ren .venv .venv_py310_backup
 - 修复范围：版本保持 0.2.9；不修改因子规则、TP/TC 生成逻辑、卡片实现，不新增 Explore 校验或失败节点重试机制。
 - 历史本地产物不迁移、不修复；由用户更新扩展后重新跑流程。已成功平台对象不应被当作失败对象重建。
 - 本地验证：7 个解析回归场景及 Python 语法检查通过；Windows 内网端到端验证仍待用户执行。
+
+## 19. 0.2.9 流程验收完成与发布准备（2026-11-04；2026-11-06 整理）
+
+### 本轮目标与修改边界
+
+用户明确本轮先打通流程，暂不评价业务设计质量。修改保持最小范围：终端示例只写 Bash，路径用正斜杠并加引号；指令使用简洁正向表述，保留正确调用方式，不增加无必要的校验脚本。历史失败文档由用户重新生成，不做迁移修复。
+
+首轮 Bash、TC 标识及文档解析修复后，又完成两项指令修正：
+
+| 问题 | 修正 | 文件 |
+|---|---|---|
+| 误用原始平台响应的 platform_ts_id，导致先报 DFX ID 缺失再纠正 | 原始 platform_ts.json 保留 CLI 响应，取 items[].id，字段不存在时兼容 ts_id；映射到规格及 catalog 的 platform_ts_id | coretest-explore/SKILL.md、test-spec-analysis/SKILL.md |
+| Agent 探测 test-design/scripts 和 coretest-design/scripts，且输出目录尚未创建 | 主流程传入解释器及四个脚本绝对路径，提前 mkdir -p 创建输出目录；Agent 直接使用传入路径执行 | coretest-design/SKILL.md、agents/test-design-agent.md |
+
+上述三个 Skill 均位于 .testagent/skills/，Agent 位于 .testagent/agents/。脚本路径固定为 coretest-design/scripts 下的 build_tp_tc_json.py、factor_candidates.py、factor_plan.py，以及 test-graph/scripts/query.py。test-design 负责 Markdown 生成；本次没有发现源码写死错误的 test-design/scripts 路径，修正的是调用方与 Agent 的路径传递契约。
+
+这两项仅修改 4 个 Markdown 文件，未修改 Python、因子选择规则、卡片实现或 Archive 逻辑。检查 Bash 示例语法并回读远端确认一致。TC 参数继续使用 tc_id_temp，标准计划/状态键为 TS_<NN>/<tc_id_temp>，case_id 作为平台业务编号原值保留。
+
+### 现场验证结果
+
+验证环境为 Windows、CoreTool CLI 1.0.6、设计任务 2470、PBI 266926538；依据为用户提供的执行报告。
+
+| 环节 | 结果与证据 |
+|---|---|
+| Init | CLI 获取任务及已有 TR 上下文成功 |
+| TR 5192 Explore | 10 个 DFX + 5 个普通 TS，普通 TS_11～TS_15 平台 ID 为 42149～42153；DFX 41534～41543 复用 |
+| TR 5192 Design | TS_11 为 scene，6 TP、6 TC；14 次因子查询，选用 1 TestFactor + 2 SceneFactor，计划校验及 completed 卡片调用成功 |
+| TR 5192 Archive | TS_11 复用 42149；TP.11.03 新建 28790；TC.11.03（case_id=PCF_N23N5_REBUILD_11_03）新建 156649；3 个 TS 因子全部 succeeded |
+| 文档同步 | document_plan.json=succeeded；TASK:2470 的 7 个叶子章节、TR:5192 的 5 个章节、TS:TS_11 的 2 个章节全部成功 |
+| Portal | 跳转 TP.11.03，analyseId=28790，pageType=TP；card_cache_id=e01373e8-9836-488f-b07f-563b7692e558 |
+| 后续 TR 5175 Design | TS_11 为 function，4 TP、9 TC；5 次查询全部成功，8 个 TestFactor 候选，选用 3 个，SceneFactor=0；因子计划及 completed 卡片成功，card_cache_id=28463ecb-b36f-4a68-aeb1-eb8a09f4fa52 |
+
+TR 5175 的 3 个 TestFactor 为 Insp_01_01、Protocol_05_01、License_02_01，均来自候选，每个 TP 不超过 2 个，所有选中 TS 因子均被 TP 使用。这里只记录流程与结构校验，不据此证明因子与业务的相关性。
+
+用户在 TR 5192 Archive 后明确“全部验证通过”，随后提供 TR 5175 Design 成功报告。本轮结论为 **0.2.9 流程及接口调用验收完成，可进入发布准备**。报告未逐行展示最终两项指令修正后的执行日志，不额外声称已独立核实全过程没有任何探测或纠正动作。页面实际展示、业务质量、重复执行幂等性不属于本轮已验证结论。
+
+### 旧状态混用的现场提醒
+
+TR 5192 首轮 TS_11 是 feature“CLI迁移验证”，平台 ID 42119；重新 Explore 后 TS_11 变为 scene，平台 ID 42149。用户曾贴出的 archive_state.json 已更新 TS 父对象，却仍保留 parent_id=42119 的旧 TP、因子及旧卡片记录。这些旧 succeeded 不能证明新 TS 下对象成功，也不能仅将 parent_id 改成新值。后续成功证据以 TP 28790、TC 156649 为准；本次没有提供旧平台对象删除或历史状态全部清理的证据。
+
+### develop 提交与发布文档
+
+| 提交 | 内容 |
+|---|---|
+| 0447795 | CoreTool Bash 指令改为简洁正向表述 |
+| b37812e、654f420 | Explore / test-spec-analysis 原始平台 ID 映射说明 |
+| 149bf02、3116dfe | Design 传递解释器及绝对脚本路径、创建输出目录、Agent 使用传入路径 |
+| 67cbbac | codeagent-extension.json 保持 0.2.9，补齐本轮修复与验证说明 |
+| 3172eeb | README 更新流程验收结果、发布说明和 Bash 环境准备命令 |
+| 85ba623 | docs/coretest-spec-e2e 0.2.9 指导教程.md 更新 Bash 登录、准备事项及 TC 标识说明 |
+
+发布文档仅修改 codeagent-extension.json、README.md、docs/coretest-spec-e2e 0.2.9 指导教程.md 三个文件；JSON 与 Bash 示例检查通过，提交后已回读 develop 确认一致。教程保持用户操作指南，未变更业务代码。此次对话没有执行 develop → main 合并、GitHub Release 创建或安装包发布。
